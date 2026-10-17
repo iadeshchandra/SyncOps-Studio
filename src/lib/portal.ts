@@ -4,6 +4,8 @@ import {
   getDocs,
   collection,
   addDoc,
+  updateDoc,
+  deleteDoc,
   query,
   orderBy,
   onSnapshot,
@@ -292,4 +294,64 @@ export async function createRevision(
     status: 'pending',
   });
   writeJSON(key, revs);
+}
+
+/* ---------------- admin: order management ---------------- */
+
+function mapOrder(id: string, d: Record<string, unknown>): Order {
+  return {
+    id,
+    clientName: String(d.clientName ?? ''),
+    clientEmail: String(d.clientEmail ?? ''),
+    brandUrl: String(d.brandUrl ?? ''),
+    packageId: String(d.packageId ?? ''),
+    packageName: String(d.packageName ?? ''),
+    status: String(d.status ?? 'In Progress'),
+    stageIndex: Number(d.stageIndex ?? 0),
+    adSpend: Number(d.adSpend ?? 0),
+    createdAt: Number(d.createdAt ?? Date.now()),
+    deadlineAt: Number(d.deadlineAt ?? Date.now()),
+  };
+}
+
+/** All orders, newest first. Demo mode seeds the demo order when storage is empty. */
+export async function listOrders(): Promise<Order[]> {
+  if (!isDemoMode && db) {
+    const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map((s) => mapOrder(s.id, s.data()));
+  }
+  const overrides = readJSON<Order[]>('syncops_orders', []);
+  const merged = overrides.some((o) => o.id === DEMO_ORDER.id)
+    ? overrides
+    : [{ ...DEMO_ORDER }, ...overrides];
+  return [...merged].sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export async function updateOrder(orderId: string, patch: Partial<Order>): Promise<void> {
+  const { id: _id, ...clean } = patch;
+  void _id;
+  if (!isDemoMode && db) {
+    await updateDoc(doc(db, 'orders', orderId), clean);
+    return;
+  }
+  const overrides = readJSON<Order[]>('syncops_orders', []);
+  const idx = overrides.findIndex((o) => o.id === orderId);
+  if (idx >= 0) {
+    overrides[idx] = { ...overrides[idx], ...clean } as Order;
+  } else if (orderId === DEMO_ORDER.id) {
+    overrides.push({ ...DEMO_ORDER, ...clean } as Order);
+  } else {
+    throw new Error('Order not found.');
+  }
+  writeJSON('syncops_orders', overrides);
+}
+
+export async function deleteOrder(orderId: string): Promise<void> {
+  if (!isDemoMode && db) {
+    await deleteDoc(doc(db, 'orders', orderId));
+    return;
+  }
+  const overrides = readJSON<Order[]>('syncops_orders', []).filter((o) => o.id !== orderId);
+  writeJSON('syncops_orders', overrides);
 }
