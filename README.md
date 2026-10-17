@@ -26,15 +26,17 @@ npm run preview  # serve the production build
 The app runs fully in **demo mode** with zero configuration — intake, portal,
 chat and vault all work against local mock state.
 
-To go live, the owner creates a Firebase project and sets these build env vars
-(`VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`,
-`VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`),
-enables Email/Password + Google sign-in, and deploys:
+To go live, follow the exact click-by-click owner guide: [`docs/DEPLOY.md`](docs/DEPLOY.md)
+(Firebase project, Authentication, Firestore, GitHub Secrets, the deploy
+workflow, and the owner allowlist bootstrap — no terminal, no card).
 
-```bash
-firebase deploy --only firestore:rules
-firebase deploy --only hosting
-```
+Build env vars consumed at deploy time: `VITE_FIREBASE_API_KEY`,
+`VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`,
+`VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`,
+`VITE_FIREBASE_APP_ID`, plus `VITE_OWNER_EMAILS` (unlocks `/studio/console`).
+
+CI deploys automatically on every push to `main` via
+`.github/workflows/firebase-deploy.yml` (Hosting + Firestore rules).
 
 ## Routes
 

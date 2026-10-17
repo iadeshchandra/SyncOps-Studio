@@ -2,8 +2,11 @@ rules_version = '2';
 
 // SyncOps Studio — Firestore security rules.
 // Deny-by-default. Intake orders are creatable by anyone (validated shape);
-// order reads are scoped to the owning client email; messages inherit the
-// parent order's ownership; case studies are public-read, owner-write only.
+// order reads are scoped to the owning client email; order updates are
+// owner-only (milestone/stage transitions from the Studio Console);
+// platformConfig/admins.owners is the owner allowlist — the doc must be
+// bootstrapped by hand in the Firebase console (see docs/DEPLOY.md) before
+// the first owner sign-in, otherwise isOwner() denies (fail-closed).
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -17,6 +20,21 @@ service cloud.firestore {
              == request.auth.token.email;
     }
 
+    function isOwner() {
+      return isSignedIn()
+        && request.auth.token.email
+             in get(/databases/$(database)/documents/platformConfig/admins).data.owners;
+    }
+
+    // Studio-wide configuration (site settings, pricing, case studies, ...)
+    // `public` is world-readable so the marketing site can render owner-
+    // published config without auth; everything else is owner-only.
+    match /platformConfig/{docId} {
+      allow read: if docId == 'public' || isOwner();
+      allow create, update: if isOwner();
+      allow delete: if false;
+    }
+
     // Client projects / intake orders
     match /orders/{orderId} {
       allow create: if request.resource.data.keys().hasAll(
@@ -28,14 +46,15 @@ service cloud.firestore {
       allow read: if resource.data.clientEmail == 'demo@syncops.studio'
         || (isSignedIn() && request.auth.token.email == resource.data.clientEmail);
 
-      // Status/stage transitions happen via the Lead Architect console only.
-      allow update, delete: if false;
+      // Milestone/stage transitions happen via the Studio Console only.
+      allow update: if isOwner();
+      allow delete: if isOwner();
 
       // Lead Architect <-> Client encrypted channel
       match /messages/{messageId} {
         allow read: if resource.data.orderId == orderId
           && (get(/databases/$(database)/documents/orders/$(orderId)).data.clientEmail == 'demo@syncops.studio'
-          || ownsOrder(orderId);
+              || ownsOrder(orderId));
         allow create: if isSignedIn()
           && request.resource.data.keys().hasAll(['orderId', 'sender', 'body', 'createdAt'])
           && request.resource.data.orderId == orderId
@@ -59,9 +78,11 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Operational audit trail — server only
+    // Operational audit trail — owner eyes only
     match /audit_logs/{docId} {
-      allow read, write: if false;
+      allow read: if isOwner();
+      allow create: if isOwner();
+      allow update, delete: if false;
     }
   }
 }
