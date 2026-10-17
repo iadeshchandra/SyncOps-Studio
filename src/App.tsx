@@ -8,6 +8,8 @@ import { useSiteConfig } from './lib/siteConfig';
 import Landing from './pages/Landing';
 import Status from './pages/Status';
 import Labs from './pages/Labs';
+import Work from './pages/Work';
+import ProductDetail from './pages/ProductDetail';
 import Login from './pages/Login';
 import ClientPortal from './pages/ClientPortal';
 import Maintenance from './pages/Maintenance';
@@ -37,6 +39,8 @@ export default function App() {
               <Route path="/" element={<Landing />} />
               <Route path="/status" element={<Status />} />
               <Route path="/labs" element={<Labs />} />
+              <Route path="/work" element={<Work />} />
+              <Route path="/work/:slug" element={<ProductDetail />} />
               <Route path="/login" element={<Login />} />
               <Route path="/client/login" element={<Login />} />
               <Route

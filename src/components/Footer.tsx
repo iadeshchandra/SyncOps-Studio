@@ -43,6 +43,9 @@ export default function Footer() {
           <p className="eyebrow mb-4">Studio</p>
           <JumpLink to="#pipeline">How we work</JumpLink>
           <JumpLink to="#cases">Case studies</JumpLink>
+          <Link to="/work" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
+            Our work
+          </Link>
           <JumpLink to="#pricing">Pricing</JumpLink>
           <Link to="/status" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
             Live status

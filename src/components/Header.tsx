@@ -97,6 +97,9 @@ export default function Header() {
           <Link to="/labs" className={navLinkCls}>
             Labs
           </Link>
+          <Link to="/work" className={navLinkCls}>
+            Work
+          </Link>
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
@@ -156,6 +159,13 @@ export default function Header() {
               className="block rounded-md px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white"
             >
               Labs
+            </Link>
+            <Link
+              to="/work"
+              onClick={close}
+              className="block rounded-md px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white"
+            >
+              Work
             </Link>
             <Link
               to="/status"
