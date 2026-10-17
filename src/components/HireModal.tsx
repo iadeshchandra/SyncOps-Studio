@@ -9,14 +9,17 @@ import {
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDoc, collection } from 'firebase/firestore';
-import { X, ChevronLeft, ChevronRight, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Check, AlertCircle, Loader2, Satellite, Radar, AppWindow } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { db, isDemoMode } from '../lib/firebase';
 import { PACKAGES } from '../data/content';
+import { SERVICE_LINES, getServiceLine } from '../data/services';
 import { useSiteConfig } from '../lib/siteConfig';
 import { cx, fmtUSD } from '../lib/format';
 
 export interface HirePrefill {
   packageId?: string;
+  serviceLine?: string;
   adSpend?: number;
   roas?: number;
   recovery?: number;
@@ -86,9 +89,30 @@ const SCOPES = [
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const LINE_ICONS: Record<string, LucideIcon> = {
+  Satellite,
+  Radar,
+  AppWindow,
+};
+
+interface ModalPackage {
+  id: string;
+  name: string;
+  tagline: string;
+  priceLabel: string;
+}
+
+function lineIdForPackage(pkgId: string | undefined): string | undefined {
+  if (!pkgId) return undefined;
+  return SERVICE_LINES.find((l) => l.packages.some((p) => p.id === pkgId))?.id;
+}
+
 function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => void }) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  const [lineId, setLineId] = useState(
+    prefill.serviceLine ?? lineIdForPackage(prefill.packageId) ?? 'capi'
+  );
   const [packageId, setPackageId] = useState(prefill.packageId ?? '');
   const [scope, setScope] = useState<string[]>([]);
   const [storeUrl, setStoreUrl] = useState('');
@@ -101,7 +125,31 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { config } = useSiteConfig();
-  const packages = config.pricing ?? PACKAGES;
+  const line = getServiceLine(lineId);
+
+  // CAPI keeps the console-editable pricing config; the other lines ship compiled.
+  const modalPackages: ModalPackage[] = useMemo(() => {
+    if (lineId === 'capi') {
+      return (config.pricing ?? PACKAGES).map((p) => ({
+        id: p.id,
+        name: p.name,
+        tagline: p.tagline,
+        priceLabel: fmtUSD(p.price),
+      }));
+    }
+    return getServiceLine(lineId).packages.map((p) => ({
+      id: p.id,
+      name: p.name,
+      tagline: p.blurb,
+      priceLabel: p.price,
+    }));
+  }, [lineId, config.pricing]);
+
+  const selectLine = (id: string) => {
+    if (id === lineId) return;
+    setLineId(id);
+    setPackageId('');
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -120,7 +168,7 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
     setScope((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
 
   const validateStep = (s: number): string => {
-    if (s === 0 && !packageId) return 'Select an architecture package to continue.';
+    if (s === 0 && !packageId) return 'Select a service line and package to continue.';
     if (s === 2) {
       const u = storeUrl.trim();
       if (!u || !u.includes('.')) return 'Enter your store URL, e.g. brand.com.';
@@ -158,6 +206,8 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
       clientEmail: email.trim(),
       brandUrl: storeUrl.trim(),
       packageId,
+      packageName,
+      serviceLine: lineId,
       scope,
       status: 'intake',
       stageIndex: 0,
@@ -193,7 +243,8 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
     }
   };
 
-  const selectedPackage = packages.find((p) => p.id === packageId);
+  const selectedPackage = modalPackages.find((p) => p.id === packageId);
+  const packageName = selectedPackage ? `${line.name} — ${selectedPackage.name}` : line.name;
 
   return (
     <div
@@ -265,9 +316,45 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
           )}
 
           {step === 0 && (
-            <div className="space-y-3">
-              <p className="label-dark">Select your architecture package</p>
-              {packages.map((p) => (
+            <div className="space-y-6">
+              <div>
+                <p className="label-dark">What do you need?</p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {SERVICE_LINES.map((l) => {
+                    const Icon = LINE_ICONS[l.icon] ?? Satellite;
+                    const active = lineId === l.id;
+                    return (
+                      <button
+                        key={l.id}
+                        type="button"
+                        onClick={() => selectLine(l.id)}
+                        className={cx(
+                          'rounded-lg border p-4 text-left transition-all',
+                          active
+                            ? 'border-emerald-500/70 bg-emerald-950/40'
+                            : 'border-slate-800 bg-slate-950/60 hover:border-slate-600'
+                        )}
+                        aria-pressed={active}
+                      >
+                        <Icon
+                          className={cx(
+                            'h-5 w-5',
+                            active ? 'text-emerald-300' : 'text-slate-500'
+                          )}
+                        />
+                        <span className="mt-2 block text-sm font-bold text-slate-100">{l.name}</span>
+                        <span className="mt-0.5 block text-xs leading-snug text-slate-500">
+                          {l.tagline}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <p className="label-dark">Select your package</p>
+                {modalPackages.map((p) => (
                 <button
                   key={p.id}
                   type="button"
@@ -293,10 +380,11 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
                     <span className="block text-xs text-slate-500">{p.tagline}</span>
                   </span>
                   <span className="font-mono text-sm font-bold text-emerald-300">
-                    {fmtUSD(p.price)}
+                    {p.priceLabel}
                   </span>
                 </button>
-              ))}
+                ))}
+              </div>
             </div>
           )}
 
@@ -399,6 +487,10 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
               <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-4">
                 <p className="label-dark">Engagement summary</p>
                 <div className="space-y-1.5 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Service line</span>
+                    <span className="font-semibold text-slate-100">{line.name}</span>
+                  </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Package</span>
                     <span className="font-semibold text-slate-100">

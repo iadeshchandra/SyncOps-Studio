@@ -4,7 +4,9 @@ import TrackingAuditor from '../components/TrackingAuditor';
 import RoasCalculator from '../components/RoasCalculator';
 import ProtocolPipeline from '../components/ProtocolPipeline';
 import CaseStudies from '../components/CaseStudies';
+import ServicesSection from '../components/ServicesSection';
 import PricingGrid from '../components/PricingGrid';
+import WorkStrip from '../components/WorkStrip';
 import Footer from '../components/Footer';
 
 export default function Landing() {
@@ -31,7 +33,15 @@ export default function Landing() {
         </section>
 
         <section className="border-t border-slate-800/60 bg-slate-900/20">
+          <ServicesSection />
+        </section>
+
+        <section className="border-t border-slate-800/60 bg-slate-900/20">
           <PricingGrid />
+        </section>
+
+        <section className="border-t border-slate-800/60">
+          <WorkStrip />
         </section>
       </main>
       <Footer />
