@@ -35,6 +35,13 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Product showcase CMS — one doc per app. World-readable so /work
+    // renders without auth; writes are owner-only via the Studio Console.
+    match /platformConfig/products/{productId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
     // Client projects / intake orders
     match /orders/{orderId} {
       allow create: if request.resource.data.keys().hasAll(

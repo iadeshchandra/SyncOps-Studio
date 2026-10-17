@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Inbox,
   KanbanSquare,
+  Package,
   FileText,
   KeyRound,
   Settings,
@@ -18,6 +19,7 @@ import { cx } from '../lib/format';
 import OverviewTab from '../components/console/OverviewTab';
 import OrdersTab from '../components/console/OrdersTab';
 import ProjectsTab from '../components/console/ProjectsTab';
+import ProductsTab from '../components/console/ProductsTab';
 import ContentTab from '../components/console/ContentTab';
 import ApiKeysTab from '../components/console/ApiKeysTab';
 import SettingsTab from '../components/console/SettingsTab';
@@ -34,6 +36,7 @@ const TABS: ConsoleTab[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard, node: <OverviewTab /> },
   { id: 'orders', label: 'Orders', icon: Inbox, node: <OrdersTab /> },
   { id: 'projects', label: 'Projects', icon: KanbanSquare, node: <ProjectsTab /> },
+  { id: 'products', label: 'Products', icon: Package, node: <ProductsTab /> },
   { id: 'content', label: 'Content', icon: FileText, node: <ContentTab /> },
   { id: 'api-keys', label: 'API Keys', icon: KeyRound, node: <ApiKeysTab /> },
   { id: 'platform', label: 'Platform', icon: Settings, node: <SettingsTab /> },

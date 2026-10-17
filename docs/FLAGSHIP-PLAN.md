@@ -1,5 +1,12 @@
 # SyncOps Studio → Flagship Mothership: The Plan
-*Plan of record — 2026-10-17. Status: DRAFT (awaiting owner sign-off on Phase 1 scope).*
+*Plan of record — 2026-10-17. Status: v2 — BUILDING (owner approved "Go ahead" 2026-10-18).*
+
+## 0. v2 decisions (2026-10-18, owner)
+
+- **SaaS marketing engine, not a trophy shelf.** Most studio apps are SaaS — every product page must sell: why the app, features, benefits, conversion CTAs.
+- **Studio Console = full CMS.** Owner adds a whole new app and writes/edits ALL its marketing content with zero code. Section-conditional rendering so partial content never looks broken; metrics real-or-omitted, never invented; product pages link out to the apps' own pricing (never duplicate it).
+- **Three service lines** (Build → Measure → Grow): CAPI Infrastructure (flagship, high-ticket) / Analytics & Pixel Setup (Meta, Google, TikTok, Pinterest — mid-ticket, high-volume) / AI-Accelerated App Builds (on-demand custom apps; market validated — AI repriced who can afford custom software; portfolio IS the proof of method; headline the outcome not the AI; care plans = recurring revenue).
+- **Positioning (v2):** "A technology studio that ships software — products of our own, and custom builds for clients — plus the data infrastructure to measure it all."
 
 ## 1. Positioning
 
