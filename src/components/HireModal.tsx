@@ -12,6 +12,7 @@ import { addDoc, collection } from 'firebase/firestore';
 import { X, ChevronLeft, ChevronRight, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { db, isDemoMode } from '../lib/firebase';
 import { PACKAGES } from '../data/content';
+import { useSiteConfig } from '../lib/siteConfig';
 import { cx, fmtUSD } from '../lib/format';
 
 export interface HirePrefill {
@@ -99,6 +100,8 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const { config } = useSiteConfig();
+  const packages = config.pricing ?? PACKAGES;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -190,7 +193,7 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
     }
   };
 
-  const selectedPackage = PACKAGES.find((p) => p.id === packageId);
+  const selectedPackage = packages.find((p) => p.id === packageId);
 
   return (
     <div
@@ -264,7 +267,7 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
           {step === 0 && (
             <div className="space-y-3">
               <p className="label-dark">Select your architecture package</p>
-              {PACKAGES.map((p) => (
+              {packages.map((p) => (
                 <button
                   key={p.id}
                   type="button"

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { isDemoMode } from '../lib/firebase';
+import { useSiteConfig } from '../lib/siteConfig';
 import { cx } from '../lib/format';
 
 const TESTIMONIALS = [
@@ -41,6 +42,14 @@ const BADGES = [
 
 export default function Login() {
   const { user, loading, signInDemo, signInEmail, signUpEmail, signInGoogle } = useAuth();
+  const { config } = useSiteConfig();
+  // Console-saved testimonials carry `author`; the compiled-in fallback uses
+  // `name`. Normalize to one display shape so both render identically.
+  const testimonials = (config.testimonials ?? TESTIMONIALS).map((t) => ({
+    quote: t.quote,
+    role: t.role,
+    name: 'author' in t ? t.author : t.name,
+  }));
   const navigate = useNavigate();
   const [tab, setTab] = useState<'signin' | 'signup'>('signin');
   const [name, setName] = useState('');
@@ -130,7 +139,7 @@ export default function Login() {
           </p>
 
           <div className="mt-8 space-y-3">
-            {TESTIMONIALS.map((t) => (
+            {testimonials.map((t) => (
               <figure key={t.name} className="glass rounded-lg p-4">
                 <blockquote className="text-sm leading-relaxed text-slate-300">
                   “{t.quote}”

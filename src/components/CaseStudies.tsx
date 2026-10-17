@@ -1,8 +1,11 @@
 import { TrendingUp } from 'lucide-react';
 import { CASE_STUDIES } from '../data/content';
 import { fmtCompactUSD } from '../lib/format';
+import { useSiteConfig } from '../lib/siteConfig';
 
 export default function CaseStudies() {
+  const { config } = useSiteConfig();
+  const caseStudies = config.caseStudies ?? CASE_STUDIES;
   return (
     <div id="cases" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 lg:py-28">
       <p className="eyebrow mb-4">Verified Outcomes</p>
@@ -13,7 +16,7 @@ export default function CaseStudies() {
       </p>
 
       <div className="mt-10 grid gap-6 md:grid-cols-2">
-        {CASE_STUDIES.map((c) => {
+        {caseStudies.map((c) => {
           const lift = ((c.roasAfter - c.roasBefore) / c.roasBefore) * 100;
           return (
             <article key={c.brand} className="glass card-hover rounded-lg p-6 sm:p-8">

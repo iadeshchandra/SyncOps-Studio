@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Terminal } from 'lucide-react';
 import { demoHex } from '../lib/format';
+import { useSiteConfig } from '../lib/siteConfig';
 
 const EVENTS = ['Purchase', 'InitiateCheckout', 'AddToCart', 'ViewContent', 'Lead', 'CompleteRegistration'];
 
@@ -95,6 +96,8 @@ function TerminalVisualizer() {
 }
 
 export default function Hero() {
+  const { config } = useSiteConfig();
+  const tickerItems = config.tickerItems.length > 0 ? config.tickerItems : TICKER;
   return (
     <div className="relative overflow-hidden">
       <div
@@ -129,14 +132,10 @@ export default function Hero() {
               </Link>
             </div>
             <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2">
-              {[
-                ['99.99%', 'uptime SLA'],
-                ['9.2', 'avg EMQ across deployments'],
-                ['12ms', 'edge dispatch latency'],
-              ].map(([v, l]) => (
-                <div key={l}>
-                  <p className="font-mono text-xl font-bold text-slate-100">{v}</p>
-                  <p className="telemetry">{l}</p>
+              {config.heroStats.map((s) => (
+                <div key={s.label}>
+                  <p className="font-mono text-xl font-bold text-slate-100">{s.value}</p>
+                  <p className="telemetry">{s.label}</p>
                 </div>
               ))}
             </div>
@@ -148,7 +147,7 @@ export default function Hero() {
       <div className="relative border-y border-slate-800/80 bg-black/40">
         <div className="overflow-hidden py-3.5">
           <div className="flex w-max animate-ticker items-center gap-8 whitespace-nowrap">
-            {[...TICKER, ...TICKER].map((item, i) => (
+            {[...tickerItems, ...tickerItems].map((item, i) => (
               <span key={i} className="flex items-center gap-8">
                 <span className="font-mono text-xs tracking-[0.22em] text-slate-400">{item}</span>
                 <span className="text-emerald-500/60">·</span>

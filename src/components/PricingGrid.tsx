@@ -1,10 +1,13 @@
 import { Check } from 'lucide-react';
 import { PACKAGES } from '../data/content';
 import { cx, fmtUSD } from '../lib/format';
+import { useSiteConfig, type PackageConfig } from '../lib/siteConfig';
 import { useHireModal } from './HireModal';
 
 export default function PricingGrid() {
   const { openHireModal } = useHireModal();
+  const { config } = useSiteConfig();
+  const packages: PackageConfig[] = config.pricing ?? PACKAGES;
 
   return (
     <div id="pricing" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 lg:py-28">
@@ -16,8 +19,8 @@ export default function PricingGrid() {
       </p>
 
       <div className="mt-12 grid gap-6 lg:grid-cols-3">
-        {PACKAGES.map((pkg, i) => {
-          const featured = i === 1;
+        {packages.map((pkg, i) => {
+          const featured = pkg.highlighted ?? i === 1;
           return (
             <div
               key={pkg.id}

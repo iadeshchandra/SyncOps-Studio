@@ -1,5 +1,6 @@
 import type { MouseEvent, ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useSiteConfig } from '../lib/siteConfig';
 
 function JumpLink({ to, children }: { to: string; children: ReactNode }) {
   const navigate = useNavigate();
@@ -34,6 +35,7 @@ function JumpLink({ to, children }: { to: string; children: ReactNode }) {
 }
 
 export default function Footer() {
+  const { config } = useSiteConfig();
   return (
     <footer className="border-t border-slate-800/80 bg-black/60">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-2 lg:grid-cols-4">
@@ -47,6 +49,9 @@ export default function Footer() {
           </Link>
           <Link to="/labs" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
             SyncOps Labs
+          </Link>
+          <Link to="/studio/console" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
+            Studio Console
           </Link>
         </div>
 
@@ -79,10 +84,13 @@ export default function Footer() {
           <p className="eyebrow mb-4">Contact</p>
           <div className="space-y-2 font-mono text-xs text-slate-400">
             <p>
-              <span className="text-slate-600">email&nbsp;&nbsp;&nbsp;</span>hello@syncops.studio
+              <span className="text-slate-600">email&nbsp;&nbsp;&nbsp;</span>
+              <a href={`mailto:${config.contactEmail}`} className="transition-colors hover:text-slate-100">
+                {config.contactEmail}
+              </a>
             </p>
             <p>
-              <span className="text-slate-600">response&nbsp;</span>≤ 4h business SLA
+              <span className="text-slate-600">response&nbsp;</span>{config.responseSla}
             </p>
             <p>
               <span className="text-slate-600">uptime&nbsp;&nbsp;&nbsp;</span>
