@@ -8,7 +8,7 @@ const JUMPS = [
   { label: 'Auditor', to: '#auditor' },
   { label: 'Calculator', to: '#calculator' },
   { label: 'Pipeline', to: '#pipeline' },
-  { label: 'Case Studies', to: '#cases' },
+  { label: 'Proof', to: '#cases' },
   { label: 'Pricing', to: '#pricing' },
 ];
 

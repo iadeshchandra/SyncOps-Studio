@@ -67,61 +67,47 @@ export const PACKAGES: Package[] = [
   },
 ];
 
-export interface CaseStudy {
-  brand: string;
-  vertical: string;
-  adSpend: number;
-  roasBefore: number;
-  roasAfter: number;
-  emq: number;
-  quote: string;
-  author: string;
+/* ------------------------------------------------------------------ */
+/* Client proof — real, verifiable, linked. Never invented.            */
+/* The studio's trust case is the founder's 6-year Fiverr practice:   */
+/* 322 reviews at 4.9★, 240+ businesses tracked since 2019.            */
+/* ------------------------------------------------------------------ */
+
+export const PROOF_URL = 'https://www.fiverr.com/adesh_chandra';
+
+export interface ProofStat {
+  value: string;
+  label: string;
 }
 
-export const CASE_STUDIES: CaseStudy[] = [
+export const PROOF_STATS: ProofStat[] = [
+  { value: '4.9/5', label: 'average rating · 322 Fiverr reviews' },
+  { value: '240+', label: 'businesses tracked since 2019' },
+  { value: '15', label: 'tracking gigs, all major ad platforms' },
+  { value: '~1 hr', label: 'average response time' },
+];
+
+export interface ProofQuote {
+  quote: string;
+  author: string;
+  context: string;
+}
+
+export const PROOF_QUOTES: ProofQuote[] = [
   {
-    brand: 'Aurelle & Co.',
-    vertical: 'Fashion & Apparel · Shopify Plus',
-    adSpend: 120000,
-    roasBefore: 2.4,
-    roasAfter: 3.9,
-    emq: 9.4,
-    quote:
-      'SyncOps recovered attribution we had written off as iOS noise. Our reported ROAS jumped before we spent a dollar more on media.',
-    author: 'Elena Marsh, CMO',
+    quote: 'Great to work with. Knows how to get the job done.',
+    author: 'tanya7474',
+    context: 'Fiverr review · United States',
   },
   {
-    brand: 'Forge Athletics',
-    vertical: 'DTC Fitness · Headless',
-    adSpend: 310000,
-    roasBefore: 1.8,
-    roasAfter: 2.9,
-    emq: 9.1,
-    quote:
-      'Ad blockers were eating a third of our purchase events. The server stack caught every one of them — deduplicated, verified, dispatched.',
-    author: 'Marcus Cole, Founder',
+    quote: 'Would highly recommend working with him. He knows his stuff.',
+    author: 'bongeka_buhle',
+    context: 'Fiverr review · South Africa',
   },
   {
-    brand: 'Lumen Skincare',
-    vertical: 'Beauty · WooCommerce',
-    adSpend: 85000,
-    roasBefore: 3.1,
-    roasAfter: 4.6,
-    emq: 9.6,
-    quote:
-      'The audit alone paid for itself. Safari ITP had quietly cut our cookie window to a day; the first-party proxy fixed it in a week.',
-    author: 'Priya Raman, Head of Growth',
-  },
-  {
-    brand: 'Northwind Home',
-    vertical: 'Home Goods · Shopify Plus',
-    adSpend: 240000,
-    roasBefore: 2.0,
-    roasAfter: 3.2,
-    emq: 9.2,
-    quote:
-      'We stopped double-counting conversions on day one. Media buyers finally trust the dashboard again — budgets follow the signal.',
-    author: 'Daniel Okafor, Media Director',
+    quote: 'He always does a great job.',
+    author: 'smartkft',
+    context: 'Fiverr review · Italy · repeat client',
   },
 ];
 

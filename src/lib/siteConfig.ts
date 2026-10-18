@@ -2,7 +2,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { logAudit } from './admin';
-import type { Package, CaseStudy } from '../data/content';
+import type { Package, ProofQuote } from '../data/content';
 
 /**
  * Studio-wide site configuration (the "GodMode-lite" layer).
@@ -29,12 +29,13 @@ export interface LoginTestimonial {
 
 /**
  * Shared content-shape aliases consumed by the Studio Console tabs.
- * PackageConfig/CaseStudyConfig mirror the marketing datasets in
- * data/content.ts; TestimonialConfig is the console's canonical
- * testimonial shape (the login panel falls back to LoginTestimonial).
+ * PackageConfig mirrors the pricing dataset in data/content.ts;
+ * ProofQuoteConfig mirrors the client-proof quotes (real Fiverr reviews);
+ * TestimonialConfig is the console's canonical testimonial shape
+ * (the login panel falls back to LoginTestimonial).
  */
 export type PackageConfig = Package & { highlighted?: boolean };
-export type CaseStudyConfig = CaseStudy;
+export type ProofQuoteConfig = ProofQuote;
 export interface TestimonialConfig {
   quote: string;
   author: string;
@@ -49,7 +50,7 @@ export interface SiteConfig {
   heroStats: HeroStat[];
   tickerItems: string[];
   pricing: PackageConfig[] | null;
-  caseStudies: CaseStudy[] | null;
+  proofQuotes: ProofQuote[] | null;
   testimonials: TestimonialConfig[] | null;
   enableLabs?: boolean;
   enableHireModal?: boolean;
@@ -74,7 +75,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
     '38% AVG RECOVERED REVENUE',
   ],
   pricing: null,
-  caseStudies: null,
+  proofQuotes: null,
   testimonials: null,
 };
 

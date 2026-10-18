@@ -42,7 +42,7 @@ export default function Footer() {
         <div>
           <p className="eyebrow mb-4">Studio</p>
           <JumpLink to="#pipeline">How we work</JumpLink>
-          <JumpLink to="#cases">Case studies</JumpLink>
+          <JumpLink to="#cases">Client proof</JumpLink>
           <Link to="/work" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
             Our work
           </Link>
@@ -60,9 +60,10 @@ export default function Footer() {
 
         <div>
           <p className="eyebrow mb-4">Services</p>
+          <JumpLink to="#services">CAPI Infrastructure</JumpLink>
+          <JumpLink to="#services">Analytics &amp; Pixel Setup</JumpLink>
+          <JumpLink to="#services">AI-Accelerated App Builds</JumpLink>
           <JumpLink to="#pricing">Single CAPI Node</JumpLink>
-          <JumpLink to="#pricing">Omnichannel Server Stack</JumpLink>
-          <JumpLink to="#pricing">Enterprise Cloud Run</JumpLink>
           <JumpLink to="#auditor">Tracking audit</JumpLink>
           <JumpLink to="#calculator">ROAS hemorrhage calculator</JumpLink>
         </div>

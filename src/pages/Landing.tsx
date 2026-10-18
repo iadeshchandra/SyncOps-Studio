@@ -33,7 +33,9 @@ export default function Landing() {
         </section>
 
         <section className="border-t border-slate-800/60 bg-slate-900/20">
-          <ServicesSection />
+          <div id="services" className="scroll-mt-24">
+            <ServicesSection />
+          </div>
         </section>
 
         <section className="border-t border-slate-800/60 bg-slate-900/20">

@@ -3,7 +3,7 @@ import { CheckCircle2, Loader2, Plus, Trash2 } from 'lucide-react';
 import {
   useSiteConfig,
   saveSiteConfig,
-  type CaseStudyConfig,
+  type ProofQuoteConfig,
   type PackageConfig,
   type TestimonialConfig,
 } from '../../lib/siteConfig';
@@ -61,7 +61,7 @@ export default function ContentTab() {
   const { config, loading } = useSiteConfig();
 
   const [pricing, setPricing] = useState<PackageConfig[]>([]);
-  const [cases, setCases] = useState<CaseStudyConfig[]>([]);
+  const [proofQuotes, setProofQuotes] = useState<ProofQuoteConfig[]>([]);
   const [testimonials, setTestimonials] = useState<TestimonialConfig[]>([]);
   const [heroStats, setHeroStats] = useState<{ value: string; label: string }[]>([]);
   const [tickerText, setTickerText] = useState('');
@@ -74,7 +74,7 @@ export default function ContentTab() {
   useEffect(() => {
     if (loading || hydrated) return;
     setPricing((config.pricing ?? PACKAGES).map((p) => ({ ...p, features: [...p.features] })));
-    setCases((config.caseStudies ?? []).map((c) => ({ ...c })));
+    setProofQuotes((config.proofQuotes ?? []).map((q) => ({ ...q })));
     setTestimonials((config.testimonials ?? []).map((t) => ({ ...t })));
     setHeroStats((config.heroStats ?? DEFAULT_HERO_STATS).map((s) => ({ ...s })));
     setTickerText((config.tickerItems ?? []).join('\n'));
@@ -89,7 +89,7 @@ export default function ContentTab() {
     try {
       await saveSiteConfig({
         pricing,
-        caseStudies: cases,
+        proofQuotes: proofQuotes,
         testimonials,
         heroStats,
         tickerItems: tickerText
@@ -101,7 +101,7 @@ export default function ContentTab() {
       });
       await logAudit(
         'content.publish',
-        `${pricing.length} tiers · ${cases.length} case studies · ${testimonials.length} testimonials`,
+        `${pricing.length} tiers · ${proofQuotes.length} proof quotes · ${testimonials.length} testimonials`,
       );
       setNotice({ ok: true, text: 'Published — live on next load.' });
     } catch (e) {
@@ -251,108 +251,63 @@ export default function ContentTab() {
         </button>
       </SectionCard>
 
-      {/* Case studies */}
+      {/* Client proof */}
       <SectionCard
-        title="Case studies"
-        desc="Verified client outcomes rendered on the landing page."
+        title="Client proof"
+        desc="Real, verifiable review quotes shown in the landing proof section. Only add quotes that are public and attributable — never invent."
       >
-        {cases.map((c, i) => (
+        {proofQuotes.map((q, i) => (
           <div key={i} className="rounded-md border border-slate-800 bg-slate-950/60 p-4">
             <div className="flex items-start justify-between gap-3">
-              <span className="telemetry text-cyan-400">STUDY {i + 1}</span>
+              <span className="telemetry text-cyan-400">QUOTE {i + 1}</span>
               <button
                 className="inline-flex items-center gap-1 text-xs font-medium text-rose-400/80 transition-colors hover:text-rose-300"
-                onClick={() => setCases(cases.filter((_, idx) => idx !== i))}
+                onClick={() => setProofQuotes(proofQuotes.filter((_, idx) => idx !== i))}
               >
                 <Trash2 className="h-3.5 w-3.5" /> Remove
               </button>
             </div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <Field label="Brand">
-                <input
-                  className="input-dark"
-                  value={c.brand}
-                  onChange={(e) => setCases(updateAt(cases, i, { brand: e.target.value }))}
-                />
-              </Field>
-              <Field label="Vertical">
-                <input
-                  className="input-dark"
-                  value={c.vertical}
-                  onChange={(e) => setCases(updateAt(cases, i, { vertical: e.target.value }))}
-                />
-              </Field>
-              <Field label="Monthly ad spend (USD)">
-                <input
-                  type="number"
-                  min={0}
-                  className="input-dark"
-                  value={c.adSpend}
-                  onChange={(e) => setCases(updateAt(cases, i, { adSpend: Number(e.target.value) }))}
-                />
-              </Field>
-              <Field label="EMQ">
-                <input
-                  type="number"
-                  step={0.1}
-                  min={0}
-                  max={10}
-                  className="input-dark"
-                  value={c.emq}
-                  onChange={(e) => setCases(updateAt(cases, i, { emq: Number(e.target.value) }))}
-                />
-              </Field>
-              <Field label="ROAS before">
-                <input
-                  type="number"
-                  step={0.1}
-                  min={0}
-                  className="input-dark"
-                  value={c.roasBefore}
-                  onChange={(e) => setCases(updateAt(cases, i, { roasBefore: Number(e.target.value) }))}
-                />
-              </Field>
-              <Field label="ROAS after">
-                <input
-                  type="number"
-                  step={0.1}
-                  min={0}
-                  className="input-dark"
-                  value={c.roasAfter}
-                  onChange={(e) => setCases(updateAt(cases, i, { roasAfter: Number(e.target.value) }))}
-                />
-              </Field>
-              <Field label="Quote" className="sm:col-span-2">
+            <div className="mt-3 grid gap-3">
+              <Field label="Quote">
                 <textarea
-                  rows={3}
+                  rows={2}
                   className="input-dark"
-                  value={c.quote}
-                  onChange={(e) => setCases(updateAt(cases, i, { quote: e.target.value }))}
+                  value={q.quote}
+                  onChange={(e) => setProofQuotes(updateAt(proofQuotes, i, { quote: e.target.value }))}
                 />
               </Field>
-              <Field label="Author">
-                <input
-                  className="input-dark"
-                  value={c.author}
-                  onChange={(e) => setCases(updateAt(cases, i, { author: e.target.value }))}
-                />
-              </Field>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Author">
+                  <input
+                    className="input-dark"
+                    value={q.author}
+                    onChange={(e) => setProofQuotes(updateAt(proofQuotes, i, { author: e.target.value }))}
+                  />
+                </Field>
+                <Field label="Context (e.g. Fiverr review · United States)">
+                  <input
+                    className="input-dark"
+                    value={q.context}
+                    onChange={(e) => setProofQuotes(updateAt(proofQuotes, i, { context: e.target.value }))}
+                  />
+                </Field>
+              </div>
             </div>
           </div>
         ))}
-        {cases.length === 0 && (
-          <p className="text-sm text-slate-500">No case studies yet — the landing page falls back to built-in defaults.</p>
+        {proofQuotes.length === 0 && (
+          <p className="text-sm text-slate-500">No overrides — the landing page shows the built-in verified Fiverr proof.</p>
         )}
         <button
           className="btn-ghost w-full"
           onClick={() =>
-            setCases([
-              ...cases,
-              { brand: 'New Brand', vertical: '', adSpend: 0, roasBefore: 0, roasAfter: 0, emq: 9.0, quote: '', author: '' },
+            setProofQuotes([
+              ...proofQuotes,
+              { quote: '', author: '', context: 'Fiverr review' },
             ])
           }
         >
-          <Plus className="h-4 w-4" /> Add case study
+          <Plus className="h-4 w-4" /> Add proof quote
         </button>
       </SectionCard>
 

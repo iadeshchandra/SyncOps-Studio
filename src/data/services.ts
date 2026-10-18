@@ -10,6 +10,13 @@ export interface ServicePackage {
   features: string[];
 }
 
+export interface ServiceLineProof {
+  /** Short trust line, e.g. '4.9★ · 322 Fiverr reviews'. Real and verifiable only. */
+  text: string;
+  url: string;
+  urlLabel: string;
+}
+
 export interface ServiceLine {
   id: string;
   name: string;
@@ -17,6 +24,10 @@ export interface ServiceLine {
   description: string;
   icon: string; // lucide icon name — mapped by components
   packages: ServicePackage[];
+  /** Optional trust proof rendered under the description. */
+  proof?: ServiceLineProof;
+  /** Optional concierge note rendered above the CTA. */
+  migrationNote?: string;
 }
 
 export const SERVICE_LINES: ServiceLine[] = [
@@ -29,6 +40,13 @@ export const SERVICE_LINES: ServiceLine[] = [
       'Deterministic deduplication, first-party data pipelines, and SLA-backed handovers — ' +
       'attribution your media buying can finally trust.',
     icon: 'Satellite',
+    proof: {
+      text: '4.9/5 from 322 Fiverr reviews · 240+ businesses tracked since 2019',
+      url: 'https://www.fiverr.com/adesh_chandra',
+      urlLabel: 'Read the reviews',
+    },
+    migrationNote:
+      'On Stape, PixelFly or plain GTM? We migrate your tracking to done-for-you infrastructure — free with any package.',
     packages: [
       {
         id: 'single-capi-node',
@@ -89,6 +107,11 @@ export const SERVICE_LINES: ServiceLine[] = [
       'GTM architecture, consent-mode compliance, and event QA — so every dollar of ' +
       'spend is measured once, correctly, everywhere.',
     icon: 'Radar',
+    proof: {
+      text: '4.9/5 from 322 Fiverr reviews · the same hands that set up 240+ businesses',
+      url: 'https://www.fiverr.com/adesh_chandra',
+      urlLabel: 'Read the reviews',
+    },
     packages: [
       {
         id: 'pixel-foundation',
