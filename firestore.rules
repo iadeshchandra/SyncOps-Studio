@@ -91,5 +91,16 @@ service cloud.firestore {
       allow create: if isOwner();
       allow update, delete: if false;
     }
+
+    // Audit report leads — anyone may leave their email (create-only, no PII reads),
+    // only the owner may read or delete. No listing for strangers, no updates.
+    match /leads/{leadId} {
+      allow read: if isOwner();
+      allow create: if request.resource.data.keys().hasOnly(['email', 'domain', 'score', 'grade', 'createdAt'])
+        && request.resource.data.email is string
+        && request.resource.data.email.size() > 3
+        && request.resource.data.email.size() < 160;
+      allow update, delete: if isOwner();
+    }
   }
 }

@@ -9,7 +9,7 @@ import {
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDoc, collection } from 'firebase/firestore';
-import { X, ChevronLeft, ChevronRight, Check, AlertCircle, Loader2, Satellite, Radar, AppWindow } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Check, AlertCircle, Loader2, Satellite, Radar, AppWindow, ArrowRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { db, isDemoMode } from '../lib/firebase';
 import { PACKAGES } from '../data/content';
@@ -124,6 +124,7 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [submittedId, setSubmittedId] = useState<string | null>(null);
   const { config } = useSiteConfig();
   const line = getServiceLine(lineId);
 
@@ -234,13 +235,19 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
         arr.push({ id, ...payload });
         localStorage.setItem('syncops_orders', JSON.stringify(arr));
       }
-      onClose();
-      navigate(`/client/portal/${id}`);
-    } catch {
-      setError('Submission failed — your details were not lost. Please try again.');
+      // Keep the modal mounted so the "what happens next" confirmation renders;
+      // the panel's own buttons close it (Back to site / Open your project portal).
+      setSubmittedId(id);
+    } catch {      setError('Submission failed — your details were not lost. Please try again.');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const goToPortal = () => {
+    const id = submittedId;
+    onClose();
+    if (id) navigate(`/client/portal/${id}`);
   };
 
   const selectedPackage = modalPackages.find((p) => p.id === packageId);
@@ -275,41 +282,86 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
         </div>
 
         {/* Progress */}
-        <div className="border-b border-slate-800/80 px-6 py-4">
-          <div className="flex items-center">
-            {STEPS.map((label, i) => (
-              <div key={label} className="flex flex-1 items-center last:flex-none">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={cx(
-                      'flex h-7 w-7 items-center justify-center rounded-md border font-mono text-[11px]',
-                      i < step
-                        ? 'border-emerald-500/60 bg-emerald-950/60 text-emerald-300'
-                        : i === step
-                          ? 'border-emerald-400 bg-emerald-500 font-bold text-slate-950'
-                          : 'border-slate-700 text-slate-500'
-                    )}
-                  >
-                    {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
-                  </span>
-                  <span
-                    className={cx(
-                      'hidden text-xs font-medium sm:inline',
-                      i === step ? 'text-slate-100' : 'text-slate-500'
-                    )}
-                  >
-                    {label}
-                  </span>
+        {!submittedId && (
+          <div className="border-b border-slate-800/80 px-6 py-4">
+            <div className="flex items-center">
+              {STEPS.map((label, i) => (
+                <div key={label} className="flex flex-1 items-center last:flex-none">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={cx(
+                        'flex h-7 w-7 items-center justify-center rounded-md border font-mono text-[11px]',
+                        i < step
+                          ? 'border-emerald-500/60 bg-emerald-950/60 text-emerald-300'
+                          : i === step
+                            ? 'border-emerald-400 bg-emerald-500 font-bold text-slate-950'
+                            : 'border-slate-700 text-slate-500'
+                      )}
+                    >
+                      {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                    </span>
+                    <span
+                      className={cx(
+                        'hidden text-xs font-medium sm:inline',
+                        i === step ? 'text-slate-100' : 'text-slate-500'
+                      )}
+                    >
+                      {label}
+                    </span>
+                  </div>
+                  {i < STEPS.length - 1 && <div className="mx-3 h-px flex-1 bg-slate-800" />}
                 </div>
-                {i < STEPS.length - 1 && <div className="mx-3 h-px flex-1 bg-slate-800" />}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-6">
-          {error && (
+          {submittedId ? (
+            <div className="py-4 text-center">
+              <span className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-full border border-emerald-500/60 bg-emerald-950/60">
+                <Check className="h-7 w-7 text-emerald-300" />
+              </span>
+              <h3 className="h-display mt-5 text-2xl">Request received</h3>
+              <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
+                <span className="font-semibold text-slate-200">{packageName}</span> — your
+                architecture intake is with us. Here is exactly what happens next:
+              </p>
+              <ol className="mx-auto mt-6 max-w-md space-y-4 text-left">
+                {[
+                  {
+                    t: 'Statement of work within 4 business hours',
+                    d: 'A fixed scope, fixed price and a start date — no discovery-call runaround.',
+                  },
+                  {
+                    t: 'Architecture call to lock the design',
+                    d: 'We map your stack, event taxonomy and deduplication strategy together.',
+                  },
+                  {
+                    t: 'Your project portal goes live',
+                    d: 'Milestones, SLA countdown, encrypted architect channel and credential vault.',
+                  },
+                ].map((s, i) => (
+                  <li key={s.t} className="flex gap-4">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-cyan-700/60 bg-cyan-950/50 font-mono text-xs font-bold text-cyan-300">
+                      {i + 1}
+                    </span>
+                    <span>
+                      <span className="block text-sm font-bold text-slate-100">{s.t}</span>
+                      <span className="mt-0.5 block text-sm text-slate-400">{s.d}</span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+              <p className="telemetry mx-auto mt-6 max-w-md">
+                Reference <span className="text-cyan-300">{submittedId}</span> — keep it for your
+                records.
+              </p>
+            </div>
+          ) : (
+            <>
+              {error && (
             <p className="mb-5 flex items-center gap-2 rounded-md border border-rose-800/70 bg-rose-950/60 px-4 py-3 text-sm text-rose-300">
               <AlertCircle className="h-4 w-4 shrink-0" /> {error}
             </p>
@@ -573,9 +625,21 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
               </div>
             </div>
           )}
+            </>
+          )}
         </div>
 
         {/* Footer */}
+        {submittedId ? (
+          <div className="flex flex-col gap-3 border-t border-slate-800/80 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <button type="button" onClick={onClose} className="btn-ghost !px-4 !py-2.5">
+              Back to site
+            </button>
+            <button type="button" onClick={goToPortal} className="btn-primary !px-6 !py-2.5">
+              Open your project portal <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
         <div className="flex items-center justify-between gap-3 border-t border-slate-800/80 px-6 py-4">
           <button
             type="button"
@@ -608,6 +672,7 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
             </button>
           )}
         </div>
+        )}
       </div>
     </div>
   );

@@ -12,12 +12,14 @@ import {
   ScrollText,
   LogOut,
   ExternalLink,
+  MailOpen,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { cx } from '../lib/format';
 import OverviewTab from '../components/console/OverviewTab';
 import OrdersTab from '../components/console/OrdersTab';
+import LeadsTab from '../components/console/LeadsTab';
 import ProjectsTab from '../components/console/ProjectsTab';
 import ProductsTab from '../components/console/ProductsTab';
 import ContentTab from '../components/console/ContentTab';
@@ -35,6 +37,7 @@ interface ConsoleTab {
 const TABS: ConsoleTab[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard, node: <OverviewTab /> },
   { id: 'orders', label: 'Orders', icon: Inbox, node: <OrdersTab /> },
+  { id: 'leads', label: 'Leads', icon: MailOpen, node: <LeadsTab /> },
   { id: 'projects', label: 'Projects', icon: KanbanSquare, node: <ProjectsTab /> },
   { id: 'products', label: 'Products', icon: Package, node: <ProductsTab /> },
   { id: 'content', label: 'Content', icon: FileText, node: <ContentTab /> },

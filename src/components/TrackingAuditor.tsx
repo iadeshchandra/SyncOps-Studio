@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { CircleCheck, TriangleAlert, XCircle, ScanLine, ArrowRight, AlertCircle } from 'lucide-react';
+import { CircleCheck, TriangleAlert, XCircle, ScanLine, ArrowRight, AlertCircle, MailCheck, Send } from 'lucide-react';
 import { auditDomain } from '../lib/auditor';
 import type { AuditResult, Platform } from '../lib/auditor';
+import { saveLead } from '../lib/leads';
 import { cx } from '../lib/format';
 import { useHireModal } from './HireModal';
 
@@ -32,6 +33,8 @@ export default function TrackingAuditor() {
   const [stageIdx, setStageIdx] = useState(0);
   const [result, setResult] = useState<AuditResult | null>(null);
   const [error, setError] = useState('');
+  const [leadEmail, setLeadEmail] = useState('');
+  const [leadState, setLeadState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const timers = useRef<number[]>([]);
   const { openHireModal } = useHireModal();
 
@@ -48,6 +51,8 @@ export default function TrackingAuditor() {
     }
     setError('');
     setResult(null);
+    setLeadEmail('');
+    setLeadState('idle');
     setPhase('scanning');
     setStageIdx(0);
     SCAN_STAGES.forEach((_, i) => {
@@ -68,6 +73,22 @@ export default function TrackingAuditor() {
   };
 
   const progress = Math.round((stageIdx / SCAN_STAGES.length) * 100);
+
+  const submitLead = async () => {
+    const email = leadEmail.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || !result) {
+      setLeadState('error');
+      return;
+    }
+    setLeadState('sending');
+    await saveLead({
+      email,
+      domain: domain.trim().toLowerCase(),
+      score: result.score,
+      grade: result.grade,
+    });
+    setLeadState('sent');
+  };
 
   return (
     <div id="auditor" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 lg:py-28">
@@ -264,6 +285,56 @@ export default function TrackingAuditor() {
             <button type="button" onClick={() => openHireModal()} className="btn-primary mt-8">
               Deploy Remediation Architecture <ArrowRight className="h-4 w-4" />
             </button>
+
+            {/* Lead capture — email me the full report */}
+            <div className="mt-6 rounded-lg border border-cyan-800/50 bg-cyan-950/20 p-5 sm:p-6">
+              {leadState === 'sent' ? (
+                <p className="flex items-center gap-2.5 text-sm font-semibold text-emerald-300">
+                  <MailCheck className="h-5 w-5" />
+                  Report on its way — check your inbox. We reply to every audit personally.
+                </p>
+              ) : (
+                <>
+                  <p className="text-sm font-bold text-slate-100">Get the full report by email</p>
+                  <p className="mt-1 text-sm text-slate-400">
+                    The complete findings, prioritized fixes, and what each one costs you in
+                    lost signal — plus a human read of your stack.
+                  </p>
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                    <input
+                      type="email"
+                      value={leadEmail}
+                      onChange={(e) => {
+                        setLeadEmail(e.target.value);
+                        if (leadState === 'error') setLeadState('idle');
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') submitLead();
+                      }}
+                      placeholder="you@brand.com"
+                      className="input-dark flex-1 font-mono"
+                      autoComplete="email"
+                      aria-label="Email for the full audit report"
+                    />
+                    <button
+                      type="button"
+                      onClick={submitLead}
+                      disabled={leadState === 'sending'}
+                      className="btn-ghost whitespace-nowrap border-cyan-700/60 text-cyan-200 hover:border-cyan-500 hover:text-cyan-100"
+                    >
+                      <Send className="h-4 w-4" />
+                      {leadState === 'sending' ? 'Sending…' : 'Email my report'}
+                    </button>
+                  </div>
+                  {leadState === 'error' && (
+                    <p className="mt-2 text-sm text-rose-400">
+                      Enter a valid email address to receive the report.
+                    </p>
+                  )}
+                  <p className="telemetry mt-3">No spam, no list — one report, one reply.</p>
+                </>
+              )}
+            </div>
           </div>
         )}
       </div>

@@ -47,6 +47,7 @@ export default function Footer() {
             Our work
           </Link>
           <JumpLink to="#pricing">Pricing</JumpLink>
+          <JumpLink to="#faq">FAQ</JumpLink>
           <Link to="/status" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
             Live status
           </Link>

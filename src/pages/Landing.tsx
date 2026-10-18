@@ -6,6 +6,7 @@ import ProtocolPipeline from '../components/ProtocolPipeline';
 import CaseStudies from '../components/CaseStudies';
 import ServicesSection from '../components/ServicesSection';
 import PricingGrid from '../components/PricingGrid';
+import FaqSection from '../components/FaqSection';
 import WorkStrip from '../components/WorkStrip';
 import Footer from '../components/Footer';
 
@@ -40,6 +41,10 @@ export default function Landing() {
 
         <section className="border-t border-slate-800/60 bg-slate-900/20">
           <PricingGrid />
+        </section>
+
+        <section className="border-t border-slate-800/60">
+          <FaqSection />
         </section>
 
         <section className="border-t border-slate-800/60">
