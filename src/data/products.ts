@@ -134,7 +134,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     tagline: 'The operating system for Dharmic institutions',
     status: 'live',
     description:
-      'Offline-first ERP + super-app for Sanatana Dharma institutions — temples, goshalas, ashrams, gurukuls and sanghas — bridged by one universal Sanatani ID.',
+      'Offline-first ERP + super-app for 17 kinds of Sanatana Dharma institutions — Mandir, Goshala, Ashram, Gurukul, Tirth, trusts and sanghas — bridged by one universal Sanatani ID.',
     heroHeadline: 'Salesforce for Dharmic institutions',
     heroSubcopy:
       'One offline-first platform runs the treasury, devotees, sevas, assets and community of temples, goshalas, ashrams, gurukuls and sanghas — with institutional dignity in every screen.',
@@ -164,14 +164,14 @@ export const DEFAULT_PRODUCTS: Product[] = [
           'Festival-aware predictive stock for bhandar and goshala, driven by the Hindu calendar — supply arrives before the crowd does.',
       },
       {
-        title: 'SHA-256 audit chain',
+        title: 'Tamper-proof audit & transparency',
         description:
-          'Every asset movement is block-chained and tamper-evident. No silent edits, no missing pages — an audit anyone can verify.',
+          'Every action across the institution is appended to a SHA-256 hash-chained audit history — who did what, verifiable in one tap, editable by no one. Trustees can publish monthly accounts on a public Transparency Board: totals and categories, never donor names.',
       },
       {
         title: 'Multi-org RBAC',
         description:
-          'Mandir, Goshala, Ashram/Dharamshala, Gurukul and Sangha — plus Solo Sanatani mode — each with role-based access from SuperAdmin to Devotee.',
+          'All 17 organisation types — Mandir, Goshala, Ashram, Gurukul, Vidyalaya, Sangha, Samaj, Satsang, Yoga, Tirth, trusts and more — plus Solo Sanatani for individuals, each with role-based access from SuperAdmin to Devotee.',
       },
       {
         title: '10-language i18n',
@@ -184,9 +184,9 @@ export const DEFAULT_PRODUCTS: Product[] = [
           'Community sevas free forever; verified providers with configurable commission rails, dual-rail payments and bypass defenses.',
       },
       {
-        title: 'Lifecycle suites',
+        title: '14 flagship suites',
         description:
-          'Samskara (16 samskaras), Jyotish consultations, Pathshala, Goshala One, Matha One and the Sangam social layer — one ID across all of it.',
+          'Goshala One, Pathshala One, Matha One, Ashram One, Annakshetra One, Utsav One, Tirth One, Yoga One, Satsang One, Sabha One, Nyas One, Samskara One (16 samskaras), Purohit One and Jyotish One — plus the Sangam community layer and Seva Bazar marketplace, one ID across all of it.',
       },
     ],
     benefits: [
@@ -213,8 +213,8 @@ export const DEFAULT_PRODUCTS: Product[] = [
     ],
     metrics: [
       { value: '10', label: 'Languages' },
-      { value: '6', label: 'Organisation types' },
-      { value: '16', label: 'Samskara lifecycle suite' },
+      { value: '17', label: 'Organisation types' },
+      { value: '14', label: 'Flagship suites' },
     ],
     stack: ['React', 'TypeScript', 'Firebase', 'IndexedDB', 'PWA', 'i18n × 10'],
     testimonials: [],
@@ -227,8 +227,15 @@ export const DEFAULT_PRODUCTS: Product[] = [
         q: 'How is our institution\u2019s money protected?',
         a: 'Every treasury movement posts to an append-only ledger with SHA-256 chained audit records, role-based approvals and owner oversight — no silent edits, ever.',
       },
+      {
+        q: 'What does Sanatani Bandhan cost?',
+        a: 'Seva is free forever. Standard is ₹499 / ৳700 / $6 a month (₹4,999 / ৳7,000 / $60 a year); Premium is ₹1,999 / ৳2,800 / $24 a month (₹19,999 / ৳28,000 / $240 a year); Purohit/Jyotishi Pro is ₹199 / ৳280 / $2.50 a month. Full published facts: https://sanatanibandhan.web.app/llms.txt',
+      },
     ],
-    links: [{ label: 'Live app', url: 'https://sanatanibandhan.web.app' }],
+    links: [
+      { label: 'Live app', url: 'https://sanatanibandhan.web.app' },
+      { label: 'AI facts (llms.txt)', url: 'https://sanatanibandhan.web.app/llms.txt' },
+    ],
     accent: 'amber',
     featured: true,
     published: true,
