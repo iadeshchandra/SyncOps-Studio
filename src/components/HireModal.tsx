@@ -9,7 +9,7 @@ import {
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addDoc, collection } from 'firebase/firestore';
-import { X, ChevronLeft, ChevronRight, Check, AlertCircle, Loader2, Satellite, Radar, AppWindow, ArrowRight } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Check, AlertCircle, Loader2, Satellite, Radar, AppWindow, Bot, ArrowRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { db, isDemoMode } from '../lib/firebase';
 import { PACKAGES } from '../data/content';
@@ -93,6 +93,7 @@ const LINE_ICONS: Record<string, LucideIcon> = {
   Satellite,
   Radar,
   AppWindow,
+  Bot,
 };
 
 interface ModalPackage {
@@ -371,7 +372,7 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
             <div className="space-y-6">
               <div>
                 <p className="label-dark">What do you need?</p>
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                   {SERVICE_LINES.map((l) => {
                     const Icon = LINE_ICONS[l.icon] ?? Satellite;
                     const active = lineId === l.id;

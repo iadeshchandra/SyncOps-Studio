@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUpRight, Check, Satellite, Radar, AppWindow, Star } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Check, Satellite, Radar, AppWindow, Bot, Star } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { SERVICE_LINES } from '../data/services';
 import { useHireModal } from './HireModal';
@@ -8,6 +8,7 @@ const ICONS: Record<string, LucideIcon> = {
   Satellite,
   Radar,
   AppWindow,
+  Bot,
 };
 
 export default function ServicesSection() {
@@ -16,19 +17,20 @@ export default function ServicesSection() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:py-28">
       <p className="eyebrow mb-4">Studio Services</p>
-      <h2 className="h-display text-3xl sm:text-4xl">Three ways to work with us</h2>
+      <h2 className="h-display text-3xl sm:text-4xl">Four ways to work with us</h2>
       <p className="mt-4 max-w-2xl text-slate-400">
         Build it, measure it, or recover the signal you are losing — every engagement ships
         with a live project portal and an SLA-backed handover.
       </p>
 
-      <div className="mt-12 grid gap-6 lg:grid-cols-3">
+      <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         {SERVICE_LINES.map((line, i) => {
           const Icon = ICONS[line.icon] ?? Satellite;
           const accents = [
             'border-emerald-500/40 bg-emerald-950/50 text-emerald-300',
             'border-cyan-500/40 bg-cyan-950/50 text-cyan-300',
             'border-indigo-500/40 bg-indigo-950/50 text-indigo-300',
+            'border-amber-500/40 bg-amber-950/50 text-amber-300',
           ];
           return (
             <div key={line.id} className="glass card-hover flex flex-col rounded-lg p-6 sm:p-8">

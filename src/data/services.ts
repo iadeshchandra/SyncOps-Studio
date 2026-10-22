@@ -1,4 +1,4 @@
-/** Studio service lines — the three ways clients can work with SyncOps Studio.
+/** Studio service lines — the four ways clients can work with SyncOps Studio.
  * Each line carries fixed-scope, fixed-price packages (same transparent-pricing
  * playbook as the CAPI tiers). CAPI packages mirror src/data/content.ts PACKAGES. */
 
@@ -201,6 +201,65 @@ export const SERVICE_LINES: ServiceLine[] = [
           'Product roadmap co-ownership',
           'Priority build queue',
           'Quarterly architecture reviews',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'chatgpt-ads',
+    name: 'ChatGPT Ads Measurement',
+    tagline: 'The new channel, measured like Meta',
+    description:
+      "ChatGPT Ads measurement for advertisers on OpenAI's new channel: the Measurement Pixel, " +
+      'the server-side Conversions API, and one deduplication core — so ChatGPT optimises on ' +
+      'conversions that actually happened, counted once. Built by the same hands as our Meta CAPI work.',
+    icon: 'Bot',
+    proof: {
+      text: '4.9/5 from 322 Fiverr reviews · 240+ businesses tracked since 2019',
+      url: 'https://www.fiverr.com/adesh_chandra',
+      urlLabel: 'Read the reviews',
+    },
+    packages: [
+      {
+        id: 'chatgpt-ads-addon',
+        name: 'ChatGPT Ads Signal Add-On',
+        price: '$490',
+        blurb: 'For existing tracking clients: pixel live and verified on your current stack.',
+        features: [
+          'OpenAI Measurement Pixel via GTM, debug-verified',
+          'Standard events mapped (purchase, lead, sign-up)',
+          'oppref click-reference survival check end-to-end',
+          'CSP allowlist for OpenAI measurement domains',
+          'One conversion event configured in Ads Manager',
+          'Handover note with event map + QA evidence',
+        ],
+      },
+      {
+        id: 'chatgpt-ads-setup',
+        name: 'ChatGPT Ads Measurement Setup',
+        price: '$890',
+        blurb: 'Pixel + Conversions API, deduplicated — the full signal stack for the new channel.',
+        features: [
+          'Everything in Signal Add-On',
+          'Conversions API via GTM server / Stape, validate-first',
+          'Pixel + CAPI deduplication on one shared event_id',
+          'Advanced matching: SHA-256 hashed identifiers',
+          'Consent wiring — pixel held until consent where a CMP runs',
+          'Duplicate-count test proven on real transactions',
+        ],
+      },
+      {
+        id: 'chatgpt-ads-partner',
+        name: 'ChatGPT Ads Measurement Partner',
+        price: '$1,900',
+        blurb: 'Setup plus blended reporting and 30 days of signal health.',
+        features: [
+          'Everything in Measurement Setup',
+          'Looker Studio report blending ChatGPT Ads + Meta + Google',
+          'Per-market currency/timezone reporting discipline',
+          'Partner hookups: Hightouch / Tealium / LiveRamp where present',
+          'Campaign-readiness review: hints, creative spec, bot access',
+          '30-day signal-health monitoring',
         ],
       },
     ],
