@@ -94,4 +94,64 @@ Open Events Manager, pick your pixel or dataset, and look at the EMQ shown per e
 
 EMQ is not a vanity metric. It's the shortest summary of whether your server-side setup is doing its job — and it's the first number we check, because everything downstream of it — attribution, optimisation, audiences — inherits its quality.`,
   },
+  {
+    id: 'tiktok-purchase-that-never-fired',
+    title: 'The Purchase event that never fired: a TikTok Events API repair',
+    excerpt:
+      'A live store, real orders every day — and TikTok had not recorded a single Purchase in three days. The pixel was installed correctly. The event was wired to a page your customers never actually reach.',
+    tags: ['tiktok events api', 'case study', 'deduplication'],
+    published: false,
+    publishedAt: '2026-11-20',
+    order: 2,
+    body: `This is a real repair from our studio practice, shared with the client's details removed. An online academy selling courses through its own store had the full TikTok setup on paper: the pixel installed through Google Tag Manager, a Purchase event configured on the order-confirmation page, and a server-side Events API connection alongside it. Orders were coming in. TikTok's data showed no purchases at all.
+
+THREE DAYS, ZERO PURCHASES
+
+The first step in any repair is to stop guessing and watch real traffic. Over three days of live orders, the browser Purchase event never fired once. Not intermittently — never. The thank-you page was the problem: between payment gateways returning customers to different screens, redirects, and confirmation pages that many buyers simply never land on, an event that depends on a specific page loading in a specific browser is an event designed to go missing.
+
+This is the most common server-side failure we see, and it is invisible from inside the ad account. The campaigns keep spending. The platform optimises on whatever weaker signals it can find. The advertiser blames the targeting.
+
+THE FIX: FIRE FROM THE ORDER, NOT THE PAGE
+
+We rebuilt the event at the one moment that is always true: the order itself. When an order is paid, the store generates the Purchase event from the order data — value, currency, contents — and sends it to TikTok's Events API directly. No page needs to load. No browser needs to cooperate. If the order exists and is paid, the event fires.
+
+Two disciplines made it safe. First, deduplication: the remaining browser-side Purchase tags in the tag manager were paused, so the order-based event is the single source — one purchase, counted once. Second, naming: TikTok renamed its checkout event from CompletePayment to Purchase, and events sent under mismatched names never deduplicate and never train delivery properly. Every source now speaks the same event name.
+
+HOW IT WAS PROVEN
+
+Not with a dashboard screenshot — with real orders. A paid order of 120 SAR was placed and watched arriving in TikTok's Test Events, fired by the order, with the correct value. Then the test configuration was removed and a second real order, 99 SAR, flowed into the live data and was accepted by the Events API. Both events existed because money had actually moved, which is the only proof that matters for a Purchase event.
+
+THE LESSON
+
+If your conversion event lives on a thank-you page, you do not have conversion tracking — you have a hope. Anchor revenue events to the transaction system that records the money, send them server-side, keep exactly one source per event, and prove the repair with a real order before you call it done.`,
+  },
+  {
+    id: 'microsoft-ads-account-reinstated',
+    title: 'Suspended on Monday, reinstated in a day: a Microsoft Ads appeal, documented',
+    excerpt:
+      'A suspended Microsoft Advertising account is not always the end of the road. This one came back in about one business day — because the appeal treated the review like what it is: a documentation check, not an argument.',
+    tags: ['microsoft ads', 'case study', 'account recovery'],
+    published: false,
+    publishedAt: '2026-11-25',
+    order: 3,
+    body: `Another real case from the studio, anonymised. A US home-services company opened Microsoft Advertising to find the account suspended — campaigns dead, no warning email that explained anything actionable, and a support trail that mostly led in circles. Account suspensions feel personal. To the platform, they are paperwork: an automated system flagged something, and a human reviewer will reverse it only if the file in front of them answers their questions before they ask them.
+
+WHAT A WORKING APPEAL ACTUALLY CONTAINS
+
+Reviewers do not reinstate accounts because a message is polite or urgent. They reinstate when the business is verifiably real and the flagged risk is explained. The appeal we prepared was built as a small evidence pack: the business's legal identity and how it operates, what it advertises and why that complies with Microsoft's policies, and a clear account of the activity that likely triggered the flag, addressed point by point rather than denied in general terms.
+
+No templates, no mass-submitted wording. Appeals written for one account, with that account's facts, read differently to a reviewer than the copied text they see a hundred times a day — and they are decided differently.
+
+THE TIMELINE, HONESTLY
+
+The expectation we set with the client was a decision window of several business days, possibly longer. The reinstatement came through in about one business day: verification approved, appeal approved, account live again, with the client back inside Microsoft Advertising looking at the campaign-creation screen. That speed is not a promise we make anyone — review queues are the platform's, not ours. What is ours is the quality of the file the reviewer opens.
+
+WHAT HAPPENS AFTER THE DOOR REOPENS
+
+A reinstated account with no measurement is a second chance spent blind. The follow-on work — and we are transparent that this is the phase now in progress for this client — is the UET tag installed on the store, a properly defined Purchase conversion goal, and a short watch period to confirm real conversions are being recorded before budgets scale again. Reinstatement gets you back in the room. Tracking is what makes being in the room worth paying for.
+
+THE LESSON
+
+Treat a suspension as a documentation problem first and a catastrophe second. Keep your business records reachable, write the appeal to the reviewer's checklist rather than to your own frustration, and set honest timelines. Accounts come back when the evidence is boring, complete and true.`,
+  },
 ];

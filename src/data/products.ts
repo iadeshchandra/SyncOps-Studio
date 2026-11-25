@@ -326,7 +326,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     heroSubcopy:
       'ProofList verifies every email before it counts, filters before you extract, and charges only for what you use. Built to out-verify the lifetime-deal tools.',
     heroCtaLabel: 'Request early access',
-    heroCtaUrl: 'mailto:hello@syncops.studio?subject=ProofList%20early%20access',
+    heroCtaUrl: 'mailto:iadeshchandra@gmail.com?subject=ProofList%20early%20access',
     whyTitle: 'Why lead lists rot before you use them',
     whyPoints: [
       'Most lead tools sell volume — 40%+ of the emails bounce',

@@ -65,7 +65,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   maintenanceMode: false,
   maintenanceMessage:
     'SyncOps Studio is undergoing scheduled infrastructure maintenance. Live telemetry remains available on the status page.',
-  contactEmail: 'hello@syncops.studio',
+  contactEmail: 'iadeshchandra@gmail.com',
   responseSla: '≤ 4h business SLA',
   heroStats: [
     { value: '99.99%', label: 'uptime SLA' },
