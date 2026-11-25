@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './lib/auth';
@@ -19,6 +20,22 @@ import Maintenance from './pages/Maintenance';
 import StudioConsole from './pages/StudioConsole';
 
 /**
+ * Hash-scroll restoration: links like `/#auditor` (used by the Compare
+ * page and cross-page CTAs) must land on the section, not the page top.
+ */
+function HashScroll() {
+  const { pathname, hash } = useLocation();
+  useEffect(() => {
+    if (!hash) return;
+    const t = setTimeout(() => {
+      document.querySelector(hash)?.scrollIntoView({ behavior: 'smooth' });
+    }, 90);
+    return () => clearTimeout(t);
+  }, [pathname, hash]);
+  return null;
+}
+
+/**
  * Global maintenance gate. When the owner enables maintenance mode in the
  * Studio Console, every public route renders the Maintenance page — except
  * /studio/* so the owner can always reach the console to turn it back off.
@@ -37,6 +54,7 @@ export default function App() {
     <AuthProvider>
       <HireModalProvider>
         <BrowserRouter>
+          <HashScroll />
           <SiteGate>
             <Routes>
               <Route path="/" element={<Landing />} />

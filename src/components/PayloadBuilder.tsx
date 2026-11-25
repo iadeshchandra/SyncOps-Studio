@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode, useEffect} from 'react';
 import {
   Braces,
   CheckCircle2,
@@ -71,7 +71,12 @@ function highlightJson(json: string): ReactNode[] {
   return out;
 }
 
-const DISPATCH_STEPS = ['Normalizing & SHA-256 hashing PII', 'Checking event_id deduplication window', 'Dispatching to Graph API v21.0'];
+async function sha256Hex(text: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+const DISPATCH_STEPS = ['Normalizing & SHA-256 hashing PII', 'Checking event_id deduplication window', 'Dispatching to Graph API v21.0 (simulated)'];
 
 export default function PayloadBuilder() {
   const [eventName, setEventName] = useState<string>('Purchase');
@@ -89,12 +94,24 @@ export default function PayloadBuilder() {
   const setPiiField = (key: PiiKey, v: string) =>
     setPii((prev) => ({ ...prev, [key]: v }));
 
+  const [hashes, setHashes] = useState<Record<string, string[]>>({});
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const out: Record<string, string[]> = {};
+      for (const f of PII_FIELDS) {
+        const raw = pii[f.key].trim().toLowerCase();
+        if (raw) out[f.key] = [await sha256Hex(raw)];
+      }
+      if (!cancelled) setHashes(out);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pii]);
+
   const payload = useMemo(() => {
-    const hashedUserData: Record<string, string[]> = {};
-    for (const f of PII_FIELDS) {
-      const raw = pii[f.key].trim().toLowerCase();
-      if (raw) hashedUserData[f.key] = [demoHex(`${f.key}:${raw}`, 64)];
-    }
+    const hashedUserData = hashes;
     const epoch = Math.floor(new Date(eventTime).getTime() / 1000);
     return {
       data: [
@@ -112,7 +129,7 @@ export default function PayloadBuilder() {
         },
       ],
     };
-  }, [eventName, eventId, eventTime, value, currency, pii]);
+  }, [eventName, eventId, eventTime, value, currency, hashes]);
 
   const json = useMemo(() => JSON.stringify(payload, null, 2), [payload]);
 

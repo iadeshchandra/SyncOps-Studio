@@ -111,33 +111,6 @@ export const PROOF_QUOTES: ProofQuote[] = [
   },
 ];
 
-export interface Testimonial {
-  quote: string;
-  author: string;
-  role: string;
-}
-
-export const TESTIMONIALS: Testimonial[] = [
-  {
-    quote:
-      'The most rigorous tracking engineers we have worked with. They treated our event pipeline like flight-control software.',
-    author: 'Elena Marsh',
-    role: 'CMO, Aurelle & Co.',
-  },
-  {
-    quote:
-      'Handover was surgical — container JSONs, DNS guides, test logs. Our team owned the stack within days.',
-    author: 'Marcus Cole',
-    role: 'Founder, Forge Athletics',
-  },
-  {
-    quote:
-      'EMQ 9.6 and holding for six months. SyncOps is now a permanent line item in our growth budget.',
-    author: 'Priya Raman',
-    role: 'Head of Growth, Lumen Skincare',
-  },
-];
-
 export interface PipelineStep {
   title: string;
   desc: string;

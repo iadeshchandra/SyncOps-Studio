@@ -64,11 +64,11 @@ function TerminalVisualizer() {
         </span>
         <span className="ml-2 flex items-center gap-1.5 font-mono text-[11px] text-slate-500">
           <Terminal className="h-3.5 w-3.5" />
-          capi-live — edge-us1 · Meta Graph API v21.0
+          capi-sim — sample event stream · Meta Graph API v21.0
         </span>
         <span className="ml-auto flex items-center gap-1.5 font-mono text-[10px] text-emerald-400">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse-dot" />
-          STREAMING
+          SIMULATED
         </span>
       </div>
       <div ref={scrollRef} className="h-72 overflow-y-auto px-4 py-3 font-mono text-[11px] leading-6">

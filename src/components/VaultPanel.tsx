@@ -12,6 +12,7 @@ import {
   Info,
 } from 'lucide-react';
 import type { Order } from '../lib/portal';
+import { isDemoMode } from '../lib/firebase';
 import { demoHex, cx } from '../lib/format';
 
 function downloadFile(filename: string, content: string, mime: string): void {
@@ -182,8 +183,33 @@ export default function VaultPanel({ order }: { order: Order }) {
     setTimeout(() => setCopied((c) => (c === key ? null : c)), 1600);
   };
 
+  if (!isDemoMode) {
+    return (
+      <div className="glass rounded-xl p-6">
+        <p className="eyebrow mb-1">deliverables</p>
+        <h3 className="h-display text-lg">Build Artifacts & Credentials</h3>
+        <div className="mt-4 flex items-start gap-2 rounded-md border border-slate-800/80 bg-slate-950/60 px-3.5 py-3">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-cyan-400" />
+          <p className="text-sm leading-relaxed text-slate-400">
+            Nothing here yet. Your container exports, DNS guide and credentials are issued into
+            this vault by your architect as your build reaches the Server Provisioning and
+            Handover stages — real artifacts, generated from your actual infrastructure, never
+            placeholders.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      <div className="flex items-start gap-2 rounded-md border border-amber-700/60 bg-amber-950/40 px-3.5 py-3">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+        <p className="text-sm text-amber-200">
+          <span className="font-bold">Sample deliverables</span> — demo data showing the format of
+          the artifacts and credentials issued on a live project.
+        </p>
+      </div>
       {/* deliverables */}
       <div className="glass rounded-xl p-6">
         <p className="eyebrow mb-1">deliverables</p>

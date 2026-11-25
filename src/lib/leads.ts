@@ -39,8 +39,9 @@ function writeJSON(key: string, value: unknown): void {
   }
 }
 
-/** Save a lead from the Tracking Auditor's report form. Never throws. */
-export async function saveLead(input: Omit<Lead, 'id' | 'createdAt'>): Promise<void> {
+/** Save a lead from the Tracking Auditor's report form. Never throws;
+ *  resolves true only when the lead was actually persisted. */
+export async function saveLead(input: Omit<Lead, 'id' | 'createdAt'>): Promise<boolean> {
   try {
     if (!isDemoMode && db) {
       await addDoc(collection(db, 'leads'), { ...input, createdAt: Date.now() });
@@ -54,8 +55,10 @@ export async function saveLead(input: Omit<Lead, 'id' | 'createdAt'>): Promise<v
       writeJSON(LOCAL_KEY, leads);
     }
     await logAudit('leads.capture', `${input.email} · ${input.domain} · score ${input.score}`);
+    return true;
   } catch {
-    /* lead capture must never break the auditor */
+    /* lead capture must never break the auditor — but the caller must know */
+    return false;
   }
 }
 

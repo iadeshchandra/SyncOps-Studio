@@ -33,7 +33,7 @@ export default function PricingGrid() {
             >
               {featured && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-emerald-500 px-3 py-1 font-mono text-[10px] font-bold tracking-[0.2em] text-slate-950">
-                  MOST DEPLOYED
+                  RECOMMENDED
                 </span>
               )}
               <p className="eyebrow !text-[10px]">{pkg.id.replace(/-/g, ' ').toUpperCase()}</p>

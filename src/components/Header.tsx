@@ -115,7 +115,7 @@ export default function Header() {
           >
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse-dot" />
             <span className="font-mono text-[10px] tracking-[0.14em] text-emerald-300 hidden xl:inline">
-              ALL SYSTEMS OPERATIONAL
+              ACCEPTING NEW PROJECTS
             </span>
             <span className="font-mono text-[10px] tracking-[0.14em] text-emerald-300 xl:hidden">
               LIVE
@@ -196,7 +196,7 @@ export default function Header() {
               )}
             >
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse-dot" />
-              ALL SYSTEMS OPERATIONAL
+              ACCEPTING NEW PROJECTS
             </Link>
             <div className="flex gap-2 pt-2">
               <JumpLink

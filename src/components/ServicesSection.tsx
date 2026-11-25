@@ -66,13 +66,13 @@ export default function ServicesSection() {
               )}
 
               <p className="mt-5 font-mono text-2xl font-black tracking-tight text-slate-50">
-                {line.packages[0].price.startsWith('$') ? (
+                {(line.packages[0]?.price ?? 'Custom').startsWith('$') ? (
                   <>
                     <span className="text-sm font-medium text-slate-500">From </span>
-                    {line.packages[0].price}
+                    {line.packages[0]?.price}
                   </>
                 ) : (
-                  line.packages[0].price
+                  line.packages[0]?.price ?? 'Custom scope'
                 )}
               </p>
 

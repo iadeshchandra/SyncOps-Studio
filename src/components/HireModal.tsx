@@ -12,9 +12,8 @@ import { addDoc, collection } from 'firebase/firestore';
 import { X, ChevronLeft, ChevronRight, Check, AlertCircle, Loader2, Satellite, Radar, AppWindow, Bot, ArrowRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { db, isDemoMode } from '../lib/firebase';
-import { PACKAGES } from '../data/content';
 import type { ServiceLine } from '../data/services';
-import { useSiteConfig, useServiceLines } from '../lib/siteConfig';
+import { useServiceLines } from '../lib/siteConfig';
 import { cx, fmtUSD } from '../lib/format';
 
 export interface HirePrefill {
@@ -130,28 +129,19 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
-  const { config } = useSiteConfig();
   const line = serviceLines.find((l) => l.id === lineId) ?? serviceLines[0];
 
-  // Line content comes from useServiceLines() (console-editable via the
-  // Services tab); the CAPI package list can additionally be overridden by
-  // the console pricing config, as before.
+  // Single source of truth: packages come from useServiceLines()
+  // (console-editable via the Services tab), so the modal can never quote
+  // a price the services section doesn't show.
   const modalPackages: ModalPackage[] = useMemo(() => {
-    if (line.id === 'capi') {
-      return (config.pricing ?? PACKAGES).map((p) => ({
-        id: p.id,
-        name: p.name,
-        tagline: p.tagline,
-        priceLabel: fmtUSD(p.price),
-      }));
-    }
     return line.packages.map((p) => ({
       id: p.id,
       name: p.name,
       tagline: p.blurb,
       priceLabel: p.price,
     }));
-  }, [line, config.pricing]);
+  }, [line]);
 
   const selectLine = (id: string) => {
     if (id === lineId) return;
@@ -181,6 +171,7 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
       const u = storeUrl.trim();
       if (!u || !u.includes('.')) return 'Enter your store URL, e.g. brand.com.';
     }
+    if (s === 3 && name.trim().length < 2) return 'Enter your name.';
     if (s === 3 && !EMAIL_RE.test(email.trim())) return 'Enter a valid email address.';
     return '';
   };
@@ -219,7 +210,7 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
       scope,
       status: 'intake',
       stageIndex: 0,
-      adSpend: Number(adSpend) || 0,
+      adSpend: Math.max(0, Number(adSpend) || 0),
       primaryNetworks: networks.trim(),
       targetLaunchDate: launchDate,
       notes: notes.trim(),
@@ -245,7 +236,7 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
       // Keep the modal mounted so the "what happens next" confirmation renders;
       // the panel's own buttons close it (Back to site / Open your project portal).
       setSubmittedId(id);
-    } catch {      setError('Submission failed — your details were not lost. Please try again.');
+    } catch {      setError('Submission failed — nothing was saved. Please try again, or email iadeshchandra@gmail.com.');
     } finally {
       setSubmitting(false);
     }

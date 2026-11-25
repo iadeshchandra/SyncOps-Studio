@@ -7,7 +7,7 @@ import { cx } from '../lib/format';
 import { useHireModal } from './HireModal';
 
 const SCAN_STAGES = [
-  'Resolving DNS & CNAME records…',
+  'Simulating DNS & CNAME checks…',
   'Simulating Safari ITP cookie decay…',
   'Verifying event_id deduplication & PII hashing…',
 ];
@@ -81,13 +81,13 @@ export default function TrackingAuditor() {
       return;
     }
     setLeadState('sending');
-    await saveLead({
+    const saved = await saveLead({
       email,
       domain: domain.trim().toLowerCase(),
       score: result.score,
       grade: result.grade,
     });
-    setLeadState('sent');
+    setLeadState(saved ? 'sent' : 'error');
   };
 
   return (
@@ -205,6 +205,10 @@ export default function TrackingAuditor() {
                 </span>
               </div>
               <div className="w-full">
+                <p className="mb-3 rounded-md border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs leading-relaxed text-slate-400">
+                  Simulated estimate — modelled instantly on the five failure patterns we check
+                  first on a real engagement. The emailed report is verified by hand.
+                </p>
                 <div className="mb-2 flex justify-between font-mono text-xs">
                   <span className="text-slate-400">Overall score</span>
                   <span className="font-bold text-slate-100">{result.score}/100</span>
@@ -250,7 +254,7 @@ export default function TrackingAuditor() {
 
             {/* Latency benchmark */}
             <div className="mt-8 rounded-lg border border-slate-800/80 bg-slate-950/60 p-5 sm:p-6">
-              <p className="label-dark">Latency benchmark</p>
+              <p className="label-dark">Latency model — illustrative</p>
               <div className="space-y-4">
                 <div>
                   <div className="mb-1.5 flex justify-between font-mono text-xs">
@@ -291,7 +295,7 @@ export default function TrackingAuditor() {
               {leadState === 'sent' ? (
                 <p className="flex items-center gap-2.5 text-sm font-semibold text-emerald-300">
                   <MailCheck className="h-5 w-5" />
-                  Report on its way — check your inbox. We reply to every audit personally.
+                  Saved — thank you. Your full report is prepared by hand and emailed from the studio within one business day.
                 </p>
               ) : (
                 <>

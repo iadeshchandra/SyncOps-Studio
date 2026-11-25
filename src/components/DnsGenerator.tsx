@@ -104,8 +104,8 @@ export default function DnsGenerator() {
         )}
 
         {valid && (
-          <div className="overflow-hidden rounded-lg border border-slate-800">
-            <table className="w-full text-left font-mono text-[12px]">
+          <div className="overflow-x-auto rounded-lg border border-slate-800">
+            <table className="w-full min-w-[560px] text-left font-mono text-[12px]">
               <thead>
                 <tr className="border-b border-slate-800 bg-slate-900/80 text-[10px] uppercase tracking-[0.18em] text-slate-500">
                   <th className="px-4 py-2.5 font-medium">Type</th>
@@ -136,6 +136,10 @@ export default function DnsGenerator() {
         )}
 
         <div>
+          <p className="mb-2 text-xs leading-relaxed text-slate-500">
+            Example endpoint shown — your assigned tagging-server endpoint is issued at project
+            kickoff and confirmed by your architect before any DNS change goes live.
+          </p>
           <p className="label-dark inline-flex items-center gap-1.5">
             <ListChecks className="h-3.5 w-3.5 text-cyan-400" /> Verification checklist
           </p>

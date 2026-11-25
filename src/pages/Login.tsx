@@ -18,26 +18,26 @@ import { cx } from '../lib/format';
 
 const TESTIMONIALS = [
   {
-    quote: 'Signal loss was eating 31% of our attributed revenue. SyncOps recovered it in eleven days.',
-    name: 'Maya R.',
-    role: 'CMO, $40M beauty brand',
+    quote: 'Great to work with. Knows how to get the job done.',
+    name: 'tanya7474',
+    role: 'Fiverr review · United States',
   },
   {
-    quote: 'The cleanest server-side migration we have ever run. Zero downtime on Black Friday traffic.',
-    name: 'Daniel K.',
-    role: 'Founder, Shopify Plus apparel',
+    quote: 'Would highly recommend working with him. He knows his stuff.',
+    name: 'bongeka_buhle',
+    role: 'Fiverr review · South Africa',
   },
   {
-    quote: 'EMQ went from 4.2 to 9.3. Our media buyers finally trust the dashboard again.',
-    name: 'Sofia L.',
-    role: 'Head of Growth, DTC wellness',
+    quote: 'He always does a great job.',
+    name: 'smartkft',
+    role: 'Fiverr review · Italy · repeat client',
   },
 ];
 
 const BADGES = [
   { icon: ShieldCheck, label: 'Zero-trust auth' },
   { icon: Lock, label: 'Encrypted channel' },
-  { icon: Activity, label: '99.99% SLA' },
+  { icon: Activity, label: '4.9/5 client rating' },
 ];
 
 export default function Login() {
@@ -284,10 +284,12 @@ export default function Login() {
             Continue with Google
           </button>
 
-          <button onClick={demo} className="btn-ghost mt-3 w-full border-emerald-700/60 bg-emerald-950/40 hover:border-emerald-500/70">
-            <Zap className="h-4 w-4 text-emerald-400" />
-            Continue with Demo Client Account
-          </button>
+          {isDemoMode && (
+            <button onClick={demo} className="btn-ghost mt-3 w-full border-emerald-700/60 bg-emerald-950/40 hover:border-emerald-500/70">
+              <Zap className="h-4 w-4 text-emerald-400" />
+              Continue with Demo Client Account
+            </button>
+          )}
 
           <p className="telemetry mt-6 text-center">
             protected by zero-trust session guard · soc2-aligned ops

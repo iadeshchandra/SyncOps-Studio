@@ -20,6 +20,7 @@ import { useAuth } from '../lib/auth';
 import { isDemoMode } from '../lib/firebase';
 import {
   getOrder,
+  listMyOrders,
   listRevisions,
   createRevision,
 } from '../lib/portal';
@@ -71,9 +72,9 @@ export default function ClientPortal() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const orderId = id ?? 'demo-8f3a2c';
-
   const [order, setOrder] = useState<Order | null>(null);
+  const [myOrders, setMyOrders] = useState<Order[]>([]);
+  const [noProjects, setNoProjects] = useState(false);
   const [orderLoading, setOrderLoading] = useState(true);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('chat');
@@ -85,14 +86,24 @@ export default function ClientPortal() {
     let cancelled = false;
     setOrderLoading(true);
     setOrderError(null);
-    getOrder(orderId)
-      .then((o) => {
+    setNoProjects(false);
+    const load = async () => {
+      if (id) {
+        const o = await getOrder(id);
         if (cancelled) return;
         setOrder(o);
-        if (!o) setOrderError('No project found for this portal link.');
-      })
+        if (!o) setOrderError('notfound');
+      } else {
+        const mine = await listMyOrders(user?.email ?? '');
+        if (cancelled) return;
+        setMyOrders(mine);
+        setOrder(mine[0] ?? null);
+        if (mine.length === 0) setNoProjects(true);
+      }
+    };
+    load()
       .catch(() => {
-        if (!cancelled) setOrderError('Could not load this project. Please retry.');
+        if (!cancelled) setOrderError('failed');
       })
       .finally(() => {
         if (!cancelled) setOrderLoading(false);
@@ -100,18 +111,23 @@ export default function ClientPortal() {
     return () => {
       cancelled = true;
     };
-  }, [orderId]);
+  }, [id, user?.email]);
 
+  const activeOrderId = order?.id;
   const refreshRevisions = useCallback(async () => {
+    if (!activeOrderId) {
+      setRevisions([]);
+      return;
+    }
     setRevLoading(true);
     try {
-      setRevisions(await listRevisions(orderId));
+      setRevisions(await listRevisions(activeOrderId));
     } catch {
       /* keep previous list on failure */
     } finally {
       setRevLoading(false);
     }
-  }, [orderId]);
+  }, [activeOrderId]);
 
   useEffect(() => {
     void refreshRevisions();
@@ -126,7 +142,8 @@ export default function ClientPortal() {
     type: 'addition' | 'change' | 'revision',
     details: string,
   ) => {
-    await createRevision(orderId, type, details);
+    if (!order) return;
+    await createRevision(order.id, type, details);
     await refreshRevisions();
   };
 
@@ -138,17 +155,56 @@ export default function ClientPortal() {
     );
   }
 
+  if (noProjects) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
+        <div className="glass max-w-md rounded-xl p-8 text-center">
+          <Package className="mx-auto h-10 w-10 text-cyan-400" />
+          <h2 className="h-display mt-4 text-xl">No projects yet</h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate-400">
+            This account doesn&apos;t have a project with the studio yet. When you start one, its
+            portal — milestones, architect messages and deliverables — will live here.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <Link to="/" className="btn-primary inline-flex">
+              Explore the studio
+            </Link>
+            <button onClick={handleSignOut} className="btn-ghost inline-flex px-4 py-2.5 text-sm">
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!order || orderError) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
         <div className="glass max-w-md rounded-xl p-8 text-center">
           <AlertTriangle className="mx-auto h-10 w-10 text-rose-400" />
-          <h2 className="h-display mt-4 text-xl">Project not found</h2>
-          <p className="mt-2 text-sm text-slate-400">
-            {orderError ?? 'This portal link does not match any active project.'}
+          <h2 className="h-display mt-4 text-xl">We couldn&apos;t open this project</h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate-400">
+            {orderError === 'notfound'
+              ? "This portal link doesn't match any project we can find. It may be incomplete or from an older email."
+              : "The project couldn't be loaded. The most common cause: you're signed in with a different email than the one the project was created under."}
           </p>
-          <Link to="/client/dashboard" className="btn-primary mt-6 inline-flex">
-            Open demo project
+          {user?.email && (
+            <p className="telemetry mt-3">
+              signed in as <span className="text-slate-300">{user.email}</span>
+            </p>
+          )}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <Link to="/client/dashboard" className="btn-primary inline-flex">
+              Go to my projects
+            </Link>
+            <a href="mailto:iadeshchandra@gmail.com" className="btn-ghost inline-flex px-4 py-2.5 text-sm">
+              Email the studio
+            </a>
+          </div>
+          <Link to="/" className="mt-4 inline-block text-sm text-slate-500 underline-offset-4 hover:text-slate-300 hover:underline">
+            Back to home
           </Link>
         </div>
       </div>
@@ -191,6 +247,26 @@ export default function ClientPortal() {
             </button>
           </div>
         </header>
+
+        {!id && myOrders.length > 1 && (
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <span className="telemetry">your projects</span>
+            {myOrders.map((o) => (
+              <Link
+                key={o.id}
+                to={`/client/portal/${o.id}`}
+                className={cx(
+                  'rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors',
+                  o.id === order.id
+                    ? 'border-emerald-700/60 bg-emerald-950/50 text-emerald-300'
+                    : 'border-slate-800 bg-slate-900/50 text-slate-400 hover:text-slate-200',
+                )}
+              >
+                {o.packageName}
+              </Link>
+            ))}
+          </div>
+        )}
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[380px_1fr]">
           {/* left column */}

@@ -8,6 +8,7 @@ import {
   deleteDoc,
   query,
   orderBy,
+  where,
   onSnapshot,
 } from 'firebase/firestore';
 import { db, isDemoMode } from './firebase';
@@ -172,6 +173,25 @@ export async function getOrder(id: string): Promise<Order | null> {
   };
 }
 
+/** Orders belonging to one client email, newest first. Powers /client/dashboard. */
+export async function listMyOrders(email: string): Promise<Order[]> {
+  const target = email.trim().toLowerCase();
+  if (!target) return [];
+  if (!isDemoMode && db) {
+    const q = query(collection(db, 'orders'), where('clientEmail', '==', email.trim()));
+    const snap = await getDocs(q);
+    return snap.docs
+      .map((s) => mapOrder(s.id, s.data()))
+      .sort((a, b) => b.createdAt - a.createdAt);
+  }
+  const overrides = readJSON<Order[]>('syncops_orders', []);
+  const mine = overrides.filter((o) => o.clientEmail.toLowerCase() === target);
+  if (target === DEMO_ORDER.clientEmail && !mine.some((o) => o.id === DEMO_ORDER.id)) {
+    mine.push({ ...DEMO_ORDER });
+  }
+  return mine.sort((a, b) => b.createdAt - a.createdAt);
+}
+
 /* ---------------- messages ---------------- */
 
 function mapMessage(orderId: string, id: string, d: Record<string, unknown>): OrderMessage {
@@ -224,6 +244,7 @@ export async function sendMessage(
   if (!text) throw new Error('Message cannot be empty.');
   if (!isDemoMode && db) {
     await addDoc(collection(db, 'orders', orderId, 'messages'), {
+      orderId,
       sender,
       body: text,
       createdAt: Date.now(),

@@ -50,7 +50,7 @@ export default function Status() {
 
   usePageMeta(
     'System Status — SyncOps Studio',
-    'Live infrastructure telemetry for SyncOps Studio: 99.99% 90-day rolling SLA, telemetry nodes, the live edge stream and incident history.'
+    'SyncOps Studio infrastructure: uptime design targets, the telemetry model, an edge-stream demonstration and incident-response drills.'
   );
 
   useEffect(() => {
@@ -84,12 +84,12 @@ export default function Status() {
           <div className="pointer-events-none absolute -top-24 right-0 h-64 w-64 rounded-full bg-emerald-500/10 blur-3xl" />
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="eyebrow">Live infrastructure telemetry</p>
+              <p className="eyebrow">Infrastructure telemetry — demonstration</p>
               <div className="mt-3 flex items-end gap-4">
                 <span className="h-display text-5xl sm:text-6xl">99.99%</span>
                 <div className="pb-1.5">
-                  <p className="text-sm font-semibold text-slate-200">90-day rolling SLA</p>
-                  <p className="telemetry mt-0.5">all systems nominal</p>
+                  <p className="text-sm font-semibold text-slate-200">uptime design target</p>
+                  <p className="telemetry mt-0.5">simulated feed — demonstration data</p>
                 </div>
               </div>
               <div className="mt-4 inline-flex items-center gap-2 rounded-md border border-emerald-700/80 bg-emerald-950/80 px-3 py-1.5 font-mono text-xs tracking-[0.14em] text-emerald-400">
@@ -144,7 +144,7 @@ export default function Status() {
         <section className="mt-8">
           <div className="mb-4 flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-emerald-400" />
-            <h2 className="text-lg font-bold tracking-tight text-slate-50">Live edge stream</h2>
+            <h2 className="text-lg font-bold tracking-tight text-slate-50">Edge stream — simulated</h2>
           </div>
           <Terminal title="syncops-edge — live stdout" bodyClassName="h-[420px]" className="w-full" />
         </section>
@@ -153,8 +153,8 @@ export default function Status() {
         <section className="mt-8">
           <div className="mb-4 flex items-center gap-2">
             <History className="h-4 w-4 text-slate-400" />
-            <h2 className="text-lg font-bold tracking-tight text-slate-50">Incident history</h2>
-            <span className="telemetry ml-1">last 90 days</span>
+            <h2 className="text-lg font-bold tracking-tight text-slate-50">Incident drills</h2>
+            <span className="telemetry ml-1">example scenarios</span>
           </div>
           <div className="space-y-3">
             {INCIDENTS.map((inc) => (

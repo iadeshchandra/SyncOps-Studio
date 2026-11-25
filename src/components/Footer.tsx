@@ -105,11 +105,11 @@ export default function Footer() {
             </p>
             <p>
               <span className="text-slate-600">uptime&nbsp;&nbsp;&nbsp;</span>
-              <span className="text-emerald-400">99.99%</span>
+              <span className="text-emerald-400">99.99% target</span>
             </p>
             <p>
               <span className="text-slate-600">edge&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-              <span className="text-cyan-300">12ms</span> p50 dispatch
+              <span className="text-cyan-300">edge</span> dispatch design
             </p>
           </div>
           <Link
@@ -117,7 +117,7 @@ export default function Footer() {
             className="mt-5 inline-flex items-center gap-2 rounded-md border border-emerald-800/60 bg-emerald-950/60 px-3 py-2 font-mono text-[11px] tracking-[0.12em] text-emerald-300 transition-colors hover:border-emerald-600"
           >
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse-dot" />
-            99.99% UPTIME · LIVE TELEMETRY
+            STATUS · DESIGN TARGETS & DRILLS
           </Link>
         </div>
       </div>
