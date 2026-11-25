@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { BookOpen, ChevronDown, Clock, FlaskConical, Gauge, Play } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PayloadBuilder from '../components/PayloadBuilder';
 import DnsGenerator from '../components/DnsGenerator';
 import { cx } from '../lib/format';
+import { usePageMeta } from '../lib/meta';
 
 const MASTERCLASSES = [
   {
@@ -118,9 +119,10 @@ function MasterclassCard({ mc }: { mc: (typeof MASTERCLASSES)[number] }) {
 }
 
 export default function Labs() {
-  useEffect(() => {
-    document.title = 'SyncOps Labs — SyncOps Studio';
-  }, []);
+  usePageMeta(
+    'SyncOps Labs — SyncOps Studio',
+    'SyncOps Labs: a live Conversions API payload workbench, a first-party DNS generator and server-side tracking masterclasses — the tooling our architects use on client engagements.'
+  );
 
   return (
     <div className="min-h-screen bg-slate-950">

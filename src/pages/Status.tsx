@@ -5,6 +5,7 @@ import Footer from '../components/Footer';
 import TelemetryBento from '../components/TelemetryBento';
 import Terminal from '../components/Terminal';
 import { NODES, type TelemetryNode } from '../lib/telemetry';
+import { usePageMeta } from '../lib/meta';
 
 const POLL_SECONDS = 30;
 
@@ -47,9 +48,10 @@ export default function Status() {
   const [nodes, setNodes] = useState<TelemetryNode[]>(NODES);
   const [lastRefresh, setLastRefresh] = useState<string | null>(null);
 
-  useEffect(() => {
-    document.title = 'System Status — SyncOps Studio';
-  }, []);
+  usePageMeta(
+    'System Status — SyncOps Studio',
+    'Live infrastructure telemetry for SyncOps Studio: 99.99% 90-day rolling SLA, telemetry nodes, the live edge stream and incident history.'
+  );
 
   useEffect(() => {
     const id = window.setInterval(() => {

@@ -1,6 +1,6 @@
 import { ArrowRight, ArrowUpRight, Check, Satellite, Radar, AppWindow, Bot, Star } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { SERVICE_LINES } from '../data/services';
+import { useServiceLines } from '../lib/siteConfig';
 import { useHireModal } from './HireModal';
 import { cx } from '../lib/format';
 
@@ -13,6 +13,7 @@ const ICONS: Record<string, LucideIcon> = {
 
 export default function ServicesSection() {
   const { openHireModal } = useHireModal();
+  const serviceLines = useServiceLines();
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:py-28">
@@ -24,7 +25,7 @@ export default function ServicesSection() {
       </p>
 
       <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        {SERVICE_LINES.map((line, i) => {
+        {serviceLines.map((line, i) => {
           const Icon = ICONS[line.icon] ?? Satellite;
           const accents = [
             'border-emerald-500/40 bg-emerald-950/50 text-emerald-300',

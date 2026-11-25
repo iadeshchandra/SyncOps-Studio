@@ -24,6 +24,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useHireModal } from '../components/HireModal';
 import { getProductDoc } from '../lib/products';
+import { setPageMeta } from '../lib/meta';
 import {
   ACCENT_STYLES,
   STATUS_LABELS,
@@ -144,7 +145,10 @@ export default function ProductDetail() {
   useEffect(() => {
     if (product) {
       const prev = document.title;
-      document.title = `${product.name} — SyncOps Studio`;
+      setPageMeta(
+        `${product.name} — SyncOps Studio`,
+        product.description || product.tagline
+      );
       return () => {
         document.title = prev;
       };

@@ -3,6 +3,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { logAudit } from './admin';
 import type { Package, ProofQuote } from '../data/content';
+import { SERVICE_LINES, type ServiceLine } from '../data/services';
 
 /**
  * Studio-wide site configuration (the "GodMode-lite" layer).
@@ -12,8 +13,11 @@ import type { Package, ProofQuote } from '../data/content';
  *   2. localStorage mirror `syncops_site_config` (demo edits + offline)
  *   3. DEFAULT_SITE_CONFIG (compiled-in fallbacks — the site always renders)
  *
- * `pricing` / `caseStudies` / `testimonials` are `null` by default, which
- * makes every consumer fall back to its compiled-in dataset.
+ * `pricing` / `caseStudies` / `testimonials` / `services` are `null` by
+ * default, which makes every consumer fall back to its compiled-in dataset.
+ * `services` stores the Studio Console-edited service lines; the ServiceLine
+ * shape is plain JSON (its `icon` is a lucide icon *name* string that
+ * components map to a component), so it round-trips through Firestore as-is.
  */
 
 export interface HeroStat {
@@ -52,6 +56,7 @@ export interface SiteConfig {
   pricing: PackageConfig[] | null;
   proofQuotes: ProofQuote[] | null;
   testimonials: TestimonialConfig[] | null;
+  services: ServiceLine[] | null;
   enableLabs?: boolean;
   enableHireModal?: boolean;
 }
@@ -77,6 +82,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   pricing: null,
   proofQuotes: null,
   testimonials: null,
+  services: null,
 };
 
 const LOCAL_KEY = 'syncops_site_config';
@@ -165,6 +171,18 @@ export async function saveSiteConfig(patch: Partial<SiteConfig>, actor?: string)
     await setDoc(doc(db, 'platformConfig', 'public'), patch, { merge: true });
   }
   await logAudit('site-config.update', Object.keys(patch).sort().join(','), actor);
+}
+
+/**
+ * Effective service lines for the marketing site and hire flow: the
+ * owner-published `config.services` when the Studio Console has saved an
+ * override, otherwise the compiled-in SERVICE_LINES from data/services.ts.
+ */
+export function useServiceLines(): ServiceLine[] {
+  const { config } = useSiteConfig();
+  // An empty saved array is treated as "no override" — consumers index
+  // lines[0] and line.packages[0], so the effective list is never empty.
+  return config.services && config.services.length > 0 ? config.services : SERVICE_LINES;
 }
 
 /** Shared reactive config for every component. Safe to call anywhere — no provider needed. */

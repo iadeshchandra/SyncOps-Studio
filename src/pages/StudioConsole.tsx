@@ -13,6 +13,8 @@ import {
   LogOut,
   ExternalLink,
   MailOpen,
+  Wrench,
+  Newspaper,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
@@ -22,6 +24,8 @@ import OrdersTab from '../components/console/OrdersTab';
 import LeadsTab from '../components/console/LeadsTab';
 import ProjectsTab from '../components/console/ProjectsTab';
 import ProductsTab from '../components/console/ProductsTab';
+import ServicesTab from '../components/console/ServicesTab';
+import ArticlesTab from '../components/console/ArticlesTab';
 import ContentTab from '../components/console/ContentTab';
 import ApiKeysTab from '../components/console/ApiKeysTab';
 import SettingsTab from '../components/console/SettingsTab';
@@ -40,6 +44,8 @@ const TABS: ConsoleTab[] = [
   { id: 'leads', label: 'Leads', icon: MailOpen, node: <LeadsTab /> },
   { id: 'projects', label: 'Projects', icon: KanbanSquare, node: <ProjectsTab /> },
   { id: 'products', label: 'Products', icon: Package, node: <ProductsTab /> },
+  { id: 'services', label: 'Services', icon: Wrench, node: <ServicesTab /> },
+  { id: 'articles', label: 'Field Notes', icon: Newspaper, node: <ArticlesTab /> },
   { id: 'content', label: 'Content', icon: FileText, node: <ContentTab /> },
   { id: 'api-keys', label: 'API Keys', icon: KeyRound, node: <ApiKeysTab /> },
   { id: 'platform', label: 'Platform', icon: Settings, node: <SettingsTab /> },

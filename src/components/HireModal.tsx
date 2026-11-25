@@ -13,8 +13,8 @@ import { X, ChevronLeft, ChevronRight, Check, AlertCircle, Loader2, Satellite, R
 import type { LucideIcon } from 'lucide-react';
 import { db, isDemoMode } from '../lib/firebase';
 import { PACKAGES } from '../data/content';
-import { SERVICE_LINES, getServiceLine } from '../data/services';
-import { useSiteConfig } from '../lib/siteConfig';
+import type { ServiceLine } from '../data/services';
+import { useSiteConfig, useServiceLines } from '../lib/siteConfig';
 import { cx, fmtUSD } from '../lib/format';
 
 export interface HirePrefill {
@@ -103,16 +103,20 @@ interface ModalPackage {
   priceLabel: string;
 }
 
-function lineIdForPackage(pkgId: string | undefined): string | undefined {
+function lineIdForPackage(
+  pkgId: string | undefined,
+  lines: ServiceLine[]
+): string | undefined {
   if (!pkgId) return undefined;
-  return SERVICE_LINES.find((l) => l.packages.some((p) => p.id === pkgId))?.id;
+  return lines.find((l) => l.packages.some((p) => p.id === pkgId))?.id;
 }
 
 function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => void }) {
   const navigate = useNavigate();
+  const serviceLines = useServiceLines();
   const [step, setStep] = useState(0);
   const [lineId, setLineId] = useState(
-    prefill.serviceLine ?? lineIdForPackage(prefill.packageId) ?? 'capi'
+    prefill.serviceLine ?? lineIdForPackage(prefill.packageId, serviceLines) ?? 'capi'
   );
   const [packageId, setPackageId] = useState(prefill.packageId ?? '');
   const [scope, setScope] = useState<string[]>([]);
@@ -127,11 +131,13 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const { config } = useSiteConfig();
-  const line = getServiceLine(lineId);
+  const line = serviceLines.find((l) => l.id === lineId) ?? serviceLines[0];
 
-  // CAPI keeps the console-editable pricing config; the other lines ship compiled.
+  // Line content comes from useServiceLines() (console-editable via the
+  // Services tab); the CAPI package list can additionally be overridden by
+  // the console pricing config, as before.
   const modalPackages: ModalPackage[] = useMemo(() => {
-    if (lineId === 'capi') {
+    if (line.id === 'capi') {
       return (config.pricing ?? PACKAGES).map((p) => ({
         id: p.id,
         name: p.name,
@@ -139,13 +145,13 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
         priceLabel: fmtUSD(p.price),
       }));
     }
-    return getServiceLine(lineId).packages.map((p) => ({
+    return line.packages.map((p) => ({
       id: p.id,
       name: p.name,
       tagline: p.blurb,
       priceLabel: p.price,
     }));
-  }, [lineId, config.pricing]);
+  }, [line, config.pricing]);
 
   const selectLine = (id: string) => {
     if (id === lineId) return;
@@ -373,7 +379,7 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
               <div>
                 <p className="label-dark">What do you need?</p>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {SERVICE_LINES.map((l) => {
+                  {serviceLines.map((l) => {
                     const Icon = LINE_ICONS[l.icon] ?? Satellite;
                     const active = lineId === l.id;
                     return (

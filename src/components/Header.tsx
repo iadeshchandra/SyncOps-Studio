@@ -100,6 +100,12 @@ export default function Header() {
           <Link to="/work" className={navLinkCls}>
             Work
           </Link>
+          <Link to="/compare" className={navLinkCls}>
+            Compare
+          </Link>
+          <Link to="/notes" className={navLinkCls}>
+            Field Notes
+          </Link>
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
@@ -166,6 +172,20 @@ export default function Header() {
               className="block rounded-md px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white"
             >
               Work
+            </Link>
+            <Link
+              to="/compare"
+              onClick={close}
+              className="block rounded-md px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white"
+            >
+              Compare
+            </Link>
+            <Link
+              to="/notes"
+              onClick={close}
+              className="block rounded-md px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white"
+            >
+              Field Notes
             </Link>
             <Link
               to="/status"

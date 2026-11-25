@@ -9,8 +9,14 @@ import PricingGrid from '../components/PricingGrid';
 import FaqSection from '../components/FaqSection';
 import WorkStrip from '../components/WorkStrip';
 import Footer from '../components/Footer';
+import { usePageMeta } from '../lib/meta';
 
 export default function Landing() {
+  usePageMeta(
+    'SyncOps Studio — First-Party Data Infrastructure & Server-Side Tagging',
+    'SyncOps Studio — elite first-party data infrastructure, server-side tagging and Conversion API architecture for 7-to-9 figure e-commerce brands.'
+  );
+
   return (
     <div className="min-h-screen bg-slate-950">
       <Header />
