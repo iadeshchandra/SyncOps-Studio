@@ -42,6 +42,13 @@ service cloud.firestore {
       allow write: if isOwner();
     }
 
+    // Field-notes CMS — one doc per article. World-readable so /notes
+    // renders without auth; writes are owner-only via the Studio Console.
+    match /platformConfig/articles/{articleId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
     // Client projects / intake orders
     match /orders/{orderId} {
       allow create: if request.resource.data.keys().hasAll(

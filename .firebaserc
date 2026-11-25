@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "default": "coffee-spark-ai-barista-bf1a6"
+  },
+  "targets": {
+    "coffee-spark-ai-barista-bf1a6": {
+      "hosting": {
+        "syncops": ["syncopsstudio"]
+      }
+    }
+  }
+}
