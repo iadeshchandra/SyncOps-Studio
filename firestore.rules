@@ -30,7 +30,11 @@ service cloud.firestore {
     // `public` is world-readable so the marketing site can render owner-
     // published config without auth; everything else is owner-only.
     match /platformConfig/{docId} {
-      allow read: if docId == 'public' || isOwner();
+      // 'payment' holds the studio's receiving details (e.g. the bKash QR) —
+      // visible to signed-in clients only, never to the public internet.
+      allow read: if docId == 'public'
+        || (docId == 'payment' && isSignedIn())
+        || isOwner();
       allow create, update: if isOwner();
       allow delete: if false;
     }
@@ -67,7 +71,7 @@ service cloud.firestore {
       allow update: if isOwner()
         || (ownsOrder(orderId)
             && request.resource.data.diff(resource.data).affectedKeys()
-                 .hasOnly(['activity', 'status'])
+                 .hasOnly(['activity', 'status', 'checklist'])
             && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['status'])
                 || request.resource.data.status in ['completed', 'active']));
       allow delete: if isOwner();
@@ -107,6 +111,38 @@ service cloud.firestore {
               && request.resource.data.diff(resource.data).affectedKeys()
                    .hasOnly(['status', 'responseNote', 'respondedAt'])
               && request.resource.data.status in ['accepted', 'revision']);
+        allow delete: if false;
+      }
+
+      // Shared order files (Zero-Cost File Vault pattern): small files stored
+      // as data in documents — no Firebase Storage, no paid plan.
+      match /files/{fileId} {
+        allow read: if ownsOrder(orderId) || isOwner();
+        allow create: if (ownsOrder(orderId) || isOwner())
+          && request.resource.data.keys().hasAll(['name', 'mime', 'size', 'dataUrl', 'uploadedBy', 'createdAt'])
+          && request.resource.data.uploadedBy in ['architect', 'client'];
+        allow delete: if isOwner()
+          || (ownsOrder(orderId) && resource.data.uploadedBy == 'client');
+        allow update: if false;
+      }
+
+      // Payment claims — the client pays OUTSIDE the app (bKash Send Money,
+      // Wise, …) and claims it here; the owner verifies and approves, which
+      // is what credits the order's payment ledger. Coordination, never custody.
+      match /claims/{claimId} {
+        allow read: if ownsOrder(orderId) || isOwner();
+        allow create: if ownsOrder(orderId)
+          && request.resource.data.keys().hasAll(['amount', 'currency', 'method', 'trxId', 'status', 'createdAt'])
+          && request.resource.data.status == 'pending';
+        allow update: if isOwner();
+        allow delete: if false;
+      }
+
+      // Intake / requirements form — the client's own answers, written before
+      // the project starts (access notes, ad account IDs, goals).
+      match /intake/{docId} {
+        allow read: if ownsOrder(orderId) || isOwner();
+        allow create, update: if ownsOrder(orderId) || isOwner();
         allow delete: if false;
       }
     }

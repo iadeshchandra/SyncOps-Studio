@@ -3,6 +3,8 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { CheckCircle2, Loader2, Plus, RefreshCw, ShieldAlert, Trash2 } from 'lucide-react';
 import { db, isDemoMode } from '../../lib/firebase';
 import { useSiteConfig, saveSiteConfig } from '../../lib/siteConfig';
+import { getPaymentSettings, savePaymentSettings } from '../../lib/payments';
+import { imageFileToDataUrl } from '../../lib/files';
 import { OWNER_EMAILS, logAudit } from '../../lib/admin';
 import { cx } from '../../lib/format';
 
@@ -83,6 +85,49 @@ export default function SettingsTab() {
   const [ownersLoading, setOwnersLoading] = useState(true);
   const [newOwner, setNewOwner] = useState('');
   const [ownerError, setOwnerError] = useState<string | null>(null);
+
+  const [payBkashNumber, setPayBkashNumber] = useState('');
+  const [payBkashQr, setPayBkashQr] = useState('');
+  const [payWise, setPayWise] = useState('');
+  const [payPayoneer, setPayPayoneer] = useState('');
+  const [paySaving, setPaySaving] = useState(false);
+  const [payNotice, setPayNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getPaymentSettings()
+      .then((ps) => {
+        if (cancelled) return;
+        setPayBkashNumber(ps.bkashNumber);
+        setPayBkashQr(ps.bkashQrDataUrl);
+        setPayWise(ps.wiseNote);
+        setPayPayoneer(ps.payoneerNote);
+      })
+      .catch(() => {
+        /* settings simply start empty */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleSavePayments = async () => {
+    setPaySaving(true);
+    setPayNotice(null);
+    try {
+      await savePaymentSettings({
+        bkashNumber: payBkashNumber.trim(),
+        bkashQrDataUrl: payBkashQr,
+        wiseNote: payWise.trim(),
+        payoneerNote: payPayoneer.trim(),
+      });
+      setPayNotice('Saved — clients now see these in their portal when a balance is due.');
+    } catch {
+      setPayNotice('Could not save. Please try again.');
+    } finally {
+      setPaySaving(false);
+    }
+  };
 
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
@@ -321,6 +366,77 @@ export default function SettingsTab() {
             label="Hire Modal intake"
             hint="Architecture order flow across the site."
           />
+        </div>
+      </section>
+
+      {/* Payment receiving details */}
+      <section className="glass rounded-lg p-5 sm:p-6">
+        <h3 className="h-display text-base">Payment receiving details</h3>
+        <p className="mt-1 text-sm text-slate-400">
+          Shown only to signed-in clients with a balance due — never on the public site. Clients
+          pay you directly (the studio never holds money), then submit a claim you verify.
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <label className="block">
+            <span className="label-dark">bKash number (Send Money)</span>
+            <input
+              type="text"
+              value={payBkashNumber}
+              onChange={(e) => setPayBkashNumber(e.target.value)}
+              placeholder="01XXXXXXXXX"
+              className="input-dark mt-1.5 w-full"
+            />
+          </label>
+          <label className="block">
+            <span className="label-dark">bKash Bangla QR image</span>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void imageFileToDataUrl(f).then(setPayBkashQr).catch(() => setPayNotice('That image could not be read.'));
+              }}
+              className="input-dark mt-1.5 w-full"
+            />
+          </label>
+          <label className="block">
+            <span className="label-dark">Wise details</span>
+            <input
+              type="text"
+              value={payWise}
+              onChange={(e) => setPayWise(e.target.value)}
+              placeholder="e.g. email or account details clients should use"
+              className="input-dark mt-1.5 w-full"
+            />
+          </label>
+          <label className="block">
+            <span className="label-dark">Payoneer details</span>
+            <input
+              type="text"
+              value={payPayoneer}
+              onChange={(e) => setPayPayoneer(e.target.value)}
+              placeholder="e.g. Payoneer email"
+              className="input-dark mt-1.5 w-full"
+            />
+          </label>
+        </div>
+        {payBkashQr && (
+          <img
+            src={payBkashQr}
+            alt="bKash QR preview"
+            className="mt-4 w-full max-w-[200px] rounded-md border border-slate-700"
+          />
+        )}
+        <div className="mt-4 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => void handleSavePayments()}
+            disabled={paySaving}
+            className="btn-primary px-4 py-2.5 text-sm disabled:opacity-50"
+          >
+            {paySaving ? 'Saving…' : 'Save payment details'}
+          </button>
+          {payNotice && <span className="text-sm text-slate-300">{payNotice}</span>}
         </div>
       </section>
 

@@ -4,6 +4,7 @@ import {
   getDocs,
   collection,
   addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   query,
@@ -58,6 +59,8 @@ export interface Order {
   /** Payment ledger — amounts the studio has recorded as received. */
   payments?: PaymentEntry[];
   cancelReason?: string;
+  /** Access checklist state: item id -> done. Written by the client. */
+  checklist?: Record<string, boolean>;
 }
 
 function parsePayments(raw: unknown): PaymentEntry[] | undefined {
@@ -286,6 +289,10 @@ export async function getOrder(id: string): Promise<Order | null> {
     price: typeof d.price === 'number' ? d.price : undefined,
     payments: parsePayments(d.payments),
     cancelReason: typeof d.cancelReason === 'string' ? d.cancelReason : undefined,
+    checklist:
+      d.checklist && typeof d.checklist === 'object'
+        ? (d.checklist as Record<string, boolean>)
+        : undefined,
   };
 }
 
@@ -538,12 +545,62 @@ export async function respondDelivery(
   return { status, activity };
 }
 
+/* ---------------- intake / requirements form ---------------- */
+
+export interface IntakeForm {
+  storePlatform: string;
+  adAccountIds: string;
+  goals: string;
+  assetsNote: string;
+  anythingElse: string;
+  updatedAt: number;
+}
+
+export async function getIntakeForm(orderId: string): Promise<IntakeForm | null> {
+  if (!isDemoMode && db) {
+    const snap = await getDoc(doc(db, 'orders', orderId, 'intake', 'form'));
+    if (!snap.exists()) return null;
+    const d = snap.data();
+    return {
+      storePlatform: String(d.storePlatform ?? ''),
+      adAccountIds: String(d.adAccountIds ?? ''),
+      goals: String(d.goals ?? ''),
+      assetsNote: String(d.assetsNote ?? ''),
+      anythingElse: String(d.anythingElse ?? ''),
+      updatedAt: Number(d.updatedAt ?? 0),
+    };
+  }
+  try {
+    const raw = localStorage.getItem(`syncops_intake_${orderId}`);
+    return raw ? (JSON.parse(raw) as IntakeForm) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveIntakeForm(
+  orderId: string,
+  form: Omit<IntakeForm, 'updatedAt'>,
+): Promise<void> {
+  const payload: IntakeForm = { ...form, updatedAt: Date.now() };
+  if (!isDemoMode && db) {
+    await setDoc(doc(db, 'orders', orderId, 'intake', 'form'), payload);
+    return;
+  }
+  try {
+    localStorage.setItem(`syncops_intake_${orderId}`, JSON.stringify(payload));
+  } catch {
+    /* storage unavailable */
+  }
+}
+
 /* ---------------- signals & attention ---------------- */
 
 export interface OrderSignals {
   pendingDeliveries: number;
   oldestPendingDeliveryAt: number | null;
   pendingRevisions: number;
+  pendingClaims: number;
   latestMessage: OrderMessage | null;
   /** The most recent message is from the client — they are waiting on a reply. */
   clientWaiting: boolean;
@@ -568,30 +625,34 @@ export async function getOrderSignals(orderId: string): Promise<OrderSignals> {
     const seed = msgs.length === 0 && orderId.startsWith('demo') ? DEMO_MESSAGES : msgs;
     latest = seed.length ? seed.reduce((a, b) => (b.createdAt > a.createdAt ? b : a)) : null;
   }
+  const { listClaims } = await import('./payments');
+  const claims = await listClaims(orderId).catch(() => [] as { status: string }[]);
   return {
     pendingDeliveries: pending.length,
     oldestPendingDeliveryAt: pending.length
       ? Math.min(...pending.map((d) => d.createdAt))
       : null,
     pendingRevisions: revisions.filter((r) => r.status === 'pending').length,
+    pendingClaims: claims.filter((c) => c.status === 'pending').length,
     latestMessage: latest,
     clientWaiting: latest?.sender === 'client',
   };
 }
 
 export interface AttentionItem {
-  kind: 'revision' | 'client_waiting' | 'intake' | 'deadline' | 'delivery_stale';
+  kind: 'claim' | 'revision' | 'client_waiting' | 'intake' | 'deadline' | 'delivery_stale';
   order: Order;
   text: string;
   at: number;
 }
 
 const ATTENTION_PRIORITY: Record<AttentionItem['kind'], number> = {
-  revision: 0,
-  client_waiting: 1,
-  intake: 2,
-  deadline: 3,
-  delivery_stale: 4,
+  claim: 0,
+  revision: 1,
+  client_waiting: 2,
+  intake: 3,
+  deadline: 4,
+  delivery_stale: 5,
 };
 
 /** Everything that needs the studio's hand today, across every live order. */
@@ -604,6 +665,14 @@ export async function listAttention(): Promise<AttentionItem[]> {
   await Promise.all(
     orders.map(async (o) => {
       const sig = await getOrderSignals(o.id);
+      if (sig.pendingClaims > 0) {
+        items.push({
+          kind: 'claim',
+          order: o,
+          text: 'Payment claim waiting — verify it to credit the ledger',
+          at: o.createdAt,
+        });
+      }
       if (sig.pendingRevisions > 0) {
         items.push({
           kind: 'revision',
@@ -677,6 +746,10 @@ function mapOrder(id: string, d: Record<string, unknown>): Order {
     price: typeof d.price === 'number' ? d.price : undefined,
     payments: parsePayments(d.payments),
     cancelReason: typeof d.cancelReason === 'string' ? d.cancelReason : undefined,
+    checklist:
+      d.checklist && typeof d.checklist === 'object'
+        ? (d.checklist as Record<string, boolean>)
+        : undefined,
   };
 }
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Loader2, X, Trash2, PackageCheck, ExternalLink, History, MessageSquare, Plus, Star, Banknote } from 'lucide-react';
+import { Loader2, X, Trash2, PackageCheck, ExternalLink, History, MessageSquare, Plus, Star, Banknote, ListChecks, Wallet } from 'lucide-react';
 import {
   listOrders,
   updateOrder,
@@ -16,6 +16,9 @@ import {
   type Delivery,
 } from '../../lib/portal';
 import { getReview, setReviewPublished, type Review } from '../../lib/reviews';
+import { listClaims, decideClaim, type PaymentClaim } from '../../lib/payments';
+import { getIntakeForm, type IntakeForm } from '../../lib/portal';
+import { ACCESS_CHECKLIST, checklistProgress } from '../../lib/checklist';
 import { PACKAGES } from '../../data/content';
 import { DEFAULT_SITE_CONFIG } from '../../lib/siteConfig';
 import ArchitectChat from '../ArchitectChat';
@@ -69,6 +72,10 @@ export default function OrdersTab() {
   const [sort, setSort] = useState<'newest' | 'oldest' | 'deadline'>('newest');
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [review, setReview] = useState<Review | null>(null);
+  const [claims, setClaims] = useState<PaymentClaim[]>([]);
+  const [intakeForm, setIntakeForm] = useState<IntakeForm | null>(null);
+  const [creditInputs, setCreditInputs] = useState<Record<string, string>>({});
+  const [claimBusyId, setClaimBusyId] = useState<string | null>(null);
   const [payAmount, setPayAmount] = useState('');
   const [payMethod, setPayMethod] = useState(PAYMENT_METHODS[0]);
   const [payNote, setPayNote] = useState('');
@@ -99,6 +106,12 @@ export default function OrdersTab() {
       getReview(selected.id)
         .then(setReview)
         .catch(() => setReview(null));
+      listClaims(selected.id)
+        .then(setClaims)
+        .catch(() => setClaims([]));
+      getIntakeForm(selected.id)
+        .then(setIntakeForm)
+        .catch(() => setIntakeForm(null));
       setCancelArmed(false);
       setCancelReason('');
     } else {
@@ -185,6 +198,56 @@ export default function OrdersTab() {
       'order.status',
       `${order.id} -> ${status}`,
     );
+
+  const handleDecideClaim = async (order: Order, claim: PaymentClaim, approve: boolean) => {
+    const credited = Number(
+      creditInputs[claim.id] ?? (claim.currency === 'USD' ? claim.amount : 0),
+    );
+    if (approve && (!credited || credited <= 0)) {
+      setNotice('Enter the USD amount to credit for this claim first.');
+      return;
+    }
+    setClaimBusyId(claim.id);
+    setNotice(null);
+    try {
+      await decideClaim(order, claim, approve, credited);
+      await logAudit(
+        approve ? 'claim.approve' : 'claim.reject',
+        `${order.id} ${claim.id} ${claim.currency} ${claim.amount}`,
+        actor,
+      );
+      setClaims(await listClaims(order.id));
+      const fresh = await listOrders();
+      const updated = fresh.find((o) => o.id === order.id);
+      if (updated) setSelected(updated);
+      await refresh();
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : 'Could not decide the claim.');
+    } finally {
+      setClaimBusyId(null);
+    }
+  };
+
+  const handleStartProject = async (order: Order) => {
+    const { done, total } = checklistProgress(order);
+    const ready = done === total && paidTotal(order) > 0;
+    const activity = appendActivity(
+      order,
+      'status',
+      ready
+        ? 'Project started — access, requirements and payment all in place.'
+        : 'Project started by the studio before every gate was green.',
+      'architect',
+    );
+    try {
+      await updateOrder(order.id, { status: 'active', activity });
+      setSelected((s) => (s && s.id === order.id ? { ...s, status: 'active', activity } : s));
+      await logAudit('order.start', order.id, actor);
+      await refresh();
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : 'Could not start the project.');
+    }
+  };
 
   const handleRecordPayment = async (order: Order) => {
     const amount = Number(payAmount);
@@ -602,6 +665,30 @@ export default function OrdersTab() {
               </button>
             </div>
 
+            {selected.status === 'intake' && (
+              <div className="mt-5 flex flex-wrap items-center gap-3 rounded-md border border-cyan-800/50 bg-cyan-950/30 px-4 py-3">
+                <p className="text-sm text-cyan-100">
+                  <span className="font-semibold">Start gate:</span> access{' '}
+                  {checklistProgress(selected).done}/{checklistProgress(selected).total} · paid{' '}
+                  {fmtUSD(paidTotal(selected))} of {fmtUSD(priceOf(selected))}
+                  {checklistProgress(selected).done === checklistProgress(selected).total &&
+                  paidTotal(selected) > 0
+                    ? ' — ready when you are.'
+                    : ' — the project can still be started manually.'}
+                </p>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void handleStartProject(selected)}
+                  className="btn-primary ml-auto px-4 py-2 text-sm disabled:opacity-50"
+                >
+                  {checklistProgress(selected).done === checklistProgress(selected).total &&
+                  paidTotal(selected) > 0
+                    ? 'Start project'
+                    : 'Start anyway'}
+                </button>
+              </div>
+            )}
             {cancelArmed && selected.status !== 'cancelled' && (
               <div className="mt-5 rounded-md border border-rose-800/60 bg-rose-950/40 p-4">
                 <p className="text-sm font-semibold text-rose-200">Cancel this order?</p>
@@ -639,6 +726,132 @@ export default function OrdersTab() {
               <p className="mt-4 rounded-md border border-rose-800/50 bg-rose-950/30 px-3.5 py-2.5 text-sm text-rose-200">
                 Cancelled — {selected.cancelReason}
               </p>
+            )}
+
+            {/* Requirements & access */}
+            <div className="mt-6 border-t border-slate-800/80 pt-5">
+              <p className="label-dark flex items-center gap-2">
+                <ListChecks className="h-4 w-4 text-cyan-300" /> Requirements & access
+              </p>
+              <p className="telemetry">
+                access checklist — {checklistProgress(selected).done} of{' '}
+                {checklistProgress(selected).total} done by the client
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {ACCESS_CHECKLIST.map((item) => (
+                  <span
+                    key={item.id}
+                    className={cx(
+                      'rounded border px-2 py-0.5 text-[11px] font-semibold',
+                      selected.checklist?.[item.id]
+                        ? 'border-emerald-700/60 bg-emerald-950/50 text-emerald-300'
+                        : 'border-slate-700 bg-slate-900 text-slate-500',
+                    )}
+                  >
+                    {item.title.split(' — ')[0]}
+                  </span>
+                ))}
+              </div>
+              {intakeForm ? (
+                <dl className="mt-3 space-y-1.5 text-sm">
+                  {(
+                    [
+                      ['Store platform', intakeForm.storePlatform],
+                      ['Ad account IDs', intakeForm.adAccountIds],
+                      ['Goals', intakeForm.goals],
+                      ['Brand assets', intakeForm.assetsNote],
+                      ['Anything else', intakeForm.anythingElse],
+                    ] as const
+                  )
+                    .filter(([, v]) => v.trim())
+                    .map(([k, v]) => (
+                      <div key={k} className="flex gap-2">
+                        <dt className="w-32 shrink-0 text-slate-500">{k}</dt>
+                        <dd className="text-slate-200">{v}</dd>
+                      </div>
+                    ))}
+                </dl>
+              ) : (
+                <p className="telemetry mt-2">requirements form — not submitted yet</p>
+              )}
+            </div>
+
+            {/* Payment claims */}
+            {claims.length > 0 && (
+              <div className="mt-6 border-t border-slate-800/80 pt-5">
+                <p className="label-dark flex items-center gap-2">
+                  <Wallet className="h-4 w-4 text-amber-300" /> Payment claims
+                </p>
+                <div className="space-y-2.5">
+                  {claims.map((c) => (
+                    <div
+                      key={c.id}
+                      className="rounded-md border border-slate-800/80 bg-slate-950/60 px-3.5 py-3"
+                    >
+                      <p className="text-sm text-slate-200">
+                        <span className="font-mono font-bold">
+                          {c.currency} {c.amount.toLocaleString()}
+                        </span>{' '}
+                        via {c.method} · TrxID <span className="font-mono">{c.trxId}</span>
+                        {c.sender ? ` · from ${c.sender}` : ''}
+                        {c.note ? ` · ${c.note}` : ''}
+                      </p>
+                      <p className="telemetry mt-0.5">
+                        {new Date(c.createdAt).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}{' '}
+                        ·{' '}
+                        <span
+                          className={
+                            c.status === 'approved'
+                              ? 'text-emerald-300'
+                              : c.status === 'rejected'
+                                ? 'text-rose-300'
+                                : 'text-amber-300'
+                          }
+                        >
+                          {c.status}
+                          {c.status === 'approved' && c.creditedUsd ? ` — credited $${c.creditedUsd}` : ''}
+                        </span>
+                      </p>
+                      {c.status === 'pending' && (
+                        <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            value={creditInputs[c.id] ?? (c.currency === 'USD' ? String(c.amount) : '')}
+                            onChange={(e) =>
+                              setCreditInputs((m) => ({ ...m, [c.id]: e.target.value }))
+                            }
+                            placeholder="Credit USD"
+                            className="input-dark !w-32"
+                            aria-label="USD amount to credit"
+                          />
+                          <button
+                            type="button"
+                            disabled={claimBusyId === c.id}
+                            onClick={() => void handleDecideClaim(selected, c, true)}
+                            className="btn-primary px-3.5 py-2 text-xs disabled:opacity-50"
+                          >
+                            Verify & approve
+                          </button>
+                          <button
+                            type="button"
+                            disabled={claimBusyId === c.id}
+                            onClick={() => void handleDecideClaim(selected, c, false)}
+                            className="btn-ghost px-3.5 py-2 text-xs"
+                          >
+                            Cannot verify
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
 
             {/* Payments */}

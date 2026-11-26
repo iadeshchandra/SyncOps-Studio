@@ -20,6 +20,9 @@ import {
   CheckCircle2,
   History,
   Star,
+  ListChecks,
+  Wallet,
+  Circle,
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { isDemoMode } from '../lib/firebase';
@@ -31,7 +34,18 @@ import {
   listDeliveries,
   respondDelivery,
   paidTotal,
+  updateOrder,
+  getIntakeForm,
+  saveIntakeForm,
 } from '../lib/portal';
+import { ACCESS_CHECKLIST, checklistProgress } from '../lib/checklist';
+import {
+  getPaymentSettings,
+  listClaims,
+  createClaim,
+  type PaymentSettings,
+  type PaymentClaim,
+} from '../lib/payments';
 import { getReview, submitReview } from '../lib/reviews';
 import type { Review } from '../lib/reviews';
 import { PACKAGES } from '../data/content';
@@ -116,6 +130,26 @@ export default function ClientPortal() {
   const [reviewText, setReviewText] = useState('');
   const [reviewBusy, setReviewBusy] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
+  const [claims, setClaims] = useState<PaymentClaim[]>([]);
+  const [paySettings, setPaySettings] = useState<PaymentSettings | null>(null);
+  const [cAmount, setCAmount] = useState('');
+  const [cCurrency, setCCurrency] = useState<'BDT' | 'USD'>('BDT');
+  const [cMethod, setCMethod] = useState('bKash');
+  const [cTrx, setCTrx] = useState('');
+  const [cSender, setCSender] = useState('');
+  const [cNote, setCNote] = useState('');
+  const [claimBusy, setClaimBusy] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
+  const [checklistBusy, setChecklistBusy] = useState<string | null>(null);
+  const [intake, setIntake] = useState({
+    storePlatform: '',
+    adAccountIds: '',
+    goals: '',
+    assetsNote: '',
+    anythingElse: '',
+  });
+  const [intakeBusy, setIntakeBusy] = useState(false);
+  const [intakeSaved, setIntakeSaved] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -226,6 +260,95 @@ export default function ClientPortal() {
       setReviewError(e instanceof Error ? e.message : 'Could not save your review.');
     } finally {
       setReviewBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!activeOrderId) return;
+    let cancelled = false;
+    listClaims(activeOrderId)
+      .then((c) => {
+        if (!cancelled) setClaims(c);
+      })
+      .catch(() => {
+        /* claims are optional until the client pays */
+      });
+    getPaymentSettings()
+      .then((ps) => {
+        if (!cancelled) setPaySettings(ps);
+      })
+      .catch(() => {
+        /* payment details simply stay hidden */
+      });
+    getIntakeForm(activeOrderId)
+      .then((f) => {
+        if (!cancelled && f) {
+          setIntake({
+            storePlatform: f.storePlatform,
+            adAccountIds: f.adAccountIds,
+            goals: f.goals,
+            assetsNote: f.assetsNote,
+            anythingElse: f.anythingElse,
+          });
+          setIntakeSaved(true);
+        }
+      })
+      .catch(() => {
+        /* form simply starts empty */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeOrderId]);
+
+  const toggleChecklist = async (itemId: string) => {
+    if (!order) return;
+    const next = { ...(order.checklist ?? {}), [itemId]: !order.checklist?.[itemId] };
+    setChecklistBusy(itemId);
+    try {
+      await updateOrder(order.id, { checklist: next });
+      setOrder({ ...order, checklist: next });
+    } catch {
+      /* the tick simply does not save; the client can retry */
+    } finally {
+      setChecklistBusy(null);
+    }
+  };
+
+  const handleSaveIntake = async () => {
+    if (!order) return;
+    setIntakeBusy(true);
+    try {
+      await saveIntakeForm(order.id, intake);
+      setIntakeSaved(true);
+    } catch {
+      setIntakeSaved(false);
+    } finally {
+      setIntakeBusy(false);
+    }
+  };
+
+  const handleSubmitClaim = async () => {
+    if (!order) return;
+    setClaimBusy(true);
+    setClaimError(null);
+    try {
+      await createClaim(order.id, {
+        amount: Number(cAmount),
+        currency: cCurrency,
+        method: cMethod,
+        trxId: cTrx,
+        sender: cSender.trim(),
+        note: cNote.trim(),
+      });
+      setClaims(await listClaims(order.id));
+      setCAmount('');
+      setCTrx('');
+      setCNote('');
+    } catch (e) {
+      setClaimError(e instanceof Error ? e.message : 'Could not submit the claim.');
+    } finally {
+      setClaimBusy(false);
     }
   };
 
@@ -419,6 +542,7 @@ export default function ClientPortal() {
                   if (agreed <= 0) return null;
                   const paid = paidTotal(order);
                   return (
+                    <>
                     <div className="rounded-md border border-slate-800/80 bg-slate-950/60 px-3 py-2.5">
                       <p className="text-sm text-slate-300">
                         Package <span className="font-mono font-bold text-slate-100">{fmtUSD(agreed)}</span>
@@ -438,6 +562,133 @@ export default function ClientPortal() {
                         )}
                       </p>
                     </div>
+
+                    {agreed - paid > 0 && paySettings && (paySettings.bkashQrDataUrl || paySettings.bkashNumber || paySettings.wiseNote || paySettings.payoneerNote) && (
+                      <div className="rounded-md border border-slate-800/80 bg-slate-950/60 px-3 py-3">
+                        <p className="flex items-center gap-2 text-sm font-semibold text-slate-100">
+                          <Wallet className="h-4 w-4 text-emerald-400" /> How to pay
+                        </p>
+                        {paySettings.bkashQrDataUrl && (
+                          <img
+                            src={paySettings.bkashQrDataUrl}
+                            alt="bKash Bangla QR — scan to Send Money"
+                            className="mt-3 w-full max-w-[220px] rounded-md border border-slate-700"
+                          />
+                        )}
+                        {paySettings.bkashNumber && (
+                          <p className="mt-2 text-sm text-slate-300">
+                            bKash Send Money: <span className="font-mono font-bold text-slate-50">{paySettings.bkashNumber}</span>
+                          </p>
+                        )}
+                        {paySettings.wiseNote && (
+                          <p className="mt-1 text-sm text-slate-400">Wise: {paySettings.wiseNote}</p>
+                        )}
+                        {paySettings.payoneerNote && (
+                          <p className="mt-1 text-sm text-slate-400">Payoneer: {paySettings.payoneerNote}</p>
+                        )}
+                        <p className="telemetry mt-2">pay first, then submit the claim below — the studio verifies it</p>
+                      </div>
+                    )}
+
+                    {agreed - paid > 0 && (
+                      <div className="rounded-md border border-slate-800/80 bg-slate-950/60 px-3 py-3">
+                        <p className="text-sm font-semibold text-slate-100">Already paid? Tell the studio</p>
+                        <div className="mt-2.5 grid grid-cols-2 gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            value={cAmount}
+                            onChange={(e) => setCAmount(e.target.value)}
+                            placeholder="Amount paid"
+                            className="input-dark w-full"
+                            aria-label="Amount paid"
+                          />
+                          <select
+                            value={cCurrency}
+                            onChange={(e) => setCCurrency(e.target.value as 'BDT' | 'USD')}
+                            className="input-dark w-full"
+                            aria-label="Currency"
+                          >
+                            <option value="BDT">BDT (৳)</option>
+                            <option value="USD">USD ($)</option>
+                          </select>
+                          <select
+                            value={cMethod}
+                            onChange={(e) => setCMethod(e.target.value)}
+                            className="input-dark w-full"
+                            aria-label="Payment method"
+                          >
+                            <option value="bKash">bKash</option>
+                            <option value="Wise">Wise</option>
+                            <option value="Payoneer">Payoneer</option>
+                            <option value="Bank transfer">Bank transfer</option>
+                            <option value="Other">Other</option>
+                          </select>
+                          <input
+                            type="text"
+                            value={cTrx}
+                            onChange={(e) => setCTrx(e.target.value)}
+                            placeholder="Transaction ID"
+                            className="input-dark w-full"
+                            aria-label="Transaction ID"
+                          />
+                          <input
+                            type="text"
+                            value={cSender}
+                            onChange={(e) => setCSender(e.target.value)}
+                            placeholder="Your bKash number / name"
+                            className="input-dark w-full"
+                            aria-label="Sender number or name"
+                          />
+                          <input
+                            type="text"
+                            value={cNote}
+                            onChange={(e) => setCNote(e.target.value)}
+                            placeholder="Note (optional)"
+                            className="input-dark w-full"
+                            aria-label="Note"
+                          />
+                        </div>
+                        {claimError && <p className="mt-2 text-sm text-rose-300">{claimError}</p>}
+                        <button
+                          type="button"
+                          onClick={() => void handleSubmitClaim()}
+                          disabled={claimBusy}
+                          className="btn-primary mt-3 px-4 py-2.5 text-sm disabled:opacity-50"
+                        >
+                          {claimBusy ? 'Submitting…' : 'Submit payment claim'}
+                        </button>
+                      </div>
+                    )}
+
+                    {claims.length > 0 && (
+                      <div className="space-y-1.5">
+                        {claims.map((c) => (
+                          <p key={c.id} className="telemetry flex flex-wrap items-center gap-x-2">
+                            <span className="text-slate-200">
+                              {c.currency} {c.amount.toLocaleString()}
+                            </span>
+                            · {c.method} · TrxID {c.trxId} ·{' '}
+                            <span
+                              className={
+                                c.status === 'approved'
+                                  ? 'text-emerald-300'
+                                  : c.status === 'rejected'
+                                    ? 'text-rose-300'
+                                    : 'text-amber-300'
+                              }
+                            >
+                              {c.status === 'approved'
+                                ? `verified — credited $${c.creditedUsd ?? ''}`
+                                : c.status === 'rejected'
+                                  ? 'could not be verified'
+                                  : 'awaiting verification'}
+                            </span>
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    </>
                   );
                 })()}
                 <div className="pt-1">
@@ -474,6 +725,105 @@ export default function ClientPortal() {
           {/* right column */}
           <div className="space-y-6">
             <SlaTimer deadlineAt={order.deadlineAt} />
+
+            {(order.status === 'intake' || checklistProgress(order).done < checklistProgress(order).total) && (
+              <div className="glass rounded-xl p-6">
+                <p className="eyebrow mb-1">before_we_start</p>
+                <h3 className="h-display flex items-center gap-2 text-lg">
+                  <ListChecks className="h-5 w-5 text-cyan-300" /> Access & requirements
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                  Your project starts as soon as access is in and your payment is verified — without
+                  access, no build is possible. Work down the list; every item has the exact steps.
+                </p>
+                <p className="telemetry mt-3">
+                  {checklistProgress(order).done} of {checklistProgress(order).total} access items done
+                </p>
+                <div className="mt-3 space-y-2">
+                  {ACCESS_CHECKLIST.map((item) => {
+                    const done = !!order.checklist?.[item.id];
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        disabled={checklistBusy === item.id}
+                        onClick={() => void toggleChecklist(item.id)}
+                        className="flex w-full items-start gap-2.5 rounded-md border border-slate-800/80 bg-slate-950/60 px-3 py-2.5 text-left transition-colors hover:border-slate-600 disabled:opacity-60"
+                      >
+                        {done ? (
+                          <CheckCircle2 className="mt-0.5 h-4.5 w-4.5 shrink-0 text-emerald-400" />
+                        ) : (
+                          <Circle className="mt-0.5 h-4.5 w-4.5 shrink-0 text-slate-500" />
+                        )}
+                        <span>
+                          <span className={cx('block text-sm font-semibold', done ? 'text-slate-400 line-through' : 'text-slate-100')}>
+                            {item.title}
+                          </span>
+                          <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">{item.how}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-5 border-t border-slate-800/80 pt-4">
+                  <p className="text-sm font-semibold text-slate-100">Project requirements</p>
+                  <div className="mt-2.5 space-y-2.5">
+                    <input
+                      type="text"
+                      value={intake.storePlatform}
+                      onChange={(e) => { setIntake({ ...intake, storePlatform: e.target.value }); setIntakeSaved(false); }}
+                      placeholder="Store platform — Shopify / WooCommerce / other + store URL"
+                      className="input-dark w-full"
+                      aria-label="Store platform"
+                    />
+                    <input
+                      type="text"
+                      value={intake.adAccountIds}
+                      onChange={(e) => { setIntake({ ...intake, adAccountIds: e.target.value }); setIntakeSaved(false); }}
+                      placeholder="Ad account IDs — Meta / TikTok / Google (comma separated)"
+                      className="input-dark w-full"
+                      aria-label="Ad account IDs"
+                    />
+                    <textarea
+                      value={intake.goals}
+                      onChange={(e) => { setIntake({ ...intake, goals: e.target.value }); setIntakeSaved(false); }}
+                      rows={2}
+                      placeholder="What must this tracking prove? (e.g. every Purchase in Meta matching Shopify, within 5%)"
+                      className="input-dark w-full"
+                      aria-label="Goals"
+                    />
+                    <input
+                      type="text"
+                      value={intake.assetsNote}
+                      onChange={(e) => { setIntake({ ...intake, assetsNote: e.target.value }); setIntakeSaved(false); }}
+                      placeholder="Brand assets — logo/product feed links, or note what you will send"
+                      className="input-dark w-full"
+                      aria-label="Brand assets"
+                    />
+                    <textarea
+                      value={intake.anythingElse}
+                      onChange={(e) => { setIntake({ ...intake, anythingElse: e.target.value }); setIntakeSaved(false); }}
+                      rows={2}
+                      placeholder="Anything else the studio should know before starting?"
+                      className="input-dark w-full"
+                      aria-label="Anything else"
+                    />
+                  </div>
+                  <div className="mt-3 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => void handleSaveIntake()}
+                      disabled={intakeBusy}
+                      className="btn-primary px-4 py-2.5 text-sm disabled:opacity-50"
+                    >
+                      {intakeBusy ? 'Saving…' : 'Save requirements'}
+                    </button>
+                    {intakeSaved && <span className="telemetry text-emerald-300">saved — the studio can see these</span>}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {order.status === 'completed' && reviewLoaded && (
               <div className="glass rounded-xl p-6">
