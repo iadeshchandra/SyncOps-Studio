@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   LayoutDashboard,
   Inbox,
@@ -13,6 +13,7 @@ import {
   LogOut,
   ExternalLink,
   MailOpen,
+  Users,
   Wrench,
   Newspaper,
   type LucideIcon,
@@ -21,6 +22,7 @@ import { useAuth } from '../lib/auth';
 import { cx } from '../lib/format';
 import OverviewTab from '../components/console/OverviewTab';
 import OrdersTab from '../components/console/OrdersTab';
+import ClientsTab from '../components/console/ClientsTab';
 import LeadsTab from '../components/console/LeadsTab';
 import ProjectsTab from '../components/console/ProjectsTab';
 import ProductsTab from '../components/console/ProductsTab';
@@ -41,6 +43,7 @@ interface ConsoleTab {
 const TABS: ConsoleTab[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard, node: <OverviewTab /> },
   { id: 'orders', label: 'Orders', icon: Inbox, node: <OrdersTab /> },
+  { id: 'clients', label: 'Clients', icon: Users, node: <ClientsTab /> },
   { id: 'leads', label: 'Leads', icon: MailOpen, node: <LeadsTab /> },
   { id: 'projects', label: 'Projects', icon: KanbanSquare, node: <ProjectsTab /> },
   { id: 'products', label: 'Products', icon: Package, node: <ProductsTab /> },
@@ -55,7 +58,11 @@ const TABS: ConsoleTab[] = [
 export default function StudioConsole() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [active, setActive] = useState('overview');
+  const [searchParams] = useSearchParams();
+  const [active, setActive] = useState(() => {
+    const t = searchParams.get('tab');
+    return t && TABS.some((x) => x.id === t) ? t : 'overview';
+  });
 
   const activeTab = TABS.find((t) => t.id === active) ?? TABS[0];
 

@@ -17,6 +17,7 @@ import Notes from './pages/Notes';
 import NoteDetail from './pages/NoteDetail';
 import Login from './pages/Login';
 import ClientPortal from './pages/ClientPortal';
+import ClientDashboard from './pages/ClientDashboard';
 import Maintenance from './pages/Maintenance';
 import StudioConsole from './pages/StudioConsole';
 
@@ -73,7 +74,7 @@ export default function App() {
                 path="/client/dashboard"
                 element={
                   <ClientProtectedRoute>
-                    <ClientPortal />
+                    <ClientDashboard />
                   </ClientProtectedRoute>
                 }
               />

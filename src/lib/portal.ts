@@ -9,6 +9,7 @@ import {
   query,
   orderBy,
   where,
+  limit,
   onSnapshot,
 } from 'firebase/firestore';
 import { db, isDemoMode } from './firebase';
@@ -499,6 +500,125 @@ export async function respondDelivery(
   writeJSON(key, items);
   await updateOrder(order.id, { status, activity });
   return { status, activity };
+}
+
+/* ---------------- signals & attention ---------------- */
+
+export interface OrderSignals {
+  pendingDeliveries: number;
+  oldestPendingDeliveryAt: number | null;
+  pendingRevisions: number;
+  latestMessage: OrderMessage | null;
+  /** The most recent message is from the client — they are waiting on a reply. */
+  clientWaiting: boolean;
+}
+
+/** Light per-order rollup powering the client hub and the console attention queue. */
+export async function getOrderSignals(orderId: string): Promise<OrderSignals> {
+  const deliveries = await listDeliveries(orderId);
+  const revisions = await listRevisions(orderId);
+  const pending = deliveries.filter((d) => d.status === 'pending');
+  let latest: OrderMessage | null = null;
+  if (!isDemoMode && db) {
+    const q = query(
+      collection(db, 'orders', orderId, 'messages'),
+      orderBy('createdAt', 'desc'),
+      limit(1),
+    );
+    const snap = await getDocs(q);
+    if (!snap.empty) latest = mapMessage(orderId, snap.docs[0].id, snap.docs[0].data());
+  } else {
+    const msgs = readJSON<OrderMessage[]>(`syncops_msgs_${orderId}`, []);
+    const seed = msgs.length === 0 && orderId.startsWith('demo') ? DEMO_MESSAGES : msgs;
+    latest = seed.length ? seed.reduce((a, b) => (b.createdAt > a.createdAt ? b : a)) : null;
+  }
+  return {
+    pendingDeliveries: pending.length,
+    oldestPendingDeliveryAt: pending.length
+      ? Math.min(...pending.map((d) => d.createdAt))
+      : null,
+    pendingRevisions: revisions.filter((r) => r.status === 'pending').length,
+    latestMessage: latest,
+    clientWaiting: latest?.sender === 'client',
+  };
+}
+
+export interface AttentionItem {
+  kind: 'revision' | 'client_waiting' | 'intake' | 'deadline' | 'delivery_stale';
+  order: Order;
+  text: string;
+  at: number;
+}
+
+const ATTENTION_PRIORITY: Record<AttentionItem['kind'], number> = {
+  revision: 0,
+  client_waiting: 1,
+  intake: 2,
+  deadline: 3,
+  delivery_stale: 4,
+};
+
+/** Everything that needs the studio's hand today, across every live order. */
+export async function listAttention(): Promise<AttentionItem[]> {
+  const orders = (await listOrders()).filter(
+    (o) => o.status !== 'archived' && o.status !== 'completed',
+  );
+  const now = Date.now();
+  const items: AttentionItem[] = [];
+  await Promise.all(
+    orders.map(async (o) => {
+      const sig = await getOrderSignals(o.id);
+      if (sig.pendingRevisions > 0) {
+        items.push({
+          kind: 'revision',
+          order: o,
+          text: `${sig.pendingRevisions} revision request${sig.pendingRevisions > 1 ? 's' : ''} awaiting your answer`,
+          at: o.createdAt,
+        });
+      }
+      if (sig.clientWaiting && sig.latestMessage) {
+        items.push({
+          kind: 'client_waiting',
+          order: o,
+          text: 'Client messaged — awaiting your reply',
+          at: sig.latestMessage.createdAt,
+        });
+      }
+      if (o.status === 'intake') {
+        items.push({
+          kind: 'intake',
+          order: o,
+          text: 'New order awaiting your review',
+          at: o.createdAt,
+        });
+      }
+      if (o.deadlineAt - now < 48 * 3_600_000) {
+        items.push({
+          kind: 'deadline',
+          order: o,
+          text:
+            o.deadlineAt < now
+              ? `Deadline passed ${new Date(o.deadlineAt).toLocaleDateString()}`
+              : `Deadline ${new Date(o.deadlineAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
+          at: o.deadlineAt,
+        });
+      }
+      if (
+        sig.oldestPendingDeliveryAt !== null &&
+        now - sig.oldestPendingDeliveryAt > 2 * 86_400_000
+      ) {
+        items.push({
+          kind: 'delivery_stale',
+          order: o,
+          text: 'Delivery sent 2+ days ago — client has not responded',
+          at: sig.oldestPendingDeliveryAt,
+        });
+      }
+    }),
+  );
+  return items.sort(
+    (a, b) => ATTENTION_PRIORITY[a.kind] - ATTENTION_PRIORITY[b.kind] || b.at - a.at,
+  );
 }
 
 /* ---------------- admin: order management ---------------- */

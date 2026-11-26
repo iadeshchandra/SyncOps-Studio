@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, useSearchParams } from 'react-router-dom';
 import {
   Terminal,
   LogOut,
@@ -85,13 +85,17 @@ export default function ClientPortal() {
   const { id } = useParams();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [myOrders, setMyOrders] = useState<Order[]>([]);
   const [noProjects, setNoProjects] = useState(false);
   const [orderLoading, setOrderLoading] = useState(true);
   const [orderError, setOrderError] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>('chat');
+  const [tab, setTab] = useState<Tab>(() => {
+    const t = searchParams.get('tab');
+    return t === 'deliveries' || t === 'vault' || t === 'revisions' ? t : 'chat';
+  });
   const [revisions, setRevisions] = useState<RevisionRequest[]>([]);
   const [revLoading, setRevLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);

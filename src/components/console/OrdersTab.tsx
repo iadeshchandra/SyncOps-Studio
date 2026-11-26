@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Loader2, X, Trash2, PackageCheck, ExternalLink, History, MessageSquare } from 'lucide-react';
 import {
   listOrders,
@@ -49,6 +50,10 @@ export default function OrdersTab() {
   const [selected, setSelected] = useState<Order | null>(null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const [q, setQ] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sort, setSort] = useState<'newest' | 'oldest' | 'deadline'>('newest');
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [dNote, setDNote] = useState('');
   const [dLinks, setDLinks] = useState('');
@@ -81,6 +86,34 @@ export default function OrdersTab() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // Deep link from the attention queue / clients tab: preselect the order.
+  useEffect(() => {
+    const want = searchParams.get('order');
+    if (want && orders.length > 0) {
+      const found = orders.find((o) => o.id === want);
+      if (found) setSelected(found);
+    }
+  }, [searchParams, orders]);
+
+  const visibleOrders = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    const filtered = orders.filter((o) => {
+      if (statusFilter !== 'all' && o.status !== statusFilter) return false;
+      if (!needle) return true;
+      return [o.clientName, o.clientEmail, o.brandUrl, orderRef(o), o.id]
+        .join(' ')
+        .toLowerCase()
+        .includes(needle);
+    });
+    return [...filtered].sort((a, b) =>
+      sort === 'oldest'
+        ? a.createdAt - b.createdAt
+        : sort === 'deadline'
+          ? a.deadlineAt - b.deadlineAt
+          : b.createdAt - a.createdAt,
+    );
+  }, [orders, q, statusFilter, sort]);
 
   const mutate = async (fn: () => Promise<void>, auditAction: string, auditDetails: string) => {
     setSaving(true);
@@ -175,6 +208,44 @@ export default function OrdersTab() {
         </div>
       )}
 
+      <div className="flex flex-wrap items-center gap-2.5">
+        <input
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search client, email, brand or reference…"
+          className="input-dark !w-72"
+          aria-label="Search orders"
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="input-dark !w-auto"
+          aria-label="Filter by status"
+        >
+          <option value="all">All statuses</option>
+          {STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+          <option value="In Progress">In Progress</option>
+        </select>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as typeof sort)}
+          className="input-dark !w-auto"
+          aria-label="Sort orders"
+        >
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="deadline">Deadline soonest</option>
+        </select>
+        <span className="telemetry ml-auto">
+          {visibleOrders.length} of {orders.length} orders
+        </span>
+      </div>
+
       <div className="glass overflow-x-auto rounded-xl">
         <table className="w-full min-w-[860px] text-left text-sm">
           <thead>
@@ -187,7 +258,7 @@ export default function OrdersTab() {
             </tr>
           </thead>
           <tbody>
-            {orders.map((o) => (
+            {visibleOrders.map((o) => (
               <tr
                 key={o.id}
                 onClick={() => setSelected(o)}
@@ -219,10 +290,12 @@ export default function OrdersTab() {
                 <td className="telemetry px-4 py-3">{ageDays(o.createdAt)}</td>
               </tr>
             ))}
-            {orders.length === 0 && (
+            {visibleOrders.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-10 text-center text-sm text-slate-500">
-                  No orders yet. New Hire Modal intakes will appear here.
+                  {orders.length === 0
+                    ? 'No orders yet. New Hire Modal intakes will appear here.'
+                    : 'No orders match this search or filter.'}
                 </td>
               </tr>
             )}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ClipboardList, Inbox, Rocket, Banknote, Loader2, TriangleAlert } from 'lucide-react';
-import { listOrders, STAGES, type Order } from '../../lib/portal';
+import { Link } from 'react-router-dom';
+import { ClipboardList, Inbox, Rocket, Banknote, Loader2, TriangleAlert, BellRing, ArrowRight } from 'lucide-react';
+import { listOrders, listAttention, orderRef, STAGES, type Order, type AttentionItem } from '../../lib/portal';
 import { PACKAGES } from '../../data/content';
 import { DEFAULT_SITE_CONFIG } from '../../lib/siteConfig';
 import { fmtUSD } from '../../lib/format';
@@ -38,11 +39,19 @@ function Kpi({
 
 export default function OverviewTab() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [attention, setAttention] = useState<AttentionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    listAttention()
+      .then((a) => {
+        if (!cancelled) setAttention(a);
+      })
+      .catch(() => {
+        /* the queue is an aid, not a blocker */
+      });
     listOrders()
       .then((o) => {
         if (!cancelled) setOrders(o);
@@ -88,6 +97,38 @@ export default function OverviewTab() {
       <div>
         <p className="eyebrow">console_overview</p>
         <h2 className="h-display mt-1 text-2xl">Studio at a glance</h2>
+      </div>
+
+      <div className="glass rounded-xl p-5">
+        <div className="flex items-center gap-3">
+          <span className="rounded-md border border-amber-700/60 bg-amber-950/40 p-2 text-amber-300">
+            <BellRing className="h-4 w-4" />
+          </span>
+          <div>
+            <h3 className="h-display text-base">Needs your attention</h3>
+            <p className="telemetry">
+              {attention.length === 0
+                ? 'all clear — nothing is waiting on you.'
+                : `${attention.length} item${attention.length > 1 ? 's' : ''} waiting on you across all clients.`}
+            </p>
+          </div>
+        </div>
+        {attention.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {attention.map((a, i) => (
+              <Link
+                key={`${a.kind}-${a.order.id}-${i}`}
+                to={`/studio/console?tab=orders&order=${a.order.id}`}
+                className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-slate-800/80 bg-slate-950/60 px-3.5 py-2.5 transition-colors hover:border-slate-600"
+              >
+                <span className="font-semibold text-slate-100">{a.order.clientName}</span>
+                <span className="telemetry text-cyan-300/80">{orderRef(a.order)}</span>
+                <span className="text-sm text-slate-300">{a.text}</span>
+                <ArrowRight className="ml-auto h-4 w-4 text-slate-500" />
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

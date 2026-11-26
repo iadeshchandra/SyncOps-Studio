@@ -117,6 +117,11 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Client roster records (private studio notes) — owner eyes only
+    match /clients/{clientId} {
+      allow read, write: if isOwner();
+    }
+
     // Operational audit trail — owner eyes only
     match /audit_logs/{docId} {
       allow read: if isOwner();
