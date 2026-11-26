@@ -190,6 +190,7 @@ export async function getOrder(id: string): Promise<Order | null> {
     adSpend: Number(d.adSpend ?? 0),
     createdAt: Number(d.createdAt ?? Date.now()),
     deadlineAt: Number(d.deadlineAt ?? Date.now()),
+    ref: typeof d.ref === 'string' ? d.ref : undefined,
   };
 }
 
@@ -352,6 +353,7 @@ function mapOrder(id: string, d: Record<string, unknown>): Order {
     adSpend: Number(d.adSpend ?? 0),
     createdAt: Number(d.createdAt ?? Date.now()),
     deadlineAt: Number(d.deadlineAt ?? Date.now()),
+    ref: typeof d.ref === 'string' ? d.ref : undefined,
   };
 }
 
