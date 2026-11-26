@@ -58,7 +58,7 @@ export const PACKAGES: Package[] = [
       'Dedicated regional Cloud Run cluster',
       'Multi-brand / multi-pixel architecture',
       'Custom data warehouse event export',
-      '99.99% uptime SLA with live status page',
+      '99.99% uptime target with live status page',
       'Dedicated Lead Architect line',
       'Quarterly EMQ + signal health audits',
       'White-glove migration from existing stack',
