@@ -5,6 +5,7 @@ import {
   updateOrder,
   deleteOrder,
   STAGES,
+  orderRef,
   type Order,
 } from '../../lib/portal';
 import { logAudit } from '../../lib/admin';
@@ -144,6 +145,7 @@ export default function OrdersTab() {
                 <td className="px-4 py-3">
                   <p className="font-semibold text-slate-100">{o.clientName}</p>
                   <p className="telemetry">{o.clientEmail}</p>
+                  <p className="telemetry text-cyan-300/80">{orderRef(o)}</p>
                 </td>
                 <td className="telemetry px-4 py-3">{o.brandUrl}</td>
                 <td className="px-4 py-3 text-slate-300">{o.packageName || o.packageId}</td>
@@ -191,7 +193,7 @@ export default function OrdersTab() {
               <div>
                 <p className="eyebrow">order_detail</p>
                 <h3 className="h-display mt-1 text-xl">{selected.clientName}</h3>
-                <p className="telemetry mt-1">{selected.id}</p>
+                <p className="telemetry mt-1"><span className="text-cyan-300">{orderRef(selected)}</span> <span className="text-slate-600">· {selected.id}</span></p>
               </div>
               <button
                 type="button"

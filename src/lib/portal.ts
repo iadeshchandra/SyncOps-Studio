@@ -25,6 +25,26 @@ export interface Order {
   adSpend: number;
   createdAt: number;
   deadlineAt: number;
+  ref?: string;
+}
+
+const REF_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+function refDate(d: Date): string {
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** Friendly client-facing order reference, e.g. SO-20261126-K7QX. */
+export function makeOrderRef(createdAt: number): string {
+  let code = '';
+  for (let i = 0; i < 4; i++) code += REF_ALPHABET[Math.floor(Math.random() * REF_ALPHABET.length)];
+  return `SO-${refDate(new Date(createdAt))}-${code}`;
+}
+
+/** The reference a client quotes: the stored one, or a stable derivation for older orders. */
+export function orderRef(o: { id: string; createdAt: number; ref?: string }): string {
+  if (o.ref) return o.ref;
+  return `SO-${refDate(new Date(o.createdAt))}-${o.id.slice(-4).toUpperCase()}`;
 }
 
 export interface OrderMessage {

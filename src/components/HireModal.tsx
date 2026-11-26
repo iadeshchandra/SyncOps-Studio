@@ -12,6 +12,7 @@ import { addDoc, collection } from 'firebase/firestore';
 import { X, ChevronLeft, ChevronRight, Check, AlertCircle, Loader2, Satellite, Radar, AppWindow, Bot, ArrowRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { db, isDemoMode } from '../lib/firebase';
+import { makeOrderRef } from '../lib/portal';
 import type { ServiceLine } from '../data/services';
 import { useServiceLines } from '../lib/siteConfig';
 import { cx, fmtUSD } from '../lib/format';
@@ -129,6 +130,7 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
+  const [submittedRef, setSubmittedRef] = useState<string>('');
   const line = serviceLines.find((l) => l.id === lineId) ?? serviceLines[0];
 
   // Single source of truth: packages come from useServiceLines()
@@ -200,12 +202,15 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
     setError('');
     setSubmitting(true);
 
+    const now = Date.now();
+    const refCode = makeOrderRef(now);
     const payload = {
       clientName: name.trim(),
       clientEmail: email.trim(),
       brandUrl: storeUrl.trim(),
       packageId,
       packageName,
+      ref: refCode,
       serviceLine: lineId,
       scope,
       status: 'intake',
@@ -214,8 +219,8 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
       primaryNetworks: networks.trim(),
       targetLaunchDate: launchDate,
       notes: notes.trim(),
-      createdAt: Date.now(),
-      deadlineAt: Date.now() + 14 * 86400000,
+      createdAt: now,
+      deadlineAt: now + 14 * 86400000,
       revisions: [] as string[],
       ...(prefill.roas != null ? { roas: prefill.roas } : {}),
       ...(prefill.recovery != null ? { projectedRecovery: prefill.recovery } : {}),
@@ -236,6 +241,7 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
       // Keep the modal mounted so the "what happens next" confirmation renders;
       // the panel's own buttons close it (Back to site / Open your project portal).
       setSubmittedId(id);
+      setSubmittedRef(refCode);
     } catch {      setError('Submission failed — nothing was saved. Please try again, or email iadeshchandra@gmail.com.');
     } finally {
       setSubmitting(false);
@@ -353,7 +359,7 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
                 ))}
               </ol>
               <p className="telemetry mx-auto mt-6 max-w-md">
-                Reference <span className="text-cyan-300">{submittedId}</span> — keep it for your
+                Reference <span className="text-cyan-300">{submittedRef || submittedId}</span> — keep it for your
                 records.
               </p>
             </div>

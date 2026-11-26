@@ -25,6 +25,7 @@ import {
   createRevision,
 } from '../lib/portal';
 import type { Order, RevisionRequest } from '../lib/portal';
+import { orderRef } from '../lib/portal';
 import MilestoneTracker from '../components/MilestoneTracker';
 import SlaTimer from '../components/SlaTimer';
 import RevisionModal from '../components/RevisionModal';
@@ -234,7 +235,7 @@ export default function ClientPortal() {
           </Link>
           <span className="hidden h-5 w-px bg-slate-800 sm:block" />
           <p className="telemetry">
-            order_<span className="text-slate-300">{order.id}</span>
+            ref_<span className="text-slate-300">{orderRef(order)}</span>
           </p>
           <div className="ml-auto flex items-center gap-3">
             <p className="hidden text-sm text-slate-300 sm:block">
