@@ -13,6 +13,24 @@ import {
 } from 'firebase/firestore';
 import { db, isDemoMode } from './firebase';
 
+export interface ActivityEvent {
+  kind: string;
+  text: string;
+  at: number;
+  by: 'client' | 'architect' | 'system';
+}
+
+export interface Delivery {
+  id: string;
+  orderId: string;
+  note: string;
+  links: string[];
+  createdAt: number;
+  status: 'pending' | 'accepted' | 'revision';
+  responseNote?: string;
+  respondedAt?: number;
+}
+
 export interface Order {
   id: string;
   clientName: string;
@@ -26,6 +44,34 @@ export interface Order {
   createdAt: number;
   deadlineAt: number;
   ref?: string;
+  activity?: ActivityEvent[];
+}
+
+/** Append an event to an order's activity timeline (capped, oldest first). */
+export function appendActivity(
+  order: { activity?: ActivityEvent[] },
+  kind: string,
+  text: string,
+  by: ActivityEvent['by'],
+): ActivityEvent[] {
+  return [...(order.activity ?? []), { kind, text, at: Date.now(), by }].slice(-80);
+}
+
+function parseActivity(raw: unknown): ActivityEvent[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const out: ActivityEvent[] = [];
+  for (const e of raw) {
+    if (e && typeof e === 'object') {
+      const r = e as Record<string, unknown>;
+      out.push({
+        kind: String(r.kind ?? 'note'),
+        text: String(r.text ?? ''),
+        at: Number(r.at ?? 0),
+        by: r.by === 'client' || r.by === 'architect' ? r.by : 'system',
+      });
+    }
+  }
+  return out.length ? out : undefined;
 }
 
 const REF_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -142,6 +188,17 @@ export const DEMO_MESSAGES: OrderMessage[] = [
   },
 ];
 
+export const DEMO_DELIVERIES: Delivery[] = [
+  {
+    id: 'dd-1',
+    orderId: 'demo-8f3a2c',
+    note: 'Server container export + DNS cutover pack for review. The SHA-256 event test log is inside the container export under /qa.',
+    links: ['https://example.com/syncops/demo-container-export.json'],
+    createdAt: NOW - 1 * DAY,
+    status: 'pending',
+  },
+];
+
 /* ---------------- demo localStorage helpers ---------------- */
 
 function readJSON<T>(key: string, fallback: T): T {
@@ -191,6 +248,7 @@ export async function getOrder(id: string): Promise<Order | null> {
     createdAt: Number(d.createdAt ?? Date.now()),
     deadlineAt: Number(d.deadlineAt ?? Date.now()),
     ref: typeof d.ref === 'string' ? d.ref : undefined,
+    activity: parseActivity(d.activity),
   };
 }
 
@@ -338,6 +396,111 @@ export async function createRevision(
   writeJSON(key, revs);
 }
 
+/* ---------------- deliveries ---------------- */
+
+function mapDelivery(orderId: string, id: string, d: Record<string, unknown>): Delivery {
+  const status = d.status === 'accepted' || d.status === 'revision' ? d.status : 'pending';
+  return {
+    id,
+    orderId,
+    note: String(d.note ?? ''),
+    links: Array.isArray(d.links) ? d.links.map((l) => String(l)) : [],
+    createdAt: Number(d.createdAt ?? Date.now()),
+    status,
+    responseNote: typeof d.responseNote === 'string' ? d.responseNote : undefined,
+    respondedAt: typeof d.respondedAt === 'number' ? d.respondedAt : undefined,
+  };
+}
+
+export async function listDeliveries(orderId: string): Promise<Delivery[]> {
+  if (!isDemoMode && db) {
+    const q = query(collection(db, 'orders', orderId, 'deliveries'), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => mapDelivery(orderId, d.id, d.data()));
+  }
+  const key = `syncops_delivs_${orderId}`;
+  let items = readJSON<Delivery[]>(key, []);
+  if (items.length === 0 && orderId.startsWith('demo')) {
+    items = DEMO_DELIVERIES.filter((d) => d.orderId === orderId || orderId.startsWith('demo'));
+    writeJSON(key, items);
+  }
+  return [...items].sort((a, b) => b.createdAt - a.createdAt);
+}
+
+/** Architect submits a delivery: a note plus deliverable links. */
+export async function createDelivery(
+  orderId: string,
+  note: string,
+  links: string[],
+): Promise<void> {
+  const text = note.trim();
+  if (text.length < 4) throw new Error('Add a short delivery note (what is included, what to check).');
+  const cleanLinks = links.map((l) => l.trim()).filter(Boolean);
+  if (!isDemoMode && db) {
+    await addDoc(collection(db, 'orders', orderId, 'deliveries'), {
+      note: text,
+      links: cleanLinks,
+      createdAt: Date.now(),
+      status: 'pending',
+    });
+    return;
+  }
+  const key = `syncops_delivs_${orderId}`;
+  const items = readJSON<Delivery[]>(key, []);
+  items.push({
+    id: randomId('del'),
+    orderId,
+    note: text,
+    links: cleanLinks,
+    createdAt: Date.now(),
+    status: 'pending',
+  });
+  writeJSON(key, items);
+}
+
+/**
+ * Client responds to a delivery. Accepting completes the order; asking for a
+ * revision returns it to active. Both write the timeline event and the new
+ * order status in the same step (the rules allow the owning client exactly
+ * these two fields).
+ */
+export async function respondDelivery(
+  order: Order,
+  delivery: Delivery,
+  accept: boolean,
+  responseNote: string,
+): Promise<{ status: string; activity: ActivityEvent[] }> {
+  const note = responseNote.trim();
+  if (!accept && note.length < 4) {
+    throw new Error('Tell the studio what needs to change (a few words is enough).');
+  }
+  const status = accept ? 'completed' : 'active';
+  const activity = appendActivity(
+    order,
+    accept ? 'delivery_accepted' : 'delivery_revision',
+    accept ? 'Client accepted the delivery — order completed.' : `Client requested a revision: ${note}`,
+    'client',
+  );
+  if (!isDemoMode && db) {
+    await updateDoc(doc(db, 'orders', order.id, 'deliveries', delivery.id), {
+      status: accept ? 'accepted' : 'revision',
+      responseNote: note,
+      respondedAt: Date.now(),
+    });
+    await updateDoc(doc(db, 'orders', order.id), { status, activity });
+    return { status, activity };
+  }
+  const key = `syncops_delivs_${order.id}`;
+  const items = readJSON<Delivery[]>(key, []).map((d) =>
+    d.id === delivery.id
+      ? { ...d, status: (accept ? 'accepted' : 'revision') as Delivery['status'], responseNote: note, respondedAt: Date.now() }
+      : d,
+  );
+  writeJSON(key, items);
+  await updateOrder(order.id, { status, activity });
+  return { status, activity };
+}
+
 /* ---------------- admin: order management ---------------- */
 
 function mapOrder(id: string, d: Record<string, unknown>): Order {
@@ -354,6 +517,7 @@ function mapOrder(id: string, d: Record<string, unknown>): Order {
     createdAt: Number(d.createdAt ?? Date.now()),
     deadlineAt: Number(d.deadlineAt ?? Date.now()),
     ref: typeof d.ref === 'string' ? d.ref : undefined,
+    activity: parseActivity(d.activity),
   };
 }
 

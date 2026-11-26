@@ -15,6 +15,10 @@ import {
   Package,
   Banknote,
   Info,
+  PackageCheck,
+  ExternalLink,
+  CheckCircle2,
+  History,
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { isDemoMode } from '../lib/firebase';
@@ -23,8 +27,10 @@ import {
   listMyOrders,
   listRevisions,
   createRevision,
+  listDeliveries,
+  respondDelivery,
 } from '../lib/portal';
-import type { Order, RevisionRequest } from '../lib/portal';
+import type { Order, RevisionRequest, Delivery } from '../lib/portal';
 import { orderRef } from '../lib/portal';
 import MilestoneTracker from '../components/MilestoneTracker';
 import SlaTimer from '../components/SlaTimer';
@@ -33,13 +39,20 @@ import ArchitectChat from '../components/ArchitectChat';
 import VaultPanel from '../components/VaultPanel';
 import { fmtUSD, cx } from '../lib/format';
 
-type Tab = 'chat' | 'vault' | 'revisions';
+type Tab = 'chat' | 'deliveries' | 'vault' | 'revisions';
 
 const TABS: { key: Tab; label: string; icon: typeof MessageSquare }[] = [
   { key: 'chat', label: 'Architect Channel', icon: MessageSquare },
+  { key: 'deliveries', label: 'Deliveries', icon: PackageCheck },
   { key: 'vault', label: 'Vault', icon: KeyRound },
   { key: 'revisions', label: 'Revisions', icon: FileEdit },
 ];
+
+const DELIVERY_TONE: Record<Delivery['status'], string> = {
+  pending: 'text-amber-300 border-amber-700/60 bg-amber-950/50',
+  accepted: 'text-emerald-300 border-emerald-700/60 bg-emerald-950/50',
+  revision: 'text-rose-300 border-rose-800/60 bg-rose-950/50',
+};
 
 const REV_TYPE_META = {
   addition: { icon: Plus, label: 'Addition', tone: 'text-emerald-400 border-emerald-700/60 bg-emerald-950/50' },
@@ -82,6 +95,11 @@ export default function ClientPortal() {
   const [revisions, setRevisions] = useState<RevisionRequest[]>([]);
   const [revLoading, setRevLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [delivLoading, setDelivLoading] = useState(false);
+  const [responseNotes, setResponseNotes] = useState<Record<string, string>>({});
+  const [respondingId, setRespondingId] = useState<string | null>(null);
+  const [respondError, setRespondError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -133,6 +151,42 @@ export default function ClientPortal() {
   useEffect(() => {
     void refreshRevisions();
   }, [refreshRevisions]);
+
+  const refreshDeliveries = useCallback(async () => {
+    if (!activeOrderId) {
+      setDeliveries([]);
+      return;
+    }
+    setDelivLoading(true);
+    try {
+      setDeliveries(await listDeliveries(activeOrderId));
+    } catch {
+      /* keep previous list on failure */
+    } finally {
+      setDelivLoading(false);
+    }
+  }, [activeOrderId]);
+
+  useEffect(() => {
+    void refreshDeliveries();
+  }, [refreshDeliveries]);
+
+  const pendingDeliveries = deliveries.filter((d) => d.status === 'pending').length;
+
+  const handleRespond = async (d: Delivery, accept: boolean) => {
+    if (!order) return;
+    setRespondingId(d.id);
+    setRespondError(null);
+    try {
+      const res = await respondDelivery(order, d, accept, responseNotes[d.id] ?? '');
+      setOrder({ ...order, status: res.status, activity: res.activity });
+      await refreshDeliveries();
+    } catch (e) {
+      setRespondError(e instanceof Error ? e.message : 'Could not save your response.');
+    } finally {
+      setRespondingId(null);
+    }
+  };
 
   const handleSignOut = () => {
     signOut();
@@ -306,6 +360,28 @@ export default function ClientPortal() {
                 </div>
               </dl>
             </div>
+
+            {(order.activity ?? []).length > 0 && (
+              <div className="glass rounded-xl p-6">
+                <p className="eyebrow mb-1 flex items-center gap-2">
+                  <History className="h-3.5 w-3.5 text-cyan-400" /> order_activity
+                </p>
+                <h3 className="h-display text-lg">Timeline</h3>
+                <ol className="mt-4 space-y-3">
+                  {[...(order.activity ?? [])].slice(-6).reverse().map((e, i) => (
+                    <li key={`${e.at}-${i}`} className="flex gap-3">
+                      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-cyan-400/70" />
+                      <div>
+                        <p className="text-sm leading-relaxed text-slate-300">{e.text}</p>
+                        <p className="telemetry mt-0.5">
+                          {new Date(e.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
           </div>
 
           {/* right column */}
@@ -328,11 +404,100 @@ export default function ClientPortal() {
                   <t.icon className="h-4 w-4" />
                   <span className="hidden sm:inline">{t.label}</span>
                   <span className="sm:hidden">{t.label.split(' ')[0]}</span>
+                  {t.key === 'deliveries' && pendingDeliveries > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1 font-mono text-[10px] font-bold text-slate-950">
+                      {pendingDeliveries}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
 
             {tab === 'chat' && <ArchitectChat orderId={order.id} />}
+
+            {tab === 'deliveries' && (
+              <div className="glass rounded-xl p-6">
+                <p className="eyebrow mb-1">deliveries</p>
+                <h3 className="h-display text-lg">Deliveries</h3>
+                <p className="mt-1.5 text-sm text-slate-400">
+                  Everything the studio hands over lands here. Review each delivery — accept it to
+                  complete the order, or send it back with a note on what to change.
+                </p>
+                {respondError && (
+                  <div className="mt-4 flex items-center gap-2 rounded-md border border-rose-800/60 bg-rose-950/50 px-3.5 py-2.5">
+                    <AlertTriangle className="h-4 w-4 shrink-0 text-rose-400" />
+                    <p className="text-sm text-rose-200">{respondError}</p>
+                  </div>
+                )}
+                <div className="mt-5 space-y-3">
+                  {delivLoading && (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
+                    </div>
+                  )}
+                  {!delivLoading && deliveries.length === 0 && (
+                    <p className="telemetry rounded-lg border border-slate-800/80 bg-slate-950/60 px-4 py-6 text-center">
+                      no deliveries yet — your first handover will appear here.
+                    </p>
+                  )}
+                  {deliveries.map((d) => (
+                    <div key={d.id} className="rounded-lg border border-slate-800/80 bg-slate-950/60 px-4 py-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={cx('inline-flex items-center rounded-md border px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.16em]', DELIVERY_TONE[d.status])}>
+                          {d.status === 'revision' ? 'revision requested' : d.status}
+                        </span>
+                        <p className="telemetry ml-auto">
+                          {new Date(d.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </p>
+                      </div>
+                      <p className="mt-2.5 text-sm leading-relaxed text-slate-300">{d.note}</p>
+                      {d.links.length > 0 && (
+                        <div className="mt-2.5 space-y-1.5">
+                          {d.links.map((l) => (
+                            <a key={l} href={l} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-sm text-cyan-300 underline-offset-4 hover:underline">
+                              <ExternalLink className="h-3.5 w-3.5 shrink-0" /> <span className="break-all">{l}</span>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      {d.status !== 'pending' && d.responseNote && (
+                        <p className="mt-3 rounded border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm text-slate-400">
+                          Your note: {d.responseNote}
+                        </p>
+                      )}
+                      {d.status === 'pending' && (
+                        <div className="mt-4 space-y-2.5 border-t border-slate-800/80 pt-3.5">
+                          <textarea
+                            value={responseNotes[d.id] ?? ''}
+                            onChange={(e) => setResponseNotes((m) => ({ ...m, [d.id]: e.target.value }))}
+                            rows={2}
+                            placeholder="Optional note — or, if something is off, tell us exactly what to change…"
+                            className="input-dark w-full"
+                            aria-label="Response note"
+                          />
+                          <div className="flex flex-wrap gap-2.5">
+                            <button
+                              onClick={() => void handleRespond(d, true)}
+                              disabled={respondingId === d.id}
+                              className="btn-primary px-4 py-2.5 text-sm disabled:opacity-50"
+                            >
+                              <CheckCircle2 className="h-4 w-4" /> Accept delivery
+                            </button>
+                            <button
+                              onClick={() => void handleRespond(d, false)}
+                              disabled={respondingId === d.id}
+                              className="inline-flex items-center gap-2 rounded-md border border-amber-700/70 bg-amber-950/40 px-4 py-2.5 text-sm font-semibold text-amber-300 transition-colors hover:border-amber-500 disabled:opacity-50"
+                            >
+                              <RefreshCw className="h-4 w-4" /> Request revision
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {tab === 'vault' && <VaultPanel order={order} />}
 

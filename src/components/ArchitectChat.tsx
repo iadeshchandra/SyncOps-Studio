@@ -25,7 +25,18 @@ function fmtTime(ts: number): string {
   });
 }
 
-export default function ArchitectChat({ orderId }: { orderId: string }) {
+export default function ArchitectChat({
+  orderId,
+  sender = 'client',
+  peerName,
+  heightClass = 'h-[520px]',
+}: {
+  orderId: string;
+  sender?: 'client' | 'architect';
+  peerName?: string;
+  heightClass?: string;
+}) {
+  const peerLabel = sender === 'client' ? 'Lead Architect' : (peerName ?? 'Client');
   const [messages, setMessages] = useState<OrderMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
@@ -51,14 +62,14 @@ export default function ArchitectChat({ orderId }: { orderId: string }) {
     const temp: OrderMessage = {
       id: `temp-${Date.now()}`,
       orderId,
-      sender: 'client',
+      sender,
       body,
       createdAt: Date.now(),
     };
     setMessages((prev) => [...prev, temp]);
     setSending(true);
     try {
-      await sendMessage(orderId, 'client', body);
+      await sendMessage(orderId, sender, body);
     } catch {
       setError('Message failed to send. Please try again.');
       setMessages((prev) => prev.filter((m) => m.id !== temp.id));
@@ -69,7 +80,7 @@ export default function ArchitectChat({ orderId }: { orderId: string }) {
   };
 
   return (
-    <div className="glass flex h-[520px] flex-col overflow-hidden rounded-xl">
+    <div className={cx('glass flex flex-col overflow-hidden rounded-xl', heightClass)}>
       {/* channel header */}
       <div className="flex items-center justify-between border-b border-slate-800/80 px-5 py-3.5">
         <div className="flex items-center gap-2">
@@ -83,7 +94,7 @@ export default function ArchitectChat({ orderId }: { orderId: string }) {
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
           </span>
-          <p className="text-xs font-semibold text-slate-300">Lead Architect</p>
+          <p className="text-xs font-semibold text-slate-300">{peerLabel}</p>
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-emerald-400/80">online</p>
         </div>
       </div>
@@ -96,7 +107,7 @@ export default function ArchitectChat({ orderId }: { orderId: string }) {
           </div>
         )}
         {messages.map((m) => {
-          const mine = m.sender === 'client';
+          const mine = m.sender === sender;
           return (
             <div key={m.id} className={cx('flex', mine ? 'justify-end' : 'justify-start')}>
               <div
@@ -114,7 +125,7 @@ export default function ArchitectChat({ orderId }: { orderId: string }) {
                       mine ? 'text-emerald-400' : 'text-indigo-400',
                     )}
                   >
-                    {mine ? 'You' : 'Lead Architect'}
+                    {mine ? 'You' : peerLabel}
                   </p>
                   <p className="telemetry whitespace-nowrap">{fmtTime(m.createdAt)}</p>
                 </div>
@@ -142,7 +153,7 @@ export default function ArchitectChat({ orderId }: { orderId: string }) {
             onKeyDown={(e) => {
               if (e.key === 'Enter') void send();
             }}
-            placeholder="Message your Lead Architect…"
+            placeholder={sender === 'client' ? 'Message your Lead Architect…' : 'Reply to the client…'}
             className="input-dark"
             aria-label="Message"
           />

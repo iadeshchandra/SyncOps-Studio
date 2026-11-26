@@ -62,7 +62,14 @@ service cloud.firestore {
         || (isSignedIn() && request.auth.token.email == resource.data.clientEmail);
 
       // Milestone/stage transitions happen via the Studio Console only.
-      allow update: if isOwner();
+      // The owning client gets one narrow exception: responding to a delivery
+      // appends to the activity timeline and flips status to completed/active.
+      allow update: if isOwner()
+        || (ownsOrder(orderId)
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['activity', 'status'])
+            && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['status'])
+                || request.resource.data.status in ['completed', 'active']));
       allow delete: if isOwner();
 
       // Lead Architect <-> Client encrypted channel
@@ -86,6 +93,20 @@ service cloud.firestore {
           && request.resource.data.keys().hasAll(['type', 'details', 'createdAt', 'status'])
           && request.resource.data.status == 'pending';
         allow update: if isOwner();
+        allow delete: if false;
+      }
+
+      // Deliveries — the architect submits; the client accepts or sends back.
+      match /deliveries/{deliveryId} {
+        allow read: if ownsOrder(orderId) || isOwner();
+        allow create: if isOwner()
+          && request.resource.data.keys().hasAll(['note', 'links', 'createdAt', 'status'])
+          && request.resource.data.status == 'pending';
+        allow update: if isOwner()
+          || (ownsOrder(orderId)
+              && request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(['status', 'responseNote', 'respondedAt'])
+              && request.resource.data.status in ['accepted', 'revision']);
         allow delete: if false;
       }
     }

@@ -1,19 +1,30 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Loader2, X, Trash2 } from 'lucide-react';
+import { Loader2, X, Trash2, PackageCheck, ExternalLink, History, MessageSquare } from 'lucide-react';
 import {
   listOrders,
   updateOrder,
   deleteOrder,
+  listDeliveries,
+  createDelivery,
+  appendActivity,
   STAGES,
   orderRef,
   type Order,
+  type Delivery,
 } from '../../lib/portal';
+import ArchitectChat from '../ArchitectChat';
 import { logAudit } from '../../lib/admin';
 import { useAuth } from '../../lib/auth';
 import { fmtUSD, cx } from '../../lib/format';
 
 const DAY_MS = 86_400_000;
-const STATUSES = ['intake', 'active', 'delivered', 'archived'] as const;
+const STATUSES = ['intake', 'active', 'delivered', 'completed', 'archived'] as const;
+
+const DELIVERY_TONE: Record<Delivery['status'], string> = {
+  pending: 'border-amber-700/60 bg-amber-950/40 text-amber-300',
+  accepted: 'border-emerald-700/60 bg-emerald-950/40 text-emerald-300',
+  revision: 'border-rose-800/60 bg-rose-950/40 text-rose-300',
+};
 
 function ageDays(ts: number): string {
   const d = Math.floor((Date.now() - ts) / DAY_MS);
@@ -24,6 +35,7 @@ function statusTone(status: string): string {
   const s = status.toLowerCase();
   if (s === 'intake') return 'border-amber-700/60 bg-amber-950/40 text-amber-300';
   if (s === 'delivered') return 'border-emerald-700/60 bg-emerald-950/40 text-emerald-300';
+  if (s === 'completed') return 'border-violet-700/60 bg-violet-950/40 text-violet-300';
   if (s === 'archived') return 'border-slate-700 bg-slate-900/60 text-slate-400';
   return 'border-cyan-700/60 bg-cyan-950/40 text-cyan-300';
 }
@@ -37,6 +49,23 @@ export default function OrdersTab() {
   const [selected, setSelected] = useState<Order | null>(null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [dNote, setDNote] = useState('');
+  const [dLinks, setDLinks] = useState('');
+  const [dBusy, setDBusy] = useState(false);
+
+  const refreshDeliveries = useCallback(async (orderId: string) => {
+    try {
+      setDeliveries(await listDeliveries(orderId));
+    } catch {
+      setDeliveries([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selected) void refreshDeliveries(selected.id);
+    else setDeliveries([]);
+  }, [selected?.id, refreshDeliveries]);
 
   const refresh = useCallback(async () => {
     try {
@@ -70,8 +99,9 @@ export default function OrdersTab() {
   const handleStage = (order: Order, stageIndex: number) =>
     mutate(
       async () => {
-        await updateOrder(order.id, { stageIndex });
-        setSelected((s) => (s && s.id === order.id ? { ...s, stageIndex } : s));
+        const activity = appendActivity(order, 'stage', `Stage advanced to S${stageIndex + 1} · ${STAGES[stageIndex]?.title ?? ''}`, 'architect');
+        await updateOrder(order.id, { stageIndex, activity });
+        setSelected((s) => (s && s.id === order.id ? { ...s, stageIndex, activity } : s));
       },
       'order.stage',
       `${order.id} -> stage ${stageIndex}`,
@@ -80,12 +110,33 @@ export default function OrdersTab() {
   const handleStatus = (order: Order, status: string) =>
     mutate(
       async () => {
-        await updateOrder(order.id, { status });
-        setSelected((s) => (s && s.id === order.id ? { ...s, status } : s));
+        const activity = appendActivity(order, 'status', `Status set to ${status}`, 'architect');
+        await updateOrder(order.id, { status, activity });
+        setSelected((s) => (s && s.id === order.id ? { ...s, status, activity } : s));
       },
       'order.status',
       `${order.id} -> ${status}`,
     );
+
+  const handleDeliver = async (order: Order) => {
+    setDBusy(true);
+    setNotice(null);
+    try {
+      const links = dLinks.split('\n').map((l) => l.trim()).filter(Boolean);
+      await createDelivery(order.id, dNote, links);
+      const activity = appendActivity(order, 'delivery', 'Delivery submitted — awaiting client review.', 'architect');
+      await updateOrder(order.id, { activity });
+      setSelected((s) => (s && s.id === order.id ? { ...s, activity } : s));
+      setDNote('');
+      setDLinks('');
+      await refreshDeliveries(order.id);
+      await logAudit('order.delivery', order.id, actor);
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : 'Delivery failed.');
+    } finally {
+      setDBusy(false);
+    }
+  };
 
   const handleDelete = (order: Order) => {
     if (!window.confirm(`Delete order ${order.id} (${order.clientName})? This cannot be undone.`))
@@ -186,7 +237,7 @@ export default function OrdersTab() {
           onClick={() => !saving && setSelected(null)}
         >
           <div
-            className="glass-strong max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl p-6"
+            className="glass-strong max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">
@@ -272,6 +323,96 @@ export default function OrdersTab() {
               >
                 <Trash2 className="h-4 w-4" /> {saving ? 'Working…' : 'Delete order'}
               </button>
+            </div>
+
+            {/* Deliveries */}
+            <div className="mt-6 border-t border-slate-800/80 pt-5">
+              <p className="label-dark flex items-center gap-2">
+                <PackageCheck className="h-4 w-4 text-emerald-400" /> Deliveries
+              </p>
+              <div className="space-y-3">
+                {deliveries.map((d) => (
+                  <div key={d.id} className="rounded-md border border-slate-800/80 bg-slate-950/60 p-3.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={cx('rounded border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider', DELIVERY_TONE[d.status])}>
+                        {d.status === 'revision' ? 'revision requested' : d.status}
+                      </span>
+                      <span className="telemetry">{new Date(d.createdAt).toLocaleString()}</span>
+                    </div>
+                    <p className="mt-2 text-sm leading-relaxed text-slate-300">{d.note}</p>
+                    {d.links.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {d.links.map((l) => (
+                          <a key={l} href={l} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-sm text-cyan-300 underline-offset-4 hover:underline">
+                            <ExternalLink className="h-3.5 w-3.5 shrink-0" /> <span className="break-all">{l}</span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                    {d.responseNote && (
+                      <p className="mt-2 rounded border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm text-slate-400">
+                        Client: {d.responseNote}
+                      </p>
+                    )}
+                  </div>
+                ))}
+                {deliveries.length === 0 && (
+                  <p className="telemetry">no deliveries yet — submit the first one below.</p>
+                )}
+              </div>
+              <div className="mt-3 space-y-2.5">
+                <textarea
+                  value={dNote}
+                  onChange={(e) => setDNote(e.target.value)}
+                  rows={3}
+                  placeholder="Delivery note — what is included, what the client should check…"
+                  className="input-dark w-full"
+                  aria-label="Delivery note"
+                />
+                <textarea
+                  value={dLinks}
+                  onChange={(e) => setDLinks(e.target.value)}
+                  rows={2}
+                  placeholder="Deliverable links — one per line (Drive, container export, doc…)"
+                  className="input-dark w-full font-mono text-xs"
+                  aria-label="Deliverable links"
+                />
+                <button
+                  type="button"
+                  disabled={dBusy || dNote.trim().length < 4}
+                  onClick={() => void handleDeliver(selected)}
+                  className="btn-primary px-4 py-2.5 text-sm disabled:opacity-50"
+                >
+                  <PackageCheck className="h-4 w-4" /> {dBusy ? 'Sending…' : 'Send delivery to client'}
+                </button>
+              </div>
+            </div>
+
+            {/* Client channel */}
+            <div className="mt-6 border-t border-slate-800/80 pt-5">
+              <p className="label-dark flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-indigo-400" /> Architect channel — {selected.clientName}
+              </p>
+              <ArchitectChat orderId={selected.id} sender="architect" peerName={selected.clientName} heightClass="h-[380px]" />
+            </div>
+
+            {/* Timeline */}
+            <div className="mt-6 border-t border-slate-800/80 pt-5">
+              <p className="label-dark flex items-center gap-2">
+                <History className="h-4 w-4 text-cyan-400" /> Order timeline
+              </p>
+              {(selected.activity ?? []).length === 0 ? (
+                <p className="telemetry">no activity recorded yet.</p>
+              ) : (
+                <ol className="space-y-2.5">
+                  {[...(selected.activity ?? [])].reverse().map((e, i) => (
+                    <li key={`${e.at}-${i}`} className="flex gap-3 text-sm">
+                      <span className="telemetry whitespace-nowrap pt-0.5">{new Date(e.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                      <span className="text-slate-300">{e.text}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
             </div>
           </div>
         </div>

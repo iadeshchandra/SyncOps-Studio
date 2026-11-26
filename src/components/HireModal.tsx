@@ -221,6 +221,14 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
       notes: notes.trim(),
       createdAt: now,
       deadlineAt: now + 14 * 86400000,
+      activity: [
+        {
+          kind: 'created',
+          text: `Order placed — ${packageName}. The studio confirms scope and books the consultation next.`,
+          at: now,
+          by: 'client',
+        },
+      ],
       revisions: [] as string[],
       ...(prefill.roas != null ? { roas: prefill.roas } : {}),
       ...(prefill.recovery != null ? { projectedRecovery: prefill.recovery } : {}),
