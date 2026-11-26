@@ -39,6 +39,8 @@ import {
   saveIntakeForm,
 } from '../lib/portal';
 import { ACCESS_CHECKLIST, checklistProgress } from '../lib/checklist';
+import OrderFiles from '../components/OrderFiles';
+import { openInvoice } from '../lib/invoice';
 import {
   getPaymentSettings,
   listClaims,
@@ -661,6 +663,14 @@ export default function ClientPortal() {
                       </div>
                     )}
 
+                    <button
+                      type="button"
+                      onClick={() => openInvoice(order, agreed, paySettings)}
+                      className="btn-ghost w-fit px-3.5 py-2 text-xs"
+                    >
+                      Download invoice (PDF)
+                    </button>
+
                     {claims.length > 0 && (
                       <div className="space-y-1.5">
                         {claims.map((c) => (
@@ -1003,7 +1013,14 @@ export default function ClientPortal() {
               </div>
             )}
 
-            {tab === 'vault' && <VaultPanel order={order} />}
+            {tab === 'vault' && (
+              <div className="space-y-6">
+                <div className="glass rounded-xl p-6">
+                  <OrderFiles orderId={order.id} by="client" />
+                </div>
+                <VaultPanel order={order} />
+              </div>
+            )}
 
             {tab === 'revisions' && (
               <div className="glass rounded-xl p-6">

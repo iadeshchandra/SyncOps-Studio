@@ -19,6 +19,9 @@ import { getReview, setReviewPublished, type Review } from '../../lib/reviews';
 import { listClaims, decideClaim, type PaymentClaim } from '../../lib/payments';
 import { getIntakeForm, type IntakeForm } from '../../lib/portal';
 import { ACCESS_CHECKLIST, checklistProgress } from '../../lib/checklist';
+import OrderFiles from '../OrderFiles';
+import { openInvoice } from '../../lib/invoice';
+import { getPaymentSettings, type PaymentSettings } from '../../lib/payments';
 import { PACKAGES } from '../../data/content';
 import { DEFAULT_SITE_CONFIG } from '../../lib/siteConfig';
 import ArchitectChat from '../ArchitectChat';
@@ -76,6 +79,13 @@ export default function OrdersTab() {
   const [intakeForm, setIntakeForm] = useState<IntakeForm | null>(null);
   const [creditInputs, setCreditInputs] = useState<Record<string, string>>({});
   const [claimBusyId, setClaimBusyId] = useState<string | null>(null);
+  const [paySettings, setPaySettings] = useState<PaymentSettings | null>(null);
+
+  useEffect(() => {
+    getPaymentSettings()
+      .then(setPaySettings)
+      .catch(() => setPaySettings(null));
+  }, []);
   const [payAmount, setPayAmount] = useState('');
   const [payMethod, setPayMethod] = useState(PAYMENT_METHODS[0]);
   const [payNote, setPayNote] = useState('');
@@ -856,9 +866,18 @@ export default function OrdersTab() {
 
             {/* Payments */}
             <div className="mt-6 border-t border-slate-800/80 pt-5">
-              <p className="label-dark flex items-center gap-2">
-                <Banknote className="h-4 w-4 text-emerald-400" /> Payments
-              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="label-dark flex items-center gap-2">
+                  <Banknote className="h-4 w-4 text-emerald-400" /> Payments
+                </p>
+                <button
+                  type="button"
+                  onClick={() => openInvoice(selected, priceOf(selected), paySettings)}
+                  className="btn-ghost ml-auto px-3.5 py-2 text-xs"
+                >
+                  Download invoice (PDF)
+                </button>
+              </div>
               <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
                 <span className="text-slate-400">
                   Agreed <span className="font-mono font-bold text-slate-100">{fmtUSD(priceOf(selected))}</span>
@@ -1026,6 +1045,11 @@ export default function OrdersTab() {
                 <MessageSquare className="h-4 w-4 text-indigo-400" /> Architect channel — {selected.clientName}
               </p>
               <ArchitectChat orderId={selected.id} sender="architect" peerName={selected.clientName} heightClass="h-[380px]" />
+            </div>
+
+            {/* Files */}
+            <div className="mt-6 border-t border-slate-800/80 pt-5">
+              <OrderFiles orderId={selected.id} by="architect" canDeleteAll />
             </div>
 
             {/* Timeline */}
