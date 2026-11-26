@@ -117,6 +117,21 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Completion reviews — one per order (doc id == order id). Clients write
+    // their own unpublished; the public reads only owner-published ones.
+    match /reviews/{reviewId} {
+      allow read: if isOwner() || resource.data.published == true;
+      allow create: if ownsOrder(reviewId)
+        && request.resource.data.keys().hasAll(['orderId', 'rating', 'text', 'createdAt', 'published'])
+        && request.resource.data.orderId == reviewId
+        && request.resource.data.published == false
+        && request.resource.data.rating is number
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5;
+      allow update: if isOwner();
+      allow delete: if isOwner();
+    }
+
     // Client roster records (private studio notes) — owner eyes only
     match /clients/{clientId} {
       allow read, write: if isOwner();

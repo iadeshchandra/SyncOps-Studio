@@ -1,25 +1,37 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Loader2, X, Trash2, PackageCheck, ExternalLink, History, MessageSquare } from 'lucide-react';
+import { Loader2, X, Trash2, PackageCheck, ExternalLink, History, MessageSquare, Plus, Star, Banknote } from 'lucide-react';
 import {
   listOrders,
   updateOrder,
   deleteOrder,
   listDeliveries,
   createDelivery,
+  createOrderByOwner,
   appendActivity,
+  paidTotal,
   STAGES,
   orderRef,
   type Order,
   type Delivery,
 } from '../../lib/portal';
+import { getReview, setReviewPublished, type Review } from '../../lib/reviews';
+import { PACKAGES } from '../../data/content';
+import { DEFAULT_SITE_CONFIG } from '../../lib/siteConfig';
 import ArchitectChat from '../ArchitectChat';
 import { logAudit } from '../../lib/admin';
 import { useAuth } from '../../lib/auth';
 import { fmtUSD, cx } from '../../lib/format';
 
 const DAY_MS = 86_400_000;
-const STATUSES = ['intake', 'active', 'delivered', 'completed', 'archived'] as const;
+const STATUSES = ['intake', 'active', 'delivered', 'completed', 'cancelled', 'archived'] as const;
+const PAYMENT_METHODS = ['Wise', 'Payoneer', 'bKash', 'Bank transfer', 'Fiverr', 'Upwork', 'Other'];
+
+function priceOf(o: Order): number {
+  if (typeof o.price === 'number') return o.price;
+  const list = DEFAULT_SITE_CONFIG.pricing ?? PACKAGES;
+  return list.find((p) => p.id === o.packageId)?.price ?? 0;
+}
 
 const DELIVERY_TONE: Record<Delivery['status'], string> = {
   pending: 'border-amber-700/60 bg-amber-950/40 text-amber-300',
@@ -37,6 +49,7 @@ function statusTone(status: string): string {
   if (s === 'intake') return 'border-amber-700/60 bg-amber-950/40 text-amber-300';
   if (s === 'delivered') return 'border-emerald-700/60 bg-emerald-950/40 text-emerald-300';
   if (s === 'completed') return 'border-violet-700/60 bg-violet-950/40 text-violet-300';
+  if (s === 'cancelled') return 'border-rose-800/60 bg-rose-950/40 text-rose-300';
   if (s === 'archived') return 'border-slate-700 bg-slate-900/60 text-slate-400';
   return 'border-cyan-700/60 bg-cyan-950/40 text-cyan-300';
 }
@@ -55,6 +68,19 @@ export default function OrdersTab() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sort, setSort] = useState<'newest' | 'oldest' | 'deadline'>('newest');
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [review, setReview] = useState<Review | null>(null);
+  const [payAmount, setPayAmount] = useState('');
+  const [payMethod, setPayMethod] = useState(PAYMENT_METHODS[0]);
+  const [payNote, setPayNote] = useState('');
+  const [payBusy, setPayBusy] = useState(false);
+  const [cancelArmed, setCancelArmed] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [showNew, setShowNew] = useState(false);
+  const [nName, setNName] = useState('');
+  const [nEmail, setNEmail] = useState('');
+  const [nBrand, setNBrand] = useState('');
+  const [nPkg, setNPkg] = useState(PACKAGES[0]?.id ?? '');
+  const [nBusy, setNBusy] = useState(false);
   const [dNote, setDNote] = useState('');
   const [dLinks, setDLinks] = useState('');
   const [dBusy, setDBusy] = useState(false);
@@ -68,8 +94,17 @@ export default function OrdersTab() {
   }, []);
 
   useEffect(() => {
-    if (selected) void refreshDeliveries(selected.id);
-    else setDeliveries([]);
+    if (selected) {
+      void refreshDeliveries(selected.id);
+      getReview(selected.id)
+        .then(setReview)
+        .catch(() => setReview(null));
+      setCancelArmed(false);
+      setCancelReason('');
+    } else {
+      setDeliveries([]);
+      setReview(null);
+    }
   }, [selected?.id, refreshDeliveries]);
 
   const refresh = useCallback(async () => {
@@ -151,6 +186,88 @@ export default function OrdersTab() {
       `${order.id} -> ${status}`,
     );
 
+  const handleRecordPayment = async (order: Order) => {
+    const amount = Number(payAmount);
+    if (!amount || amount <= 0) {
+      setNotice('Enter a payment amount above zero.');
+      return;
+    }
+    setPayBusy(true);
+    setNotice(null);
+    try {
+      const payments = [
+        ...(order.payments ?? []),
+        { amount, method: payMethod, note: payNote.trim() || undefined, at: Date.now() },
+      ];
+      const activity = appendActivity(
+        order,
+        'payment',
+        `Payment recorded — ${fmtUSD(amount)} via ${payMethod}.`,
+        'architect',
+      );
+      await updateOrder(order.id, { payments, activity });
+      setSelected((s) => (s && s.id === order.id ? { ...s, payments, activity } : s));
+      setPayAmount('');
+      setPayNote('');
+      await logAudit('order.payment', `${order.id} ${amount} ${payMethod}`, actor);
+      await refresh();
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : 'Could not record the payment.');
+    } finally {
+      setPayBusy(false);
+    }
+  };
+
+  const handleCancelConfirm = (order: Order) =>
+    mutate(
+      async () => {
+        const reason = cancelReason.trim();
+        const activity = appendActivity(
+          order,
+          'status',
+          reason ? `Order cancelled — ${reason}` : 'Order cancelled',
+          'architect',
+        );
+        await updateOrder(order.id, { status: 'cancelled', cancelReason: reason, activity });
+        setSelected((s) =>
+          s && s.id === order.id ? { ...s, status: 'cancelled', cancelReason: reason, activity } : s,
+        );
+        setCancelArmed(false);
+      },
+      'order.status',
+      `${order.id} -> cancelled`,
+    );
+
+  const handleCreateOrder = async () => {
+    const pkg = (DEFAULT_SITE_CONFIG.pricing ?? PACKAGES).find((x) => x.id === nPkg) ?? PACKAGES[0];
+    if (!pkg || nName.trim().length < 2 || !nEmail.includes('@')) {
+      setNotice('New order needs a client name and a valid email.');
+      return;
+    }
+    setNBusy(true);
+    setNotice(null);
+    try {
+      const id = await createOrderByOwner({
+        clientName: nName,
+        clientEmail: nEmail,
+        brandUrl: nBrand,
+        packageId: pkg.id,
+        packageName: pkg.name,
+        price: pkg.price,
+      });
+      await logAudit('order.create', id, actor);
+      setShowNew(false);
+      setNName('');
+      setNEmail('');
+      setNBrand('');
+      await refresh();
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : 'Could not create the order.');
+    } finally {
+      setNBusy(false);
+    }
+  };
+
   const handleDeliver = async (order: Order) => {
     setDBusy(true);
     setNotice(null);
@@ -194,9 +311,18 @@ export default function OrdersTab() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <p className="eyebrow">order_management</p>
-        <h2 className="h-display mt-1 text-2xl">Orders</h2>
+      <div className="flex flex-wrap items-end gap-3">
+        <div>
+          <p className="eyebrow">order_management</p>
+          <h2 className="h-display mt-1 text-2xl">Orders</h2>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowNew(true)}
+          className="btn-primary ml-auto px-4 py-2.5 text-sm"
+        >
+          <Plus className="h-4 w-4" /> New order
+        </button>
       </div>
 
       {error && (
@@ -303,6 +429,81 @@ export default function OrdersTab() {
         </table>
       </div>
 
+      {/* New order modal */}
+      {showNew && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={() => !nBusy && setShowNew(false)}
+        >
+          <div
+            className="glass-strong w-full max-w-lg rounded-xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="eyebrow">new_order</p>
+            <h3 className="h-display mt-1 text-xl">Create an order manually</h3>
+            <p className="mt-1.5 text-sm text-slate-400">
+              For clients who arrive via Fiverr, Upwork, WhatsApp or email. They sign in with this
+              email to see the project in their portal.
+            </p>
+            <div className="mt-5 space-y-3">
+              <input
+                type="text"
+                value={nName}
+                onChange={(e) => setNName(e.target.value)}
+                placeholder="Client name"
+                className="input-dark w-full"
+                aria-label="Client name"
+              />
+              <input
+                type="email"
+                value={nEmail}
+                onChange={(e) => setNEmail(e.target.value)}
+                placeholder="Client email"
+                className="input-dark w-full"
+                aria-label="Client email"
+              />
+              <input
+                type="text"
+                value={nBrand}
+                onChange={(e) => setNBrand(e.target.value)}
+                placeholder="Brand / store URL"
+                className="input-dark w-full"
+                aria-label="Brand or store URL"
+              />
+              <select
+                value={nPkg}
+                onChange={(e) => setNPkg(e.target.value)}
+                className="input-dark w-full"
+                aria-label="Package"
+              >
+                {(DEFAULT_SITE_CONFIG.pricing ?? PACKAGES).map((pkg) => (
+                  <option key={pkg.id} value={pkg.id}>
+                    {pkg.name} — {fmtUSD(pkg.price)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="mt-5 flex gap-2.5">
+              <button
+                type="button"
+                disabled={nBusy}
+                onClick={() => void handleCreateOrder()}
+                className="btn-primary px-4 py-2.5 text-sm disabled:opacity-50"
+              >
+                {nBusy ? 'Creating…' : 'Create order'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowNew(false)}
+                className="btn-ghost px-4 py-2.5 text-sm"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Detail modal */}
       {selected && (
         <div
@@ -378,7 +579,10 @@ export default function OrdersTab() {
                   id="order-status"
                   value={STATUSES.includes(selected.status as (typeof STATUSES)[number]) ? selected.status : 'active'}
                   disabled={saving}
-                  onChange={(e) => void handleStatus(selected, e.target.value)}
+                  onChange={(e) => {
+                    if (e.target.value === 'cancelled') setCancelArmed(true);
+                    else void handleStatus(selected, e.target.value);
+                  }}
                   className="input-dark !w-auto"
                 >
                   {STATUSES.map((s) => (
@@ -397,6 +601,148 @@ export default function OrdersTab() {
                 <Trash2 className="h-4 w-4" /> {saving ? 'Working…' : 'Delete order'}
               </button>
             </div>
+
+            {cancelArmed && selected.status !== 'cancelled' && (
+              <div className="mt-5 rounded-md border border-rose-800/60 bg-rose-950/40 p-4">
+                <p className="text-sm font-semibold text-rose-200">Cancel this order?</p>
+                <p className="mt-1 text-sm text-rose-200/70">
+                  The order stays in your records as cancelled — nothing is deleted.
+                </p>
+                <input
+                  type="text"
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="Reason (shown in the timeline)…"
+                  className="input-dark mt-3 w-full"
+                  aria-label="Cancellation reason"
+                />
+                <div className="mt-3 flex gap-2.5">
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => void handleCancelConfirm(selected)}
+                    className="rounded-md border border-rose-600 bg-rose-600/20 px-4 py-2 text-sm font-semibold text-rose-100 disabled:opacity-50"
+                  >
+                    Confirm cancellation
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCancelArmed(false)}
+                    className="btn-ghost px-4 py-2 text-sm"
+                  >
+                    Keep order
+                  </button>
+                </div>
+              </div>
+            )}
+            {selected.status === 'cancelled' && selected.cancelReason && (
+              <p className="mt-4 rounded-md border border-rose-800/50 bg-rose-950/30 px-3.5 py-2.5 text-sm text-rose-200">
+                Cancelled — {selected.cancelReason}
+              </p>
+            )}
+
+            {/* Payments */}
+            <div className="mt-6 border-t border-slate-800/80 pt-5">
+              <p className="label-dark flex items-center gap-2">
+                <Banknote className="h-4 w-4 text-emerald-400" /> Payments
+              </p>
+              <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+                <span className="text-slate-400">
+                  Agreed <span className="font-mono font-bold text-slate-100">{fmtUSD(priceOf(selected))}</span>
+                </span>
+                <span className="text-slate-400">
+                  Paid <span className="font-mono font-bold text-emerald-300">{fmtUSD(paidTotal(selected))}</span>
+                </span>
+                <span className="text-slate-400">
+                  Balance{' '}
+                  <span className="font-mono font-bold text-amber-300">
+                    {fmtUSD(Math.max(0, priceOf(selected) - paidTotal(selected)))}
+                  </span>
+                </span>
+              </div>
+              {(selected.payments ?? []).length > 0 && (
+                <div className="mt-3 space-y-1.5">
+                  {(selected.payments ?? []).map((pay, i) => (
+                    <p key={`${pay.at}-${i}`} className="telemetry">
+                      {new Date(pay.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}{' '}
+                      · <span className="text-slate-200">{fmtUSD(pay.amount)}</span> · {pay.method}
+                      {pay.note ? ` · ${pay.note}` : ''}
+                    </p>
+                  ))}
+                </div>
+              )}
+              <div className="mt-3 flex flex-wrap gap-2.5">
+                <input
+                  type="number"
+                  min="0"
+                  value={payAmount}
+                  onChange={(e) => setPayAmount(e.target.value)}
+                  placeholder="Amount (USD)"
+                  className="input-dark !w-36"
+                  aria-label="Payment amount"
+                />
+                <select
+                  value={payMethod}
+                  onChange={(e) => setPayMethod(e.target.value)}
+                  className="input-dark !w-auto"
+                  aria-label="Payment method"
+                >
+                  {PAYMENT_METHODS.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  value={payNote}
+                  onChange={(e) => setPayNote(e.target.value)}
+                  placeholder="Note (e.g. deposit, final)…"
+                  className="input-dark !w-52"
+                  aria-label="Payment note"
+                />
+                <button
+                  type="button"
+                  disabled={payBusy}
+                  onClick={() => void handleRecordPayment(selected)}
+                  className="btn-primary px-4 py-2.5 text-sm disabled:opacity-50"
+                >
+                  {payBusy ? 'Recording…' : 'Record payment'}
+                </button>
+              </div>
+            </div>
+
+            {/* Client review */}
+            {review && (
+              <div className="mt-6 border-t border-slate-800/80 pt-5">
+                <p className="label-dark flex items-center gap-2">
+                  <Star className="h-4 w-4 text-amber-400" /> Client review
+                </p>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <Star
+                      key={n}
+                      className={cx('h-4 w-4', n <= review.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-600')}
+                    />
+                  ))}
+                  <span className="telemetry ml-2">
+                    {review.published ? 'published on the site' : 'not published'}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm leading-relaxed text-slate-300">“{review.text}”</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void setReviewPublished(review.id, !review.published).then(() =>
+                      setReview({ ...review, published: !review.published }),
+                    );
+                  }}
+                  className="btn-ghost mt-3 px-4 py-2 text-sm"
+                >
+                  {review.published ? 'Unpublish from site' : 'Publish on the site'}
+                </button>
+              </div>
+            )}
 
             {/* Deliveries */}
             <div className="mt-6 border-t border-slate-800/80 pt-5">

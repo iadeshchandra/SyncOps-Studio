@@ -19,6 +19,7 @@ import {
   ExternalLink,
   CheckCircle2,
   History,
+  Star,
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { isDemoMode } from '../lib/firebase';
@@ -29,7 +30,12 @@ import {
   createRevision,
   listDeliveries,
   respondDelivery,
+  paidTotal,
 } from '../lib/portal';
+import { getReview, submitReview } from '../lib/reviews';
+import type { Review } from '../lib/reviews';
+import { PACKAGES } from '../data/content';
+import { DEFAULT_SITE_CONFIG } from '../lib/siteConfig';
 import type { Order, RevisionRequest, Delivery } from '../lib/portal';
 import { orderRef } from '../lib/portal';
 import MilestoneTracker from '../components/MilestoneTracker';
@@ -104,6 +110,12 @@ export default function ClientPortal() {
   const [responseNotes, setResponseNotes] = useState<Record<string, string>>({});
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const [respondError, setRespondError] = useState<string | null>(null);
+  const [review, setReview] = useState<Review | null>(null);
+  const [reviewLoaded, setReviewLoaded] = useState(false);
+  const [stars, setStars] = useState(5);
+  const [reviewText, setReviewText] = useState('');
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -176,6 +188,46 @@ export default function ClientPortal() {
   }, [refreshDeliveries]);
 
   const pendingDeliveries = deliveries.filter((d) => d.status === 'pending').length;
+
+  useEffect(() => {
+    if (!activeOrderId) return;
+    let cancelled = false;
+    getReview(activeOrderId)
+      .then((r) => {
+        if (!cancelled) setReview(r);
+      })
+      .catch(() => {
+        /* no review yet */
+      })
+      .finally(() => {
+        if (!cancelled) setReviewLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeOrderId]);
+
+  const handleSubmitReview = async () => {
+    if (!order) return;
+    setReviewBusy(true);
+    setReviewError(null);
+    try {
+      await submitReview(order.id, order.clientName, stars, reviewText);
+      setReview({
+        id: order.id,
+        orderId: order.id,
+        clientName: order.clientName,
+        rating: stars,
+        text: reviewText.trim(),
+        createdAt: Date.now(),
+        published: false,
+      });
+    } catch (e) {
+      setReviewError(e instanceof Error ? e.message : 'Could not save your review.');
+    } finally {
+      setReviewBusy(false);
+    }
+  };
 
   const handleRespond = async (d: Delivery, accept: boolean) => {
     if (!order) return;
@@ -357,6 +409,37 @@ export default function ClientPortal() {
                     <span className="text-slate-500"> / mo ad spend</span>
                   </dd>
                 </div>
+                {(() => {
+                  const agreed =
+                    typeof order.price === 'number'
+                      ? order.price
+                      : ((DEFAULT_SITE_CONFIG.pricing ?? PACKAGES).find(
+                          (x) => x.id === order.packageId,
+                        )?.price ?? 0);
+                  if (agreed <= 0) return null;
+                  const paid = paidTotal(order);
+                  return (
+                    <div className="rounded-md border border-slate-800/80 bg-slate-950/60 px-3 py-2.5">
+                      <p className="text-sm text-slate-300">
+                        Package <span className="font-mono font-bold text-slate-100">{fmtUSD(agreed)}</span>
+                        <span className="text-slate-600"> · </span>
+                        Paid <span className="font-mono font-bold text-emerald-300">{fmtUSD(paid)}</span>
+                        {agreed - paid > 0 && (
+                          <>
+                            <span className="text-slate-600"> · </span>
+                            Balance{' '}
+                            <span className="font-mono font-bold text-amber-300">
+                              {fmtUSD(agreed - paid)}
+                            </span>
+                          </>
+                        )}
+                        {agreed - paid <= 0 && (
+                          <span className="text-emerald-300"> · paid in full</span>
+                        )}
+                      </p>
+                    </div>
+                  );
+                })()}
                 <div className="pt-1">
                   <span className="inline-flex items-center rounded-md border border-emerald-700/60 bg-emerald-950/50 px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.18em] text-emerald-300">
                     {order.status}
@@ -391,6 +474,73 @@ export default function ClientPortal() {
           {/* right column */}
           <div className="space-y-6">
             <SlaTimer deadlineAt={order.deadlineAt} />
+
+            {order.status === 'completed' && reviewLoaded && (
+              <div className="glass rounded-xl p-6">
+                <p className="eyebrow mb-1">project_complete</p>
+                <h3 className="h-display text-lg">
+                  {review ? 'Thank you for your review' : 'How was the studio’s work?'}
+                </h3>
+                {review ? (
+                  <div className="mt-3">
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <Star
+                          key={n}
+                          className={cx(
+                            'h-4 w-4',
+                            n <= review.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-600',
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <p className="mt-2 text-sm leading-relaxed text-slate-300">“{review.text}”</p>
+                    <p className="telemetry mt-2">
+                      {review.published
+                        ? 'published on the studio site — thank you.'
+                        : 'the studio may publish this on the site.'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-3 space-y-3">
+                    <div className="flex items-center gap-1.5">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => setStars(n)}
+                          aria-label={`${n} stars`}
+                          className="p-0.5"
+                        >
+                          <Star
+                            className={cx(
+                              'h-6 w-6 transition-colors',
+                              n <= stars ? 'fill-amber-400 text-amber-400' : 'text-slate-600 hover:text-slate-400',
+                            )}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    <textarea
+                      value={reviewText}
+                      onChange={(e) => setReviewText(e.target.value)}
+                      rows={3}
+                      placeholder="A few honest words about the work — what changed for your store?"
+                      className="input-dark w-full"
+                      aria-label="Your review"
+                    />
+                    {reviewError && <p className="text-sm text-rose-300">{reviewError}</p>}
+                    <button
+                      onClick={() => void handleSubmitReview()}
+                      disabled={reviewBusy}
+                      className="btn-primary px-4 py-2.5 text-sm disabled:opacity-50"
+                    >
+                      {reviewBusy ? 'Saving…' : 'Leave review'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* tabs */}
             <div className="flex gap-1.5 rounded-lg border border-slate-800/80 bg-slate-900/50 p-1.5">

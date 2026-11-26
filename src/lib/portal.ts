@@ -32,6 +32,13 @@ export interface Delivery {
   respondedAt?: number;
 }
 
+export interface PaymentEntry {
+  amount: number;
+  method: string;
+  note?: string;
+  at: number;
+}
+
 export interface Order {
   id: string;
   clientName: string;
@@ -46,6 +53,32 @@ export interface Order {
   deadlineAt: number;
   ref?: string;
   activity?: ActivityEvent[];
+  /** Agreed package price when recorded explicitly (owner-created orders). */
+  price?: number;
+  /** Payment ledger — amounts the studio has recorded as received. */
+  payments?: PaymentEntry[];
+  cancelReason?: string;
+}
+
+function parsePayments(raw: unknown): PaymentEntry[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const out: PaymentEntry[] = [];
+  for (const e of raw) {
+    if (e && typeof e === 'object') {
+      const r = e as Record<string, unknown>;
+      out.push({
+        amount: Number(r.amount ?? 0),
+        method: String(r.method ?? 'other'),
+        note: typeof r.note === 'string' ? r.note : undefined,
+        at: Number(r.at ?? 0),
+      });
+    }
+  }
+  return out.length ? out : undefined;
+}
+
+export function paidTotal(o: { payments?: PaymentEntry[] }): number {
+  return (o.payments ?? []).reduce((sum, p) => sum + p.amount, 0);
 }
 
 /** Append an event to an order's activity timeline (capped, oldest first). */
@@ -250,6 +283,9 @@ export async function getOrder(id: string): Promise<Order | null> {
     deadlineAt: Number(d.deadlineAt ?? Date.now()),
     ref: typeof d.ref === 'string' ? d.ref : undefined,
     activity: parseActivity(d.activity),
+    price: typeof d.price === 'number' ? d.price : undefined,
+    payments: parsePayments(d.payments),
+    cancelReason: typeof d.cancelReason === 'string' ? d.cancelReason : undefined,
   };
 }
 
@@ -638,6 +674,9 @@ function mapOrder(id: string, d: Record<string, unknown>): Order {
     deadlineAt: Number(d.deadlineAt ?? Date.now()),
     ref: typeof d.ref === 'string' ? d.ref : undefined,
     activity: parseActivity(d.activity),
+    price: typeof d.price === 'number' ? d.price : undefined,
+    payments: parsePayments(d.payments),
+    cancelReason: typeof d.cancelReason === 'string' ? d.cancelReason : undefined,
   };
 }
 
@@ -672,6 +711,51 @@ export async function updateOrder(orderId: string, patch: Partial<Order>): Promi
     throw new Error('Order not found.');
   }
   writeJSON('syncops_orders', overrides);
+}
+
+export interface NewOrderInput {
+  clientName: string;
+  clientEmail: string;
+  brandUrl: string;
+  packageId: string;
+  packageName: string;
+  price: number;
+}
+
+/** Studio-created order (for clients who arrive via Fiverr, WhatsApp, email…). */
+export async function createOrderByOwner(input: NewOrderInput): Promise<string> {
+  const now = Date.now();
+  const payload = {
+    clientName: input.clientName.trim(),
+    clientEmail: input.clientEmail.trim(),
+    brandUrl: input.brandUrl.trim(),
+    packageId: input.packageId,
+    packageName: input.packageName,
+    price: input.price,
+    ref: makeOrderRef(now),
+    status: 'intake',
+    stageIndex: 0,
+    adSpend: 0,
+    createdAt: now,
+    deadlineAt: now + 14 * 86_400_000,
+    activity: [
+      {
+        kind: 'created',
+        text: `Order created by the studio — ${input.packageName}.`,
+        at: now,
+        by: 'architect' as const,
+      },
+    ],
+  };
+  if (!isDemoMode && db) {
+    const ref = await addDoc(collection(db, 'orders'), payload);
+    return ref.id;
+  }
+  const id = `demo-${now.toString(36)}`;
+  const overrides = readJSON<Order[]>('syncops_orders', []);
+  overrides.push({ id, ...payload } as Order);
+  writeJSON('syncops_orders', overrides);
+  return id;
 }
 
 export async function deleteOrder(orderId: string): Promise<void> {

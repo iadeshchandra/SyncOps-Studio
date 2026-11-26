@@ -1,6 +1,9 @@
+import { useEffect, useState } from 'react';
 import { ArrowUpRight, BadgeCheck, Star } from 'lucide-react';
 import { PROOF_QUOTES, PROOF_STATS, PROOF_URL } from '../data/content';
 import { useSiteConfig } from '../lib/siteConfig';
+import { listPublishedReviews, type Review } from '../lib/reviews';
+import { cx } from '../lib/format';
 
 /**
  * Client proof section (id="cases" — nav anchor preserved).
@@ -11,6 +14,21 @@ import { useSiteConfig } from '../lib/siteConfig';
 export default function CaseStudies() {
   const { config } = useSiteConfig();
   const quotes = config.proofQuotes ?? PROOF_QUOTES;
+  const [studioReviews, setStudioReviews] = useState<Review[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    listPublishedReviews()
+      .then((r) => {
+        if (!cancelled) setStudioReviews(r);
+      })
+      .catch(() => {
+        /* proof section stands on the Fiverr record alone */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   return (
     <div id="cases" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 lg:py-28">
       <p className="eyebrow mb-4">Verified Proof</p>
@@ -51,6 +69,36 @@ export default function CaseStudies() {
           </figure>
         ))}
       </div>
+
+      {studioReviews.length > 0 && (
+        <div className="mt-12">
+          <p className="eyebrow mb-4">From studio engagements</p>
+          <div className="grid gap-6 md:grid-cols-3">
+            {studioReviews.map((r) => (
+              <figure key={r.id} className="glass card-hover rounded-lg p-6">
+                <div className="flex items-center gap-1" aria-label={`${r.rating} out of 5 stars`}>
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <Star
+                      key={i}
+                      className={cx(
+                        'h-4 w-4',
+                        i <= r.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-600',
+                      )}
+                    />
+                  ))}
+                </div>
+                <blockquote className="mt-4 text-sm italic leading-relaxed text-slate-300">
+                  “{r.text}”
+                </blockquote>
+                <figcaption className="mt-4 flex items-center gap-2 font-mono text-xs text-slate-500">
+                  <BadgeCheck className="h-4 w-4 shrink-0 text-emerald-400" />
+                  <span>{r.clientName} · studio client</span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      )}
 
       <a
         href={PROOF_URL}
