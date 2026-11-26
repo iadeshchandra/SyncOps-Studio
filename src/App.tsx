@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './lib/auth';
 import { HireModalProvider, HireModalRoot } from './components/HireModal';
+import TawkChat from './components/TawkChat';
 import { ClientProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
 import { useSiteConfig } from './lib/siteConfig';
@@ -55,6 +56,7 @@ export default function App() {
       <HireModalProvider>
         <BrowserRouter>
           <HashScroll />
+          <TawkChat />
           <SiteGate>
             <Routes>
               <Route path="/" element={<Landing />} />
