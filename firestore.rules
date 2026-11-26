@@ -1,12 +1,13 @@
 rules_version = '2';
 
 // SyncOps Studio — Firestore security rules.
-// Deny-by-default. Intake orders are creatable by anyone (validated shape);
-// order reads are scoped to the owning client email; order updates are
-// owner-only (milestone/stage transitions from the Studio Console);
-// platformConfig/admins.owners is the owner allowlist — the doc must be
-// bootstrapped by hand in the Firebase console (see docs/DEPLOY.md) before
-// the first owner sign-in, otherwise isOwner() denies (fail-closed).
+// Deny-by-default. Intake orders are creatable by anyone (strictly validated
+// shape — Deep Review #2, Batch 1: creation-time forgery closed); order reads
+// are scoped to the owning client email; order updates are owner-only except
+// two narrow client paths (the access checklist, and responding to a
+// delivery); platformConfig/admins.owners is the owner allowlist — the doc
+// must be bootstrapped by hand in the Firebase console (see docs/DEPLOY.md)
+// before the first owner sign-in, otherwise isOwner() denies (fail-closed).
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -55,38 +56,70 @@ service cloud.firestore {
 
     // Client projects / intake orders
     match /orders/{orderId} {
-      allow create: if request.resource.data.keys().hasAll(
-          ['clientName', 'clientEmail', 'brandUrl', 'packageId', 'status', 'createdAt']
-        )
-        && request.resource.data.clientEmail is string
-        && request.resource.data.status == 'intake';
+      // Public intake (the hire form) may create an order ONLY in the exact
+      // shape the form sends: no payment ledger, no price, no status other
+      // than 'intake', no pre-written timeline beyond the client's own
+      // "order placed" entry. The owner (console "New order") is exempt.
+      allow create: if isOwner()
+        || (request.resource.data.keys().hasOnly([
+              'clientName', 'clientEmail', 'brandUrl', 'packageId',
+              'packageName', 'ref', 'serviceLine', 'scope', 'status',
+              'stageIndex', 'adSpend', 'primaryNetworks', 'targetLaunchDate',
+              'notes', 'createdAt', 'deadlineAt', 'activity', 'revisions',
+              'roas', 'projectedRecovery'
+            ])
+            && request.resource.data.keys().hasAll(
+              ['clientName', 'clientEmail', 'brandUrl', 'packageId', 'status', 'createdAt']
+            )
+            && request.resource.data.clientEmail is string
+            && request.resource.data.status == 'intake'
+            && request.resource.data.stageIndex == 0
+            && request.resource.data.activity is list
+            && request.resource.data.activity.size() <= 1
+            && (request.resource.data.activity.size() == 0
+                || request.resource.data.activity[0].by == 'client')
+            && request.resource.data.revisions is list
+            && request.resource.data.revisions.size() == 0);
 
       allow read: if isOwner()
-        || resource.data.clientEmail == 'demo@syncops.studio'
         || (isSignedIn() && request.auth.token.email == resource.data.clientEmail);
 
       // Milestone/stage transitions happen via the Studio Console only.
-      // The owning client gets one narrow exception: responding to a delivery
-      // appends to the activity timeline and flips status to completed/active.
+      // The owning client gets exactly two narrow exceptions:
+      //  (a) saving the access checklist — that field alone;
+      //  (b) responding to a delivery — status plus EXACTLY ONE appended
+      //      timeline entry, written by 'client', of a delivery kind, with
+      //      every earlier entry preserved word-for-word.
       allow update: if isOwner()
         || (ownsOrder(orderId)
             && request.resource.data.diff(resource.data).affectedKeys()
-                 .hasOnly(['activity', 'status', 'checklist'])
-            && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['status'])
-                || request.resource.data.status in ['completed', 'active']));
+                 .hasOnly(['checklist']))
+        || (ownsOrder(orderId)
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['activity', 'status'])
+            && request.resource.data.status in ['completed', 'active']
+            && request.resource.data.activity is list
+            && resource.data.activity is list
+            && request.resource.data.activity.size() == resource.data.activity.size() + 1
+            && request.resource.data.activity.hasAll(resource.data.activity)
+            && request.resource.data.activity[request.resource.data.activity.size() - 1].by == 'client'
+            && request.resource.data.activity[request.resource.data.activity.size() - 1].kind
+                 in ['delivery_accepted', 'delivery_revision']);
       allow delete: if isOwner();
 
-      // Lead Architect <-> Client encrypted channel
+      // Lead Architect <-> Client channel. The sender label is bound to the
+      // writer's role: a client can only ever send as 'client', the owner
+      // only as 'architect' — impersonation is denied by the rules.
       match /messages/{messageId} {
         allow read: if isOwner()
-          || (resource.data.orderId == orderId
-              && (get(/databases/$(database)/documents/orders/$(orderId)).data.clientEmail == 'demo@syncops.studio'
-                  || ownsOrder(orderId)));
-        allow create: if isSignedIn()
-          && request.resource.data.keys().hasAll(['orderId', 'sender', 'body', 'createdAt'])
+          || (resource.data.orderId == orderId && ownsOrder(orderId));
+        allow create: if request.resource.data.keys().hasOnly(['orderId', 'sender', 'body', 'createdAt'])
           && request.resource.data.orderId == orderId
-          && request.resource.data.sender in ['client', 'architect']
-          && (ownsOrder(orderId) || isOwner());
+          && request.resource.data.body is string
+          && request.resource.data.body.size() > 0
+          && request.resource.data.body.size() <= 4000
+          && ((isOwner() && request.resource.data.sender == 'architect')
+              || (ownsOrder(orderId) && request.resource.data.sender == 'client'));
         allow update, delete: if false;
       }
 
@@ -94,8 +127,10 @@ service cloud.firestore {
       match /revisions/{revisionId} {
         allow read: if ownsOrder(orderId) || isOwner();
         allow create: if ownsOrder(orderId)
+          && request.resource.data.keys().hasOnly(['type', 'details', 'createdAt', 'status'])
           && request.resource.data.keys().hasAll(['type', 'details', 'createdAt', 'status'])
-          && request.resource.data.status == 'pending';
+          && request.resource.data.status == 'pending'
+          && request.resource.data.details is string;
         allow update: if isOwner();
         allow delete: if false;
       }
@@ -104,6 +139,7 @@ service cloud.firestore {
       match /deliveries/{deliveryId} {
         allow read: if ownsOrder(orderId) || isOwner();
         allow create: if isOwner()
+          && request.resource.data.keys().hasOnly(['note', 'links', 'createdAt', 'status'])
           && request.resource.data.keys().hasAll(['note', 'links', 'createdAt', 'status'])
           && request.resource.data.status == 'pending';
         allow update: if isOwner()
@@ -115,12 +151,21 @@ service cloud.firestore {
       }
 
       // Shared order files (Zero-Cost File Vault pattern): small files stored
-      // as data in documents — no Firebase Storage, no paid plan.
+      // as data in documents — no Firebase Storage, no paid plan. The
+      // uploadedBy label is bound to the writer's role, and the stored size
+      // is capped in the rules themselves (not only in client code).
       match /files/{fileId} {
         allow read: if ownsOrder(orderId) || isOwner();
-        allow create: if (ownsOrder(orderId) || isOwner())
-          && request.resource.data.keys().hasAll(['name', 'mime', 'size', 'dataUrl', 'uploadedBy', 'createdAt'])
-          && request.resource.data.uploadedBy in ['architect', 'client'];
+        allow create: if request.resource.data.keys().hasOnly(
+              ['name', 'mime', 'size', 'dataUrl', 'uploadedBy', 'createdAt'])
+          && request.resource.data.keys().hasAll(
+              ['name', 'mime', 'size', 'dataUrl', 'uploadedBy', 'createdAt'])
+          && request.resource.data.size is number
+          && request.resource.data.size <= 1000000
+          && request.resource.data.dataUrl is string
+          && request.resource.data.dataUrl.size() <= 1000000
+          && ((isOwner() && request.resource.data.uploadedBy == 'architect')
+              || (ownsOrder(orderId) && request.resource.data.uploadedBy == 'client'));
         allow delete: if isOwner()
           || (ownsOrder(orderId) && resource.data.uploadedBy == 'client');
         allow update: if false;
@@ -128,21 +173,34 @@ service cloud.firestore {
 
       // Payment claims — the client pays OUTSIDE the app (bKash Send Money,
       // Wise, …) and claims it here; the owner verifies and approves, which
-      // is what credits the order's payment ledger. Coordination, never custody.
+      // is what credits the order's payment ledger. Coordination, never
+      // custody. A claim is created in one exact shape: pending, a real
+      // amount, a supported currency, a plausible transaction reference —
+      // and it can never carry a pre-decided outcome.
       match /claims/{claimId} {
         allow read: if ownsOrder(orderId) || isOwner();
         allow create: if ownsOrder(orderId)
-          && request.resource.data.keys().hasAll(['amount', 'currency', 'method', 'trxId', 'status', 'createdAt'])
-          && request.resource.data.status == 'pending';
+          && request.resource.data.keys().hasOnly(
+              ['amount', 'currency', 'method', 'trxId', 'sender', 'note', 'status', 'createdAt'])
+          && request.resource.data.keys().hasAll(
+              ['amount', 'currency', 'method', 'trxId', 'status', 'createdAt'])
+          && request.resource.data.status == 'pending'
+          && request.resource.data.amount is number
+          && request.resource.data.amount > 0
+          && request.resource.data.currency in ['BDT', 'USD']
+          && request.resource.data.trxId is string
+          && request.resource.data.trxId.size() >= 4;
         allow update: if isOwner();
         allow delete: if false;
       }
 
       // Intake / requirements form — the client's own answers, written before
-      // the project starts (access notes, ad account IDs, goals).
+      // the project starts (access notes, ad account IDs, goals). The client
+      // writes exactly one document: 'form'.
       match /intake/{docId} {
         allow read: if ownsOrder(orderId) || isOwner();
-        allow create, update: if ownsOrder(orderId) || isOwner();
+        allow create, update: if isOwner()
+          || (ownsOrder(orderId) && docId == 'form');
         allow delete: if false;
       }
     }
@@ -153,14 +211,22 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Completion reviews — one per order (doc id == order id). Clients write
-    // their own unpublished; the public reads only owner-published ones.
+    // Completion reviews — one per order (doc id == order id). A client may
+    // write a review only for their OWN order, only once that order is
+    // completed, always unpublished, always under their name. The owner
+    // publishes; the public reads only published ones.
     match /reviews/{reviewId} {
       allow read: if isOwner() || resource.data.published == true;
       allow create: if ownsOrder(reviewId)
-        && request.resource.data.keys().hasAll(['orderId', 'rating', 'text', 'createdAt', 'published'])
+        && get(/databases/$(database)/documents/orders/$(reviewId)).data.status == 'completed'
+        && request.resource.data.keys().hasOnly(
+            ['orderId', 'clientName', 'rating', 'text', 'createdAt', 'published'])
+        && request.resource.data.keys().hasAll(
+            ['orderId', 'clientName', 'rating', 'text', 'createdAt', 'published'])
         && request.resource.data.orderId == reviewId
         && request.resource.data.published == false
+        && request.resource.data.clientName is string
+        && request.resource.data.clientName.size() > 0
         && request.resource.data.rating is number
         && request.resource.data.rating >= 1
         && request.resource.data.rating <= 5;
