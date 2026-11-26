@@ -8,7 +8,7 @@ import { DEFAULT_PRODUCTS, type Product } from '../data/products';
  * Studio products CMS layer.
  *
  * Resolution order (same philosophy as siteConfig.ts):
- *   1. Firestore `platformConfig/products/{id}` (owner-published via Studio Console)
+ *   1. Firestore `platformConfig/products/items/{id}` (owner-published via Studio Console)
  *   2. localStorage mirror `syncops_products` (demo edits + offline)
  *   3. DEFAULT_PRODUCTS (compiled-in fallbacks — the showcase always renders)
  *
@@ -16,7 +16,7 @@ import { DEFAULT_PRODUCTS, type Product } from '../data/products';
  * so demo edits survive reloads without a backend.
  */
 
-const COLLECTION = 'platformConfig/products';
+const COLLECTION = 'platformConfig/products/items';
 const LOCAL_KEY = 'syncops_products';
 
 interface LocalMirror {

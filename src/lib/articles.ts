@@ -10,7 +10,7 @@ export type { Article } from '../data/articles';
  * Studio field-notes CMS layer.
  *
  * Resolution order (same philosophy as products.ts):
- *   1. Firestore `platformConfig/articles/{id}` (owner-published via Studio Console)
+ *   1. Firestore `platformConfig/articles/items/{id}` (owner-published via Studio Console)
  *   2. localStorage mirror `syncops_articles` (demo edits + offline)
  *   3. DEFAULT_ARTICLES (compiled-in fallbacks — /notes always renders)
  *
@@ -18,7 +18,7 @@ export type { Article } from '../data/articles';
  * so demo edits survive reloads without a backend.
  */
 
-const COLLECTION = 'platformConfig/articles';
+const COLLECTION = 'platformConfig/articles/items';
 const LOCAL_KEY = 'syncops_articles';
 
 interface LocalMirror {

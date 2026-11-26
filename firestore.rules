@@ -37,14 +37,14 @@ service cloud.firestore {
 
     // Product showcase CMS — one doc per app. World-readable so /work
     // renders without auth; writes are owner-only via the Studio Console.
-    match /platformConfig/products/{productId} {
+    match /platformConfig/products/items/{productId} {
       allow read: if true;
       allow write: if isOwner();
     }
 
     // Field-notes CMS — one doc per article. World-readable so /notes
     // renders without auth; writes are owner-only via the Studio Console.
-    match /platformConfig/articles/{articleId} {
+    match /platformConfig/articles/items/{articleId} {
       allow read: if true;
       allow write: if isOwner();
     }
