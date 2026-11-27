@@ -15,8 +15,14 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Order access requires a VERIFIED email (Deep Review #2, A2/C-02):
+    // an address alone is not identity — whoever merely registers with an
+    // order's email must not inherit that client's portal. Google sign-ins
+    // carry email_verified=true inherently. The owner allowlist (isOwner)
+    // is a separate control and is not gated on this.
     function ownsOrder(orderId) {
       return isSignedIn()
+        && request.auth.token.email_verified == true
         && get(/databases/$(database)/documents/orders/$(orderId)).data.clientEmail
              == request.auth.token.email;
     }
@@ -82,7 +88,9 @@ service cloud.firestore {
             && request.resource.data.revisions.size() == 0);
 
       allow read: if isOwner()
-        || (isSignedIn() && request.auth.token.email == resource.data.clientEmail);
+        || (isSignedIn()
+            && request.auth.token.email_verified == true
+            && request.auth.token.email == resource.data.clientEmail);
 
       // Milestone/stage transitions happen via the Studio Console only.
       // The owning client gets exactly two narrow exceptions:
@@ -216,7 +224,7 @@ service cloud.firestore {
     // completed, always unpublished, always under their name. The owner
     // publishes; the public reads only published ones.
     match /reviews/{reviewId} {
-      allow read: if isOwner() || resource.data.published == true;
+      allow read: if isOwner() || resource.data.published == true || ownsOrder(reviewId);
       allow create: if ownsOrder(reviewId)
         && get(/databases/$(database)/documents/orders/$(reviewId)).data.status == 'completed'
         && request.resource.data.keys().hasOnly(
