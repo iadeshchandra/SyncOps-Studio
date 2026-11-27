@@ -35,7 +35,7 @@ import { agreedUsd } from '../../lib/pricing';
 
 const DAY_MS = 86_400_000;
 const STATUSES = ['intake', 'active', 'delivered', 'completed', 'cancelled', 'archived'] as const;
-const PAYMENT_METHODS = ['Wise', 'Payoneer', 'bKash', 'Bank transfer', 'Fiverr', 'Upwork', 'Other', 'Correction'];
+const PAYMENT_METHODS = ['Wise', 'Payoneer', 'bKash', 'Nagad', 'Bangla QR', 'UPI', 'Bank transfer', 'Fiverr', 'Upwork', 'Other', 'Correction'];
 
 function priceOf(o: Order): number {
   return agreedUsd(o);

@@ -24,6 +24,176 @@ export interface PaymentSettings {
   bkashQrDataUrl: string;
   wiseNote: string;
   payoneerNote: string;
+  /** Geo payment methods — the Sanatani Bandhan system (see below). */
+  methods: PaymentMethodConfig[];
+}
+
+/* ------------------------------------------------------------------ */
+/* Geo payment methods — ported from Sanatani Bandhan's system:        */
+/* regions (BD / IN / INTL) each carry owner-configured methods with   */
+/* QR images, account details and step-by-step instructions. The       */
+/* client portal auto-detects the visitor's region (lib/geo.ts) and    */
+/* shows that region's methods first; the client can always switch.    */
+/* The four legacy fields above are mirrors of the matching methods,   */
+/* kept so older reads keep working.                                   */
+/* ------------------------------------------------------------------ */
+
+export type PayRegionId = 'BD' | 'IN' | 'INTL';
+
+export interface PayRegion {
+  id: PayRegionId;
+  name: string;
+  flag: string;
+  currency: 'BDT' | 'INR' | 'USD';
+  currencySymbol: string;
+}
+
+export const PAY_REGIONS: PayRegion[] = [
+  { id: 'BD', name: 'Bangladesh', flag: '🇧🇩', currency: 'BDT', currencySymbol: '৳' },
+  { id: 'IN', name: 'India', flag: '🇮🇳', currency: 'INR', currencySymbol: '₹' },
+  { id: 'INTL', name: 'International', flag: '🌍', currency: 'USD', currencySymbol: '$' },
+];
+
+export type PaymentMethodType = 'bangla_qr' | 'mobile' | 'upi' | 'wise' | 'payoneer';
+
+export interface PaymentMethodConfig {
+  id: string;
+  region: PayRegionId;
+  type: PaymentMethodType;
+  /** The name the client sees, and the value stored on claims. */
+  label: string;
+  enabled: boolean;
+  /** Mobile number (bKash/Nagad) or UPI id. */
+  number?: string;
+  /** Wise / Payoneer account details text. */
+  details?: string;
+  /** QR image as a vault data URL. */
+  qrDataUrl?: string;
+  /** Payment steps, shown numbered to the client. */
+  instructions: string[];
+}
+
+/** The studio's method catalogue — the owner edits details in the console. */
+export function seedMethods(legacy: {
+  bkashNumber: string;
+  bkashQrDataUrl: string;
+  wiseNote: string;
+  payoneerNote: string;
+}): PaymentMethodConfig[] {
+  return [
+    {
+      id: 'bd_bangla_qr',
+      region: 'BD',
+      type: 'bangla_qr',
+      label: 'Bangla QR',
+      enabled: Boolean(legacy.bkashQrDataUrl),
+      qrDataUrl: legacy.bkashQrDataUrl || undefined,
+      instructions: [
+        'Open bKash, Nagad or any banking app',
+        'Tap QR Scan and scan the code',
+        'Enter the amount and confirm with your PIN',
+        'Copy the Transaction ID and submit your claim below',
+      ],
+    },
+    {
+      id: 'bd_bkash',
+      region: 'BD',
+      type: 'mobile',
+      label: 'bKash',
+      enabled: true,
+      number: legacy.bkashNumber || undefined,
+      instructions: [
+        'Use the Send Money option in your bKash app',
+        'Copy the Transaction ID and submit your claim below',
+      ],
+    },
+    {
+      id: 'bd_nagad',
+      region: 'BD',
+      type: 'mobile',
+      label: 'Nagad',
+      enabled: false,
+      instructions: [
+        'Use the Send Money option in your Nagad app',
+        'Copy the Transaction ID and submit your claim below',
+      ],
+    },
+    {
+      id: 'in_upi',
+      region: 'IN',
+      type: 'upi',
+      label: 'UPI',
+      enabled: false,
+      instructions: [
+        'Pay to the UPI ID from any UPI app (GPay, PhonePe, Paytm)',
+        'Copy the UPI Ref / UTR number and submit your claim below',
+      ],
+    },
+    {
+      id: 'intl_wise',
+      region: 'INTL',
+      type: 'wise',
+      label: 'Wise',
+      enabled: true,
+      details: legacy.wiseNote || undefined,
+      instructions: [
+        'Send to the Wise details above',
+        'Copy the transfer reference and submit your claim below',
+      ],
+    },
+    {
+      id: 'intl_payoneer',
+      region: 'INTL',
+      type: 'payoneer',
+      label: 'Payoneer',
+      enabled: true,
+      details: legacy.payoneerNote || undefined,
+      instructions: [
+        'Send to the Payoneer details above',
+        'Copy the transaction ID and submit your claim below',
+      ],
+    },
+  ];
+}
+
+function parseMethods(raw: unknown, legacy: {
+  bkashNumber: string;
+  bkashQrDataUrl: string;
+  wiseNote: string;
+  payoneerNote: string;
+}): PaymentMethodConfig[] {
+  if (!Array.isArray(raw) || raw.length === 0) return seedMethods(legacy);
+  const byId = new Map(seedMethods(legacy).map((m) => [m.id, m]));
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const d = item as Record<string, unknown>;
+    const base = byId.get(String(d.id ?? ''));
+    if (!base) continue;
+    byId.set(base.id, {
+      ...base,
+      label: typeof d.label === 'string' && d.label ? d.label : base.label,
+      enabled: typeof d.enabled === 'boolean' ? d.enabled : base.enabled,
+      number: typeof d.number === 'string' ? d.number : undefined,
+      details: typeof d.details === 'string' ? d.details : undefined,
+      qrDataUrl: typeof d.qrDataUrl === 'string' ? d.qrDataUrl : undefined,
+      instructions: Array.isArray(d.instructions)
+        ? d.instructions.map(String).filter(Boolean)
+        : base.instructions,
+    });
+  }
+  return [...byId.values()];
+}
+
+/** Keep the legacy mirror fields in step with the method catalogue. */
+function withMirrors(s: PaymentSettings): PaymentSettings {
+  const get = (id: string) => s.methods.find((m) => m.id === id);
+  return {
+    ...s,
+    bkashNumber: get('bd_bkash')?.number ?? '',
+    bkashQrDataUrl: get('bd_bangla_qr')?.qrDataUrl ?? '',
+    wiseNote: get('intl_wise')?.details ?? '',
+    payoneerNote: get('intl_payoneer')?.details ?? '',
+  };
 }
 
 const EMPTY_SETTINGS: PaymentSettings = {
@@ -31,6 +201,7 @@ const EMPTY_SETTINGS: PaymentSettings = {
   bkashQrDataUrl: '',
   wiseNote: '',
   payoneerNote: '',
+  methods: seedMethods({ bkashNumber: '', bkashQrDataUrl: '', wiseNote: '', payoneerNote: '' }),
 };
 
 export async function getPaymentSettings(): Promise<PaymentSettings> {
@@ -38,24 +209,32 @@ export async function getPaymentSettings(): Promise<PaymentSettings> {
     const snap = await getDoc(doc(db, 'platformConfig', 'payment'));
     if (!snap.exists()) return EMPTY_SETTINGS;
     const d = snap.data();
-    return {
+    const legacy = {
       bkashNumber: String(d.bkashNumber ?? ''),
       bkashQrDataUrl: String(d.bkashQrDataUrl ?? ''),
       wiseNote: String(d.wiseNote ?? ''),
       payoneerNote: String(d.payoneerNote ?? ''),
     };
+    return { ...legacy, methods: parseMethods(d.methods, legacy) };
   }
   try {
-    return {
-      ...EMPTY_SETTINGS,
-      ...(JSON.parse(localStorage.getItem('syncops_payment_settings') ?? '{}') as Partial<PaymentSettings>),
+    const stored = JSON.parse(
+      localStorage.getItem('syncops_payment_settings') ?? '{}',
+    ) as Partial<PaymentSettings>;
+    const legacy = {
+      bkashNumber: stored.bkashNumber ?? '',
+      bkashQrDataUrl: stored.bkashQrDataUrl ?? '',
+      wiseNote: stored.wiseNote ?? '',
+      payoneerNote: stored.payoneerNote ?? '',
     };
+    return { ...legacy, methods: parseMethods(stored.methods, legacy) };
   } catch {
     return EMPTY_SETTINGS;
   }
 }
 
-export async function savePaymentSettings(s: PaymentSettings): Promise<void> {
+export async function savePaymentSettings(input: PaymentSettings): Promise<void> {
+  const s = withMirrors(input);
   if (!isDemoMode && db) {
     await setDoc(doc(db, 'platformConfig', 'payment'), { ...s });
     return;
@@ -70,7 +249,7 @@ export async function savePaymentSettings(s: PaymentSettings): Promise<void> {
 export interface PaymentClaim {
   id: string;
   amount: number;
-  currency: 'BDT' | 'USD';
+  currency: 'BDT' | 'INR' | 'USD';
   method: string;
   trxId: string;
   sender: string;
@@ -87,7 +266,7 @@ function mapClaim(id: string, d: Record<string, unknown>): PaymentClaim {
   return {
     id,
     amount: Number(d.amount ?? 0),
-    currency: d.currency === 'USD' ? 'USD' : 'BDT',
+    currency: d.currency === 'USD' ? 'USD' : d.currency === 'INR' ? 'INR' : 'BDT',
     method: String(d.method ?? 'bKash'),
     trxId: String(d.trxId ?? ''),
     sender: String(d.sender ?? ''),
@@ -126,7 +305,7 @@ export async function createClaim(
   orderId: string,
   input: {
     amount: number;
-    currency: 'BDT' | 'USD';
+    currency: 'BDT' | 'INR' | 'USD';
     method: string;
     trxId: string;
     sender: string;

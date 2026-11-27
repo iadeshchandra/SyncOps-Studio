@@ -48,7 +48,10 @@ import {
   createClaim,
   type PaymentSettings,
   type PaymentClaim,
+  PAY_REGIONS,
+  type PayRegionId,
 } from '../lib/payments';
+import { initialRegion, detectPayRegion, setManualRegion } from '../lib/geo';
 import { getReview, submitReview } from '../lib/reviews';
 import type { Review } from '../lib/reviews';
 import type { Order, RevisionRequest, Delivery } from '../lib/portal';
@@ -134,7 +137,8 @@ export default function ClientPortal() {
   const [claims, setClaims] = useState<PaymentClaim[]>([]);
   const [paySettings, setPaySettings] = useState<PaymentSettings | null>(null);
   const [cAmount, setCAmount] = useState('');
-  const [cCurrency, setCCurrency] = useState<'BDT' | 'USD'>('BDT');
+  const [cCurrency, setCCurrency] = useState<'BDT' | 'INR' | 'USD'>('BDT');
+  const [payRegion, setPayRegion] = useState<PayRegionId>(() => initialRegion());
   const [cMethod, setCMethod] = useState('bKash');
   const [cTrx, setCTrx] = useState('');
   const [cSender, setCSender] = useState('');
@@ -275,6 +279,7 @@ export default function ClientPortal() {
       .catch(() => {
         /* claims are optional until the client pays */
       });
+    void detectPayRegion().then(setPayRegion);
     getPaymentSettings()
       .then((ps) => {
         if (!cancelled) setPaySettings(ps);
@@ -569,30 +574,77 @@ export default function ClientPortal() {
                         still finds its project.
                       </p>
                     )}
-                    {agreed - paid > 0 && paySettings && (paySettings.bkashQrDataUrl || paySettings.bkashNumber || paySettings.wiseNote || paySettings.payoneerNote) && (
+                    {agreed - paid > 0 && paySettings && paySettings.methods.some((m) => m.enabled && (m.number || m.details || m.qrDataUrl)) && (
                       <div className="rounded-md border border-slate-800/80 bg-slate-950/60 px-3 py-3">
                         <p className="flex items-center gap-2 text-sm font-semibold text-slate-100">
                           <Wallet className="h-4 w-4 text-emerald-400" /> How to pay
                         </p>
-                        {paySettings.bkashQrDataUrl && (
-                          <img
-                            src={paySettings.bkashQrDataUrl}
-                            alt="bKash Bangla QR — scan to Send Money"
-                            className="mt-3 w-full max-w-[220px] rounded-md border border-slate-700"
-                          />
-                        )}
-                        {paySettings.bkashNumber && (
-                          <p className="mt-2 text-sm text-slate-300">
-                            bKash Send Money: <span className="font-mono font-bold text-slate-50">{paySettings.bkashNumber}</span>
-                          </p>
-                        )}
-                        {paySettings.wiseNote && (
-                          <p className="mt-1 text-sm text-slate-400">Wise: {paySettings.wiseNote}</p>
-                        )}
-                        {paySettings.payoneerNote && (
-                          <p className="mt-1 text-sm text-slate-400">Payoneer: {paySettings.payoneerNote}</p>
-                        )}
-                        <p className="telemetry mt-2">pay first, then submit the claim below — the studio verifies it</p>
+                        <div className="mt-3 flex flex-wrap gap-1.5" role="tablist" aria-label="Payment region">
+                          {PAY_REGIONS.map((r) => (
+                            <button
+                              key={r.id}
+                              type="button"
+                              role="tab"
+                              aria-selected={payRegion === r.id}
+                              onClick={() => {
+                                setPayRegion(r.id);
+                                setManualRegion(r.id);
+                              }}
+                              className={
+                                payRegion === r.id
+                                  ? 'rounded-md border border-emerald-600/70 bg-emerald-950/60 px-3 py-1.5 text-xs font-bold text-emerald-200'
+                                  : 'rounded-md border border-slate-700/80 bg-slate-900/60 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-slate-200'
+                              }
+                            >
+                              {r.flag} {r.name}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="telemetry mt-2">
+                          detected from your connection — switch any time; you pay in{' '}
+                          {PAY_REGIONS.find((r) => r.id === payRegion)?.currency}
+                        </p>
+                        <div className="mt-3 space-y-3">
+                          {paySettings.methods
+                            .filter((m) => m.region === payRegion && m.enabled && (m.number || m.details || m.qrDataUrl))
+                            .map((m) => (
+                              <div key={m.id} className="rounded-md border border-slate-800/70 bg-slate-900/40 px-3 py-3">
+                                <p className="text-sm font-bold text-slate-100">{m.label}</p>
+                                {m.qrDataUrl && (
+                                  <img
+                                    src={m.qrDataUrl}
+                                    alt={`${m.label} QR — scan to pay`}
+                                    className="mt-2.5 w-full max-w-[220px] rounded-md border border-slate-700"
+                                  />
+                                )}
+                                {m.number && (
+                                  <p className="mt-2 text-sm text-slate-300">
+                                    {m.type === 'upi' ? 'UPI ID' : 'Send Money to'}{' '}
+                                    <span className="font-mono font-bold text-slate-50">{m.number}</span>
+                                  </p>
+                                )}
+                                {m.details && (
+                                  <p className="mt-2 text-sm text-slate-300">{m.details}</p>
+                                )}
+                                {m.instructions.length > 0 && (
+                                  <ol className="mt-2.5 list-decimal space-y-1 pl-5 text-xs leading-relaxed text-slate-400">
+                                    {m.instructions.map((step, i2) => (
+                                      <li key={i2}>{step}</li>
+                                    ))}
+                                  </ol>
+                                )}
+                              </div>
+                            ))}
+                          {paySettings.methods.filter(
+                            (m) => m.region === payRegion && m.enabled && (m.number || m.details || m.qrDataUrl),
+                          ).length === 0 && (
+                            <p className="text-sm text-slate-400">
+                              No payment details published for this region yet — message the
+                              studio in the Architect Channel and we will send them.
+                            </p>
+                          )}
+                        </div>
+                        <p className="telemetry mt-3">pay first, then submit the claim below — the studio verifies it</p>
                       </div>
                     )}
 
@@ -611,22 +663,40 @@ export default function ClientPortal() {
                           />
                           <select
                             value={cCurrency}
-                            onChange={(e) => setCCurrency(e.target.value as 'BDT' | 'USD')}
+                            onChange={(e) => setCCurrency(e.target.value as 'BDT' | 'INR' | 'USD')}
                             className="input-dark w-full"
                             aria-label="Currency"
                           >
                             <option value="BDT">BDT (৳)</option>
+                            <option value="INR">INR (₹)</option>
                             <option value="USD">USD ($)</option>
                           </select>
                           <select
                             value={cMethod}
-                            onChange={(e) => setCMethod(e.target.value)}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setCMethod(v);
+                              const known = paySettings?.methods.find((m) => m.label === v);
+                              if (known) {
+                                setCCurrency(
+                                  known.region === 'BD'
+                                    ? 'BDT'
+                                    : known.region === 'IN'
+                                      ? 'INR'
+                                      : 'USD',
+                                );
+                              }
+                            }}
                             className="input-dark w-full"
                             aria-label="Payment method"
                           >
-                            <option value="bKash">bKash</option>
-                            <option value="Wise">Wise</option>
-                            <option value="Payoneer">Payoneer</option>
+                            {(paySettings?.methods ?? [])
+                              .filter((m) => m.enabled)
+                              .map((m) => (
+                                <option key={m.id} value={m.label}>
+                                  {m.label}
+                                </option>
+                              ))}
                             <option value="Bank transfer">Bank transfer</option>
                             <option value="Other">Other</option>
                           </select>
@@ -642,7 +712,7 @@ export default function ClientPortal() {
                             type="text"
                             value={cSender}
                             onChange={(e) => setCSender(e.target.value)}
-                            placeholder="Your bKash number / name"
+                            placeholder="Your number / account name"
                             className="input-dark w-full"
                             aria-label="Sender number or name"
                           />

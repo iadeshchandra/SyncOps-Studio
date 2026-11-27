@@ -3,7 +3,12 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { CheckCircle2, Loader2, Plus, RefreshCw, ShieldAlert, Trash2 } from 'lucide-react';
 import { db, isDemoMode } from '../../lib/firebase';
 import { useSiteConfig, saveSiteConfig } from '../../lib/siteConfig';
-import { getPaymentSettings, savePaymentSettings } from '../../lib/payments';
+import {
+  getPaymentSettings,
+  savePaymentSettings,
+  PAY_REGIONS,
+  type PaymentMethodConfig,
+} from '../../lib/payments';
 import { imageFileToDataUrl } from '../../lib/files';
 import { OWNER_EMAILS, logAudit } from '../../lib/admin';
 import { cx } from '../../lib/format';
@@ -86,10 +91,7 @@ export default function SettingsTab() {
   const [newOwner, setNewOwner] = useState('');
   const [ownerError, setOwnerError] = useState<string | null>(null);
 
-  const [payBkashNumber, setPayBkashNumber] = useState('');
-  const [payBkashQr, setPayBkashQr] = useState('');
-  const [payWise, setPayWise] = useState('');
-  const [payPayoneer, setPayPayoneer] = useState('');
+  const [payMethods, setPayMethods] = useState<PaymentMethodConfig[]>([]);
   const [paySaving, setPaySaving] = useState(false);
   const [payNotice, setPayNotice] = useState<string | null>(null);
 
@@ -97,11 +99,7 @@ export default function SettingsTab() {
     let cancelled = false;
     getPaymentSettings()
       .then((ps) => {
-        if (cancelled) return;
-        setPayBkashNumber(ps.bkashNumber);
-        setPayBkashQr(ps.bkashQrDataUrl);
-        setPayWise(ps.wiseNote);
-        setPayPayoneer(ps.payoneerNote);
+        if (!cancelled) setPayMethods(ps.methods);
       })
       .catch(() => {
         /* settings simply start empty */
@@ -111,17 +109,21 @@ export default function SettingsTab() {
     };
   }, []);
 
+  const updateMethod = (id: string, patch: Partial<PaymentMethodConfig>) =>
+    setPayMethods((list) => list.map((m) => (m.id === id ? { ...m, ...patch } : m)));
+
   const handleSavePayments = async () => {
     setPaySaving(true);
     setPayNotice(null);
     try {
       await savePaymentSettings({
-        bkashNumber: payBkashNumber.trim(),
-        bkashQrDataUrl: payBkashQr,
-        wiseNote: payWise.trim(),
-        payoneerNote: payPayoneer.trim(),
+        bkashNumber: '',
+        bkashQrDataUrl: '',
+        wiseNote: '',
+        payoneerNote: '',
+        methods: payMethods,
       });
-      setPayNotice('Saved — clients now see these in their portal when a balance is due.');
+      setPayNotice('Saved — clients now see their region’s methods in the portal when a balance is due.');
     } catch {
       setPayNotice('Could not save. Please try again.');
     } finally {
@@ -370,65 +372,117 @@ export default function SettingsTab() {
         </div>
       </section>
 
-      {/* Payment receiving details */}
+      {/* Payment receiving details — geo method system (Sanatani pattern) */}
       <section className="glass rounded-lg p-5 sm:p-6">
         <h3 className="h-display text-base">Payment receiving details</h3>
         <p className="mt-1 text-sm text-slate-400">
-          Shown only to signed-in clients with a balance due — never on the public site. Clients
-          pay you directly (the studio never holds money), then submit a claim you verify.
+          The geo payment system, same as Sanatani Bandhan: methods are grouped by the
+          client&rsquo;s region — the portal detects it automatically and shows that
+          region&rsquo;s methods first. Shown only to signed-in clients with a balance due,
+          never on the public site. Clients pay you directly (the studio never holds money),
+          then submit a claim you verify.
         </p>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <label className="block">
-            <span className="label-dark">bKash number (Send Money)</span>
-            <input
-              type="text"
-              value={payBkashNumber}
-              onChange={(e) => setPayBkashNumber(e.target.value)}
-              placeholder="01XXXXXXXXX"
-              className="input-dark mt-1.5 w-full"
-            />
-          </label>
-          <label className="block">
-            <span className="label-dark">bKash Bangla QR image</span>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void imageFileToDataUrl(f).then(setPayBkashQr).catch(() => setPayNotice('That image could not be read.'));
-              }}
-              className="input-dark mt-1.5 w-full"
-            />
-          </label>
-          <label className="block">
-            <span className="label-dark">Wise details</span>
-            <input
-              type="text"
-              value={payWise}
-              onChange={(e) => setPayWise(e.target.value)}
-              placeholder="e.g. email or account details clients should use"
-              className="input-dark mt-1.5 w-full"
-            />
-          </label>
-          <label className="block">
-            <span className="label-dark">Payoneer details</span>
-            <input
-              type="text"
-              value={payPayoneer}
-              onChange={(e) => setPayPayoneer(e.target.value)}
-              placeholder="e.g. Payoneer email"
-              className="input-dark mt-1.5 w-full"
-            />
-          </label>
-        </div>
-        {payBkashQr && (
-          <img
-            src={payBkashQr}
-            alt="bKash QR preview"
-            className="mt-4 w-full max-w-[200px] rounded-md border border-slate-700"
-          />
-        )}
-        <div className="mt-4 flex items-center gap-3">
+
+        {PAY_REGIONS.map((region) => (
+          <div key={region.id} className="mt-6">
+            <p className="label-dark">
+              {region.flag} {region.name} · pays in {region.currency} ({region.currencySymbol})
+            </p>
+            <div className="mt-2.5 space-y-3">
+              {payMethods
+                .filter((m) => m.region === region.id)
+                .map((m) => (
+                  <div
+                    key={m.id}
+                    className="rounded-md border border-slate-800/80 bg-slate-950/60 px-4 py-3.5"
+                  >
+                    <div className="flex flex-wrap items-center gap-3">
+                      <p className="text-sm font-semibold text-slate-100">{m.label}</p>
+                      <label className="ml-auto flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={m.enabled}
+                          onChange={(e) => updateMethod(m.id, { enabled: e.target.checked })}
+                          className="h-4 w-4 accent-emerald-500"
+                        />
+                        Clients can use this
+                      </label>
+                    </div>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      {(m.type === 'mobile' || m.type === 'upi' || m.type === 'bangla_qr') && (
+                        <label className="block">
+                          <span className="label-dark">
+                            {m.type === 'upi' ? 'UPI ID' : m.type === 'bangla_qr' ? 'Merchant number (optional)' : 'Number (Send Money)'}
+                          </span>
+                          <input
+                            type="text"
+                            value={m.number ?? ''}
+                            onChange={(e) => updateMethod(m.id, { number: e.target.value })}
+                            placeholder={m.type === 'upi' ? 'yourname@okbank' : '01XXXXXXXXX'}
+                            className="input-dark mt-1.5 w-full"
+                          />
+                        </label>
+                      )}
+                      {(m.type === 'wise' || m.type === 'payoneer') && (
+                        <label className="block">
+                          <span className="label-dark">Account details clients should use</span>
+                          <input
+                            type="text"
+                            value={m.details ?? ''}
+                            onChange={(e) => updateMethod(m.id, { details: e.target.value })}
+                            placeholder="e.g. email or account details"
+                            className="input-dark mt-1.5 w-full"
+                          />
+                        </label>
+                      )}
+                      {(m.type === 'bangla_qr' || m.type === 'upi') && (
+                        <label className="block">
+                          <span className="label-dark">QR image</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f)
+                                void imageFileToDataUrl(f)
+                                  .then((url) => updateMethod(m.id, { qrDataUrl: url }))
+                                  .catch(() => setPayNotice('That image could not be read.'));
+                            }}
+                            className="input-dark mt-1.5 w-full"
+                          />
+                        </label>
+                      )}
+                    </div>
+                    {m.qrDataUrl && (
+                      <img
+                        src={m.qrDataUrl}
+                        alt={`${m.label} QR preview`}
+                        className="mt-3 w-full max-w-[180px] rounded-md border border-slate-700"
+                      />
+                    )}
+                    <label className="mt-3 block">
+                      <span className="label-dark">Instructions for the client (one step per line)</span>
+                      <textarea
+                        value={m.instructions.join('\n')}
+                        onChange={(e) =>
+                          updateMethod(m.id, {
+                            instructions: e.target.value
+                              .split('\n')
+                              .map((x) => x.trim())
+                              .filter(Boolean),
+                          })
+                        }
+                        rows={3}
+                        className="input-dark mt-1.5 w-full resize-none"
+                      />
+                    </label>
+                  </div>
+                ))}
+            </div>
+          </div>
+        ))}
+
+        <div className="mt-5 flex items-center gap-3">
           <button
             type="button"
             onClick={() => void handleSavePayments()}
