@@ -23,6 +23,12 @@ import ClientPortal from './pages/ClientPortal';
 import ClientDashboard from './pages/ClientDashboard';
 import Maintenance from './pages/Maintenance';
 import StudioConsole from './pages/StudioConsole';
+import About from './pages/About';
+import Contact from './pages/Contact';
+import CaseStudiesPage from './pages/CaseStudiesPage';
+import ServiceDetail from './pages/ServiceDetail';
+import FaqPage from './pages/FaqPage';
+import Process from './pages/Process';
 
 /**
  * Hash-scroll restoration: links like `/#auditor` (used by the Compare
@@ -82,6 +88,12 @@ export default function App() {
               <Route path="/compare" element={<Compare />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/case-studies" element={<CaseStudiesPage />} />
+              <Route path="/services/:lineId" element={<ServiceDetail />} />
+              <Route path="/faq" element={<FaqPage />} />
+              <Route path="/process" element={<Process />} />
               <Route path="/notes" element={<Notes />} />
               <Route path="/notes/:slug" element={<NoteDetail />} />
               <Route path="/login" element={<Login />} />

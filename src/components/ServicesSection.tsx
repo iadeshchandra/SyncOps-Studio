@@ -1,4 +1,5 @@
 import { ArrowRight, ArrowUpRight, Check, Satellite, Radar, AppWindow, Bot, Star } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import { useServiceLines } from '../lib/siteConfig';
 import { useHireModal } from './HireModal';
@@ -94,10 +95,17 @@ export default function ServicesSection() {
                 </p>
               )}
 
+              <Link
+                to={`/services/${line.id}`}
+                className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-cyan-300 transition-colors hover:text-cyan-200"
+              >
+                Explore this service
+                <ArrowRight className="h-4 w-4" />
+              </Link>
               <button
                 type="button"
                 onClick={() => openHireModal({ serviceLine: line.id })}
-                className="btn-primary mt-8 w-full"
+                className="btn-primary mt-4 w-full"
               >
                 Start a project <ArrowRight className="h-4 w-4" />
               </button>

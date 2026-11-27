@@ -41,8 +41,18 @@ export default function Footer() {
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-2 lg:grid-cols-4">
         <div>
           <p className="eyebrow mb-4">Studio</p>
-          <JumpLink to="#pipeline">How we work</JumpLink>
-          <JumpLink to="#cases">Client proof</JumpLink>
+          <Link to="/process" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
+            How we work
+          </Link>
+          <Link to="/case-studies" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
+            Case studies
+          </Link>
+          <Link to="/about" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
+            About the studio
+          </Link>
+          <Link to="/contact" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
+            Contact
+          </Link>
           <Link to="/work" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
             Our work
           </Link>
@@ -59,7 +69,9 @@ export default function Footer() {
             Field notes
           </Link>
           <JumpLink to="#pricing">Pricing</JumpLink>
-          <JumpLink to="#faq">FAQ</JumpLink>
+          <Link to="/faq" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
+            FAQ
+          </Link>
           <Link to="/status" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
             Live status
           </Link>
@@ -73,9 +85,18 @@ export default function Footer() {
 
         <div>
           <p className="eyebrow mb-4">Services</p>
-          <JumpLink to="#services">CAPI Infrastructure</JumpLink>
-          <JumpLink to="#services">Analytics &amp; Pixel Setup</JumpLink>
-          <JumpLink to="#services">AI-Accelerated App Builds</JumpLink>
+          <Link to="/services/capi" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
+            CAPI Infrastructure
+          </Link>
+          <Link to="/services/analytics" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
+            Analytics &amp; Pixel Setup
+          </Link>
+          <Link to="/services/appdev" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
+            AI-Accelerated App Builds
+          </Link>
+          <Link to="/services/chatgpt-ads" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
+            ChatGPT Ads Measurement
+          </Link>
           <JumpLink to="#pricing">Single CAPI Node</JumpLink>
           <JumpLink to="#auditor">Tracking audit</JumpLink>
           <JumpLink to="#calculator">ROAS hemorrhage calculator</JumpLink>
