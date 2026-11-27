@@ -9,7 +9,7 @@ import {
   query,
   orderBy,
 } from 'firebase/firestore';
-import { db, isDemoMode } from './firebase';
+import { auth, db, isDemoMode } from './firebase';
 import { updateOrder, appendActivity, type Order } from './portal';
 
 /**
@@ -67,6 +67,9 @@ export interface PaymentMethodConfig {
   number?: string;
   /** Wise / Payoneer account details text. */
   details?: string;
+  /** A payment link (Wise / Payoneer / bank pay-link) — clients get a
+   *  real "Pay via link" button in the portal. */
+  link?: string;
   /** QR image as a vault data URL. */
   qrDataUrl?: string;
   /** Payment steps, shown numbered to the client. */
@@ -175,6 +178,7 @@ function parseMethods(raw: unknown, legacy: {
       enabled: typeof d.enabled === 'boolean' ? d.enabled : base.enabled,
       number: typeof d.number === 'string' ? d.number : undefined,
       details: typeof d.details === 'string' ? d.details : undefined,
+      link: typeof d.link === 'string' ? d.link : undefined,
       qrDataUrl: typeof d.qrDataUrl === 'string' ? d.qrDataUrl : undefined,
       instructions: Array.isArray(d.instructions)
         ? d.instructions.map(String).filter(Boolean)
@@ -246,6 +250,154 @@ export async function savePaymentSettings(input: PaymentSettings): Promise<void>
   }
   try {
     localStorage.setItem('syncops_payment_settings', JSON.stringify(s));
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Payment-method change history — append-only. Every save that        */
+/* changes a method files a full snapshot of that method (number,      */
+/* details, link, QR, instructions, on/off) plus the list of fields    */
+/* that changed and who saved it. Entries are never edited or          */
+/* deleted (the security rules forbid it), so the console can show     */
+/* the complete history of every number / QR / link the studio has     */
+/* ever published, and restore any past version in one click.          */
+/* ------------------------------------------------------------------ */
+
+export interface PaymentMethodHistoryEntry {
+  id: string;
+  methodId: string;
+  at: number;
+  by: string;
+  changedFields: string[];
+  /** The method exactly as this change saved it. */
+  snapshot: PaymentMethodConfig;
+  /** False when the QR image was too large to archive (see below). */
+  qrArchived: boolean;
+}
+
+const FIELD_LABELS: [keyof PaymentMethodConfig, string][] = [
+  ['label', 'name'],
+  ['enabled', 'on/off'],
+  ['number', 'number'],
+  ['details', 'account details'],
+  ['link', 'payment link'],
+  ['qrDataUrl', 'QR image'],
+  ['instructions', 'instructions'],
+];
+
+export function methodChangedFields(a: PaymentMethodConfig, b: PaymentMethodConfig): string[] {
+  return FIELD_LABELS.filter(
+    ([k]) => JSON.stringify(a[k] ?? null) !== JSON.stringify(b[k] ?? null),
+  ).map(([, label]) => label);
+}
+
+const HISTORY_KEY = 'syncops_payment_history';
+
+function readLocalHistory(): PaymentMethodHistoryEntry[] {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]') as PaymentMethodHistoryEntry[];
+  } catch {
+    return [];
+  }
+}
+
+function coerceMethod(raw: unknown): PaymentMethodConfig | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const d = raw as Record<string, unknown>;
+  if (typeof d.id !== 'string') return null;
+  return {
+    id: d.id,
+    region: (d.region === 'IN' || d.region === 'INTL' ? d.region : 'BD') as PayRegionId,
+    type: (typeof d.type === 'string' ? d.type : 'mobile') as PaymentMethodType,
+    label: String(d.label ?? d.id),
+    enabled: d.enabled === true,
+    number: typeof d.number === 'string' ? d.number : undefined,
+    details: typeof d.details === 'string' ? d.details : undefined,
+    link: typeof d.link === 'string' ? d.link : undefined,
+    qrDataUrl: typeof d.qrDataUrl === 'string' ? d.qrDataUrl : undefined,
+    instructions: Array.isArray(d.instructions) ? d.instructions.map(String) : [],
+  };
+}
+
+function mapHistoryEntry(id: string, d: Record<string, unknown>): PaymentMethodHistoryEntry | null {
+  const snapshot = coerceMethod(d.snapshot);
+  if (!snapshot) return null;
+  return {
+    id,
+    methodId: String(d.methodId ?? snapshot.id),
+    at: Number(d.at ?? 0),
+    by: String(d.by ?? 'owner'),
+    changedFields: Array.isArray(d.changedFields) ? d.changedFields.map(String) : [],
+    snapshot,
+    qrArchived: d.qrArchived !== false,
+  };
+}
+
+export async function listMethodHistory(methodId: string): Promise<PaymentMethodHistoryEntry[]> {
+  if (!isDemoMode && db) {
+    const snap = await getDocs(
+      query(collection(db, 'platformConfig', 'payment', 'history'), orderBy('at', 'desc')),
+    );
+    return snap.docs
+      .map((d) => mapHistoryEntry(d.id, d.data()))
+      .filter((e): e is PaymentMethodHistoryEntry => e !== null && e.methodId === methodId);
+  }
+  return readLocalHistory()
+    .filter((e) => e.methodId === methodId)
+    .sort((a, b) => b.at - a.at);
+}
+
+/**
+ * The console's save path: writes the settings AND files a history
+ * snapshot for every method that actually changed. (Plain
+ * savePaymentSettings stays for non-console writers.)
+ */
+export async function savePaymentSettingsWithHistory(input: PaymentSettings): Promise<void> {
+  const prev = await getPaymentSettings();
+  const next = JSON.parse(JSON.stringify(withMirrors(input))) as PaymentSettings;
+  const by = auth?.currentUser?.email ?? 'owner';
+  const at = Date.now();
+  const entries: PaymentMethodHistoryEntry[] = [];
+  for (const m of next.methods) {
+    const before = prev.methods.find((x) => x.id === m.id);
+    const changed = before ? methodChangedFields(before, m) : ['first recorded version'];
+    if (changed.length === 0) continue;
+    // Firestore's 1 MiB document cap: a snapshot carries one QR image.
+    // If one ever grows too large, archive everything except the image
+    // and say so honestly (qrArchived=false) instead of failing the save.
+    let snapshot = m;
+    let qrArchived = Boolean(m.qrDataUrl);
+    if (JSON.stringify(m).length > 900_000) {
+      snapshot = { ...m, qrDataUrl: undefined };
+      qrArchived = false;
+    }
+    entries.push({
+      id: `h-${at.toString(36)}-${m.id}`,
+      methodId: m.id,
+      at,
+      by,
+      changedFields: changed,
+      snapshot,
+      qrArchived,
+    });
+  }
+  await savePaymentSettings(next);
+  if (entries.length === 0) return;
+  if (!isDemoMode && db) {
+    for (const e of entries) {
+      const { id: _id, ...data } = e;
+      void _id;
+      await addDoc(
+        collection(db, 'platformConfig', 'payment', 'history'),
+        JSON.parse(JSON.stringify(data)) as Record<string, unknown>,
+      );
+    }
+    return;
+  }
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify([...entries, ...readLocalHistory()]));
   } catch {
     /* storage unavailable */
   }

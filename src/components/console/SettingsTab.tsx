@@ -5,9 +5,11 @@ import { db, isDemoMode } from '../../lib/firebase';
 import { useSiteConfig, saveSiteConfig } from '../../lib/siteConfig';
 import {
   getPaymentSettings,
-  savePaymentSettings,
+  savePaymentSettingsWithHistory,
+  listMethodHistory,
   PAY_REGIONS,
   type PaymentMethodConfig,
+  type PaymentMethodHistoryEntry,
 } from '../../lib/payments';
 import { imageFileToDataUrl } from '../../lib/files';
 import { OWNER_EMAILS, logAudit } from '../../lib/admin';
@@ -112,17 +114,57 @@ export default function SettingsTab() {
   const updateMethod = (id: string, patch: Partial<PaymentMethodConfig>) =>
     setPayMethods((list) => list.map((m) => (m.id === id ? { ...m, ...patch } : m)));
 
+  const [historyOpen, setHistoryOpen] = useState<string | null>(null);
+  const [historyMap, setHistoryMap] = useState<Record<string, PaymentMethodHistoryEntry[]>>({});
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  const toggleHistory = async (methodId: string) => {
+    if (historyOpen === methodId) {
+      setHistoryOpen(null);
+      return;
+    }
+    setHistoryOpen(methodId);
+    if (!historyMap[methodId]) {
+      setHistoryLoading(true);
+      try {
+        const list = await listMethodHistory(methodId);
+        setHistoryMap((prev) => ({ ...prev, [methodId]: list }));
+      } catch {
+        setHistoryMap((prev) => ({ ...prev, [methodId]: [] }));
+      } finally {
+        setHistoryLoading(false);
+      }
+    }
+  };
+
+  const restoreFromHistory = (methodId: string, e: PaymentMethodHistoryEntry) => {
+    const snap = e.snapshot;
+    updateMethod(methodId, {
+      label: snap.label,
+      enabled: snap.enabled,
+      number: snap.number,
+      details: snap.details,
+      link: snap.link,
+      qrDataUrl: snap.qrDataUrl,
+      instructions: snap.instructions,
+    });
+    setPayNotice(
+      `Restored the ${new Date(e.at).toLocaleDateString()} version of ${snap.label} into the form — press "Save payment details" to make it live. The restore is recorded in history too.`,
+    );
+  };
+
   const handleSavePayments = async () => {
     setPaySaving(true);
     setPayNotice(null);
     try {
-      await savePaymentSettings({
+      await savePaymentSettingsWithHistory({
         bkashNumber: '',
         bkashQrDataUrl: '',
         wiseNote: '',
         payoneerNote: '',
         methods: payMethods,
       });
+      setHistoryMap({});
       setPayNotice('Saved — clients now see their region’s methods in the portal when a balance is due.');
     } catch {
       setPayNotice('Could not save. Please try again.');
@@ -408,6 +450,20 @@ export default function SettingsTab() {
                         Clients can use this
                       </label>
                     </div>
+                    <p className="mt-2 text-xs">
+                      {m.enabled && (m.number || m.details || m.link || m.qrDataUrl) ? (
+                        <span className="font-semibold text-emerald-400">
+                          ● Visible to clients in their portal
+                        </span>
+                      ) : (
+                        <span className="text-slate-500">
+                          ○ Hidden from clients —{' '}
+                          {!m.enabled
+                            ? 'turn on "Clients can use this"'
+                            : 'add a number, QR, details or payment link first'}
+                        </span>
+                      )}
+                    </p>
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
                       {(m.type === 'mobile' || m.type === 'upi' || m.type === 'bangla_qr') && (
                         <label className="block">
@@ -453,6 +509,18 @@ export default function SettingsTab() {
                         </label>
                       )}
                     </div>
+                    <label className="mt-3 block">
+                      <span className="label-dark">
+                        Payment link (optional) — clients get a Pay button
+                      </span>
+                      <input
+                        type="url"
+                        value={m.link ?? ''}
+                        onChange={(e) => updateMethod(m.id, { link: e.target.value })}
+                        placeholder="https://wise.com/pay/… or any pay-here link"
+                        className="input-dark mt-1.5 w-full"
+                      />
+                    </label>
                     {m.qrDataUrl && (
                       <img
                         src={m.qrDataUrl}
@@ -476,6 +544,85 @@ export default function SettingsTab() {
                         className="input-dark mt-1.5 w-full resize-none"
                       />
                     </label>
+                    <div className="mt-3 border-t border-slate-800/70 pt-3">
+                      <button
+                        type="button"
+                        onClick={() => void toggleHistory(m.id)}
+                        className="text-xs font-semibold text-cyan-300 transition-colors hover:text-cyan-200"
+                      >
+                        {historyOpen === m.id
+                          ? 'Hide history'
+                          : 'History — every number, QR & link this method has used'}
+                      </button>
+                      {historyOpen === m.id && (
+                        <div className="mt-2.5">
+                          {historyLoading && !historyMap[m.id] ? (
+                            <p className="text-xs text-slate-500">Loading history…</p>
+                          ) : (historyMap[m.id] ?? []).length === 0 ? (
+                            <p className="text-xs leading-relaxed text-slate-500">
+                              No changes recorded yet. History starts with your next save —
+                              from then on, every version of this method is kept here,
+                              forever, and can be restored.
+                            </p>
+                          ) : (
+                            <div className="space-y-2.5">
+                              {(historyMap[m.id] ?? []).map((e) => (
+                                <div
+                                  key={e.id}
+                                  className="rounded-md border border-slate-800/70 bg-slate-900/40 px-3 py-2.5"
+                                >
+                                  <p className="text-xs text-slate-400">
+                                    <span className="font-semibold text-slate-100">
+                                      {new Date(e.at).toLocaleString()}
+                                    </span>{' '}
+                                    · changed: {e.changedFields.join(', ')} · by {e.by}
+                                  </p>
+                                  <div className="mt-1.5 space-y-0.5 text-xs text-slate-400">
+                                    {e.snapshot.number && (
+                                      <p>
+                                        Number:{' '}
+                                        <span className="font-mono text-slate-200">
+                                          {e.snapshot.number}
+                                        </span>
+                                      </p>
+                                    )}
+                                    {e.snapshot.details && <p>Details: {e.snapshot.details}</p>}
+                                    {e.snapshot.link && (
+                                      <p className="break-all">Link: {e.snapshot.link}</p>
+                                    )}
+                                    <p>
+                                      {e.snapshot.enabled
+                                        ? 'Clients could use this'
+                                        : 'Was switched off'}
+                                    </p>
+                                    {!e.qrArchived && e.changedFields.includes('QR image') && (
+                                      <p className="text-amber-300/90">
+                                        The QR image changed in this version (that image was
+                                        too large to archive).
+                                      </p>
+                                    )}
+                                  </div>
+                                  {e.snapshot.qrDataUrl && (
+                                    <img
+                                      src={e.snapshot.qrDataUrl}
+                                      alt={`${m.label} QR from ${new Date(e.at).toLocaleDateString()}`}
+                                      className="mt-2 w-full max-w-[110px] rounded border border-slate-700"
+                                    />
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => restoreFromHistory(m.id, e)}
+                                    className="mt-2 text-xs font-semibold text-emerald-300 transition-colors hover:text-emerald-200"
+                                  >
+                                    Restore this version
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
             </div>

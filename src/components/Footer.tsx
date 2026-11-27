@@ -52,6 +52,9 @@ export default function Footer() {
           <Link to="/terms" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
             Terms &amp; Refunds
           </Link>
+          <Link to="/privacy" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
+            Privacy Policy
+          </Link>
           <Link to="/notes" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
             Field notes
           </Link>

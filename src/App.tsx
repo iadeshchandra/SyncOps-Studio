@@ -10,6 +10,7 @@ import { useSiteConfig } from './lib/siteConfig';
 import Landing from './pages/Landing';
 import Status from './pages/Status';
 import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
 import Labs from './pages/Labs';
 import Work from './pages/Work';
 import ProductDetail from './pages/ProductDetail';
@@ -78,6 +79,7 @@ export default function App() {
               <Route path="/work/:slug" element={<ProductDetail />} />
               <Route path="/compare" element={<Compare />} />
               <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
               <Route path="/notes" element={<Notes />} />
               <Route path="/notes/:slug" element={<NoteDetail />} />
               <Route path="/login" element={<Login />} />

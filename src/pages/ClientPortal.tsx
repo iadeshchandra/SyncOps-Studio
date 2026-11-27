@@ -574,7 +574,7 @@ export default function ClientPortal() {
                         still finds its project.
                       </p>
                     )}
-                    {agreed - paid > 0 && paySettings && paySettings.methods.some((m) => m.enabled && (m.number || m.details || m.qrDataUrl)) && (
+                    {agreed - paid > 0 && paySettings && paySettings.methods.some((m) => m.enabled && (m.number || m.details || m.qrDataUrl || m.link)) && (
                       <div className="rounded-md border border-slate-800/80 bg-slate-950/60 px-3 py-3">
                         <p className="flex items-center gap-2 text-sm font-semibold text-slate-100">
                           <Wallet className="h-4 w-4 text-emerald-400" /> How to pay
@@ -606,7 +606,7 @@ export default function ClientPortal() {
                         </p>
                         <div className="mt-3 space-y-3">
                           {paySettings.methods
-                            .filter((m) => m.region === payRegion && m.enabled && (m.number || m.details || m.qrDataUrl))
+                            .filter((m) => m.region === payRegion && m.enabled && (m.number || m.details || m.qrDataUrl || m.link))
                             .map((m) => (
                               <div key={m.id} className="rounded-md border border-slate-800/70 bg-slate-900/40 px-3 py-3">
                                 <p className="text-sm font-bold text-slate-100">{m.label}</p>
@@ -626,6 +626,16 @@ export default function ClientPortal() {
                                 {m.details && (
                                   <p className="mt-2 text-sm text-slate-300">{m.details}</p>
                                 )}
+                                {m.link && (
+                                  <a
+                                    href={m.link}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="mt-2.5 inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3.5 py-2 text-sm font-bold text-white transition-colors hover:bg-emerald-500"
+                                  >
+                                    Pay via {m.label} link <ExternalLink className="h-3.5 w-3.5" />
+                                  </a>
+                                )}
                                 {m.instructions.length > 0 && (
                                   <ol className="mt-2.5 list-decimal space-y-1 pl-5 text-xs leading-relaxed text-slate-400">
                                     {m.instructions.map((step, i2) => (
@@ -636,7 +646,7 @@ export default function ClientPortal() {
                               </div>
                             ))}
                           {paySettings.methods.filter(
-                            (m) => m.region === payRegion && m.enabled && (m.number || m.details || m.qrDataUrl),
+                            (m) => m.region === payRegion && m.enabled && (m.number || m.details || m.qrDataUrl || m.link),
                           ).length === 0 && (
                             <p className="text-sm text-slate-400">
                               No payment details published for this region yet — message the
