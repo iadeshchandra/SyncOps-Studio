@@ -234,7 +234,12 @@ export async function getPaymentSettings(): Promise<PaymentSettings> {
 }
 
 export async function savePaymentSettings(input: PaymentSettings): Promise<void> {
-  const s = withMirrors(input);
+  // Firestore rejects `undefined` field values outright — and the method
+  // catalogue legitimately carries empty slots (a method with no QR yet,
+  // no number yet). A JSON round-trip drops undefined keys at every depth
+  // before the write. (This is why the first live save failed while demo
+  // mode, which stores JSON anyway, silently worked.)
+  const s = JSON.parse(JSON.stringify(withMirrors(input))) as PaymentSettings;
   if (!isDemoMode && db) {
     await setDoc(doc(db, 'platformConfig', 'payment'), { ...s });
     return;
