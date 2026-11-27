@@ -46,6 +46,16 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Payment-method change history — an append-only snapshot of every
+    // number, QR, link and details the studio has ever published, one doc
+    // per change. Owner-only both ways: old receiving details are
+    // sensitive, clients never read them, and not even the owner can edit
+    // or delete an entry — that is what makes it trustworthy history.
+    match /platformConfig/payment/history/{entryId} {
+      allow read, create: if isOwner();
+      allow update, delete: if false;
+    }
+
     // Product showcase CMS — one doc per app. World-readable so /work
     // renders without auth; writes are owner-only via the Studio Console.
     match /platformConfig/products/items/{productId} {
@@ -128,7 +138,8 @@ service cloud.firestore {
           && request.resource.data.body.size() <= 4000
           && ((isOwner() && request.resource.data.sender == 'architect')
               || (ownsOrder(orderId) && request.resource.data.sender == 'client'));
-        allow update, delete: if false;
+        allow update: if false;
+        allow delete: if isOwner();
       }
 
       // Scope revision requests
@@ -140,7 +151,7 @@ service cloud.firestore {
           && request.resource.data.status == 'pending'
           && request.resource.data.details is string;
         allow update: if isOwner();
-        allow delete: if false;
+        allow delete: if isOwner();
       }
 
       // Deliveries — the architect submits; the client accepts or sends back.
@@ -155,7 +166,7 @@ service cloud.firestore {
               && request.resource.data.diff(resource.data).affectedKeys()
                    .hasOnly(['status', 'responseNote', 'respondedAt'])
               && request.resource.data.status in ['accepted', 'revision']);
-        allow delete: if false;
+        allow delete: if isOwner();
       }
 
       // Shared order files (Zero-Cost File Vault pattern): small files stored
@@ -199,7 +210,7 @@ service cloud.firestore {
           && request.resource.data.trxId is string
           && request.resource.data.trxId.size() >= 4;
         allow update: if isOwner();
-        allow delete: if false;
+        allow delete: if isOwner();
       }
 
       // Intake / requirements form — the client's own answers, written before
@@ -209,7 +220,7 @@ service cloud.firestore {
         allow read: if ownsOrder(orderId) || isOwner();
         allow create, update: if isOwner()
           || (ownsOrder(orderId) && docId == 'form');
-        allow delete: if false;
+        allow delete: if isOwner();
       }
     }
 
