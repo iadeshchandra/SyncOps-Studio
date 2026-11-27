@@ -17,6 +17,8 @@ import { useSiteConfig } from '../lib/siteConfig';
 import type { ServiceLine } from '../data/services';
 import { useServiceLines } from '../lib/siteConfig';
 import { cx, fmtUSD } from '../lib/format';
+import { trackEvent } from '../lib/measurement';
+import { priceForPackage } from '../lib/pricing';
 
 export interface HirePrefill {
   packageId?: string;
@@ -44,6 +46,9 @@ export function HireModalProvider({ children }: { children: ReactNode }) {
   const [modal, setModal] = useState<HireModalState>({ open: false, nonce: 0, prefill: {} });
 
   const openHireModal = useCallback((prefill: HirePrefill = {}) => {
+    trackEvent('hire_modal_open', {
+      ...(prefill.packageId ? { package_id: prefill.packageId } : {}),
+    });
     setModal((m) => ({ open: true, nonce: m.nonce + 1, prefill }));
   }, []);
 
@@ -275,6 +280,12 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
       // the panel's own buttons close it (Back to site / Open your project portal).
       setSubmittedId(id);
       setSubmittedRef(refCode);
+      trackEvent('order_created', {
+        package_id: packageId,
+        order_ref: refCode,
+        value: priceForPackage(packageId),
+        currency: 'USD',
+      });
     } catch {      setError('Submission failed — nothing was saved. Please try again, or email iadeshchandra@gmail.com.');
     } finally {
       setSubmitting(false);

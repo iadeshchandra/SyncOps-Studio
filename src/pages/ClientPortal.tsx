@@ -51,6 +51,7 @@ import {
   PAY_REGIONS,
   type PayRegionId,
 } from '../lib/payments';
+import { trackEvent } from '../lib/measurement';
 import { initialRegion, detectPayRegion, setManualRegion } from '../lib/geo';
 import { getReview, submitReview } from '../lib/reviews';
 import type { Review } from '../lib/reviews';
@@ -350,6 +351,12 @@ export default function ClientPortal() {
         note: cNote.trim(),
       });
       setClaims(await listClaims(order.id));
+      trackEvent('claim_submitted', {
+        currency: cCurrency,
+        amount: Number(cAmount),
+        method: cMethod,
+        order_ref: order.ref,
+      });
       setCAmount('');
       setCTrx('');
       setCNote('');
@@ -366,6 +373,7 @@ export default function ClientPortal() {
     setRespondError(null);
     try {
       const res = await respondDelivery(order, d, accept, responseNotes[d.id] ?? '');
+      trackEvent(accept ? 'delivery_accepted' : 'revision_requested', { order_ref: order.ref });
       setOrder({ ...order, status: res.status, activity: res.activity });
       await refreshDeliveries();
     } catch (e) {
