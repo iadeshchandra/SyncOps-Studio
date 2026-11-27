@@ -9,6 +9,7 @@ import { AdminRoute } from './components/AdminRoute';
 import { useSiteConfig } from './lib/siteConfig';
 import Landing from './pages/Landing';
 import Status from './pages/Status';
+import Terms from './pages/Terms';
 import Labs from './pages/Labs';
 import Work from './pages/Work';
 import ProductDetail from './pages/ProductDetail';
@@ -45,10 +46,20 @@ function HashScroll() {
 function SiteGate({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   const { config } = useSiteConfig();
-  if (config.maintenanceMode && !pathname.startsWith('/studio')) {
+  // Maintenance never locks clients out of their own portal or the login
+  // they need to reach it — the status page promises exactly that (nit 2).
+  const clientPath =
+    pathname === '/login' || pathname.startsWith('/client') || pathname.startsWith('/studio');
+  if (config.maintenanceMode && !clientPath) {
     return <Maintenance />;
   }
   return <>{children}</>;
+}
+
+function LabsGate() {
+  const { config } = useSiteConfig();
+  if (config.enableLabs === false) return <Navigate to="/" replace />;
+  return <Labs />;
 }
 
 export default function App() {
@@ -62,10 +73,11 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/status" element={<Status />} />
-              <Route path="/labs" element={<Labs />} />
+              <Route path="/labs" element={<LabsGate />} />
               <Route path="/work" element={<Work />} />
               <Route path="/work/:slug" element={<ProductDetail />} />
               <Route path="/compare" element={<Compare />} />
+              <Route path="/terms" element={<Terms />} />
               <Route path="/notes" element={<Notes />} />
               <Route path="/notes/:slug" element={<NoteDetail />} />
               <Route path="/login" element={<Login />} />

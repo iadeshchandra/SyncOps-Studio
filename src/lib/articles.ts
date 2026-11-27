@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { collection, deleteDoc, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
-import { db } from './firebase';
+import { db, isDemoMode } from './firebase';
 import { logAudit } from './admin';
 import { DEFAULT_ARTICLES, type Article } from '../data/articles';
 
@@ -92,7 +92,12 @@ function mergeAll(firestoreDocs: Article[]): Article[] {
     if (local.overrides[id]) byId.set(id, local.overrides[id]);
   }
   for (const a of firestoreDocs) byId.set(a.id, a);
-  for (const id of local.deleted) byId.delete(id);
+  // Tombstones apply only in demo mode: in live mode Firestore is the
+  // truth, and one browser's stale local deleted-list must never hide a
+  // live item that another session restored (nit 3).
+  if (isDemoMode) {
+    for (const id of local.deleted) byId.delete(id);
+  }
   return sortArticles([...byId.values()]);
 }
 

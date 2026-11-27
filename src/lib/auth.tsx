@@ -6,6 +6,9 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
   signInWithPopup,
+  signInWithRedirect,
+  sendEmailVerification,
+  sendPasswordResetEmail,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   type User,
@@ -16,6 +19,8 @@ export interface DemoUser {
   uid: string;
   name: string;
   email: string;
+  /** Mirrors Firebase's email_verified — the rules require it for order access. */
+  emailVerified: boolean;
 }
 
 interface AuthContextValue {
@@ -25,6 +30,8 @@ interface AuthContextValue {
   signInEmail(email: string, password: string): Promise<void>;
   signUpEmail(name: string, email: string, password: string): Promise<void>;
   signInGoogle(): Promise<void>;
+  resetPassword(email: string): Promise<void>;
+  resendVerification(): Promise<void>;
   signOut(): void;
 }
 
@@ -37,6 +44,7 @@ function toDemoUser(u: User): DemoUser {
     uid: u.uid,
     name: u.displayName ?? u.email?.split('@')[0] ?? 'Client',
     email: u.email ?? '',
+    emailVerified: u.emailVerified,
   };
 }
 
@@ -104,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signInDemo() {
       const u: DemoUser = {
         uid: 'demo-architect',
+          emailVerified: true,
         name: 'Demo Client',
         email: 'demo@syncops.studio',
       };
@@ -117,6 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (isDemoMode || !auth) {
         const u: DemoUser = {
           uid: `demo-${Date.now().toString(36)}`,
+          emailVerified: true,
           name: email.split('@')[0] ?? 'Client',
           email,
         };
@@ -140,6 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (isDemoMode || !auth) {
         const u: DemoUser = {
           uid: `demo-${Date.now().toString(36)}`,
+          emailVerified: true,
           name: name.trim(),
           email,
         };
@@ -151,6 +162,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const cred = await createUserWithEmailAndPassword(liveAuth, email, password);
         await updateProfile(cred.user, { displayName: name.trim() });
+        // Identity (Deep Review #2, A2): order access requires a verified
+        // email, so the verification email goes out with every sign-up.
+        try {
+          await sendEmailVerification(cred.user);
+        } catch {
+          // Non-fatal — the portal offers a resend.
+        }
         setUser(toDemoUser({ ...cred.user, displayName: name.trim() } as User));
       } catch (err) {
         throw new Error(firebaseErrorMessage(err, 'Account creation failed. Please try again.'));
@@ -161,6 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (isDemoMode || !auth) {
         const u: DemoUser = {
           uid: 'demo-google-1',
+          emailVerified: true,
           name: 'Demo Client',
           email: 'demo.client@gmail.com',
         };
@@ -173,8 +192,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const cred = await signInWithPopup(liveAuth, new GoogleAuthProvider());
         setUser(toDemoUser(cred.user));
       } catch (err) {
+        // In-app browsers (WhatsApp/Gmail) and strict popup blockers refuse
+        // popups — fall back to a full-page redirect, which lands back here
+        // signed in (A13).
+        const code = (err as { code?: string })?.code ?? '';
+        if (
+          code === 'auth/popup-blocked' ||
+          code === 'auth/operation-not-supported-in-this-environment' ||
+          code === 'auth/cancelled-popup-request'
+        ) {
+          await signInWithRedirect(liveAuth, new GoogleAuthProvider());
+          return;
+        }
         throw new Error(firebaseErrorMessage(err, 'Google sign-in failed. Please try again.'));
       }
+    },
+
+    async resetPassword(email: string) {
+      const target = email.trim().toLowerCase();
+      if (!EMAIL_RE.test(target)) throw new Error('Enter the email address for your account first.');
+      if (isDemoMode || !auth) return; // demo accounts have no real inbox
+      try {
+        await sendPasswordResetEmail(auth, target);
+      } catch (err) {
+        throw new Error(firebaseErrorMessage(err, 'Could not send the reset email. Please try again.'));
+      }
+    },
+
+    async resendVerification() {
+      if (isDemoMode || !auth?.currentUser) return;
+      if (auth.currentUser.emailVerified) return;
+      await sendEmailVerification(auth.currentUser);
     },
 
     signOut() {

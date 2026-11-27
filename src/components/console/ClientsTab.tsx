@@ -3,13 +3,11 @@ import { Link } from 'react-router-dom';
 import { Loader2, X, Mail, StickyNote, ArrowRight } from 'lucide-react';
 import { listOrders, orderRef, STAGES, type Order } from '../../lib/portal';
 import { summarizeClients, getClientNote, saveClientNote, type ClientSummary } from '../../lib/clients';
-import { PACKAGES } from '../../data/content';
-import { DEFAULT_SITE_CONFIG } from '../../lib/siteConfig';
 import { fmtUSD, cx } from '../../lib/format';
+import { agreedUsd } from '../../lib/pricing';
 
-function priceOf(packageId: string): number {
-  const list = DEFAULT_SITE_CONFIG.pricing ?? PACKAGES;
-  return list.find((p) => p.id === packageId)?.price ?? 0;
+function priceOf(o: Order): number {
+  return agreedUsd(o);
 }
 
 export default function ClientsTab() {

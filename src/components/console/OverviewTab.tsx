@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ClipboardList, Inbox, Rocket, Banknote, Loader2, TriangleAlert, BellRing, ArrowRight } from 'lucide-react';
 import { listOrders, listAttention, orderRef, STAGES, type Order, type AttentionItem } from '../../lib/portal';
-import { PACKAGES } from '../../data/content';
-import { DEFAULT_SITE_CONFIG } from '../../lib/siteConfig';
+import { agreedUsd } from '../../lib/pricing';
 import { fmtUSD } from '../../lib/format';
 
 const DAY_MS = 86_400_000;
@@ -83,13 +82,13 @@ export default function OverviewTab() {
     );
   }
 
-  const priceList = DEFAULT_SITE_CONFIG.pricing ?? PACKAGES;
   const intake = orders.filter((o) => o.status === 'intake');
   const active = orders.filter((o) => o.stageIndex >= 1 && o.stageIndex <= 3);
-  const pipelineValue = orders.reduce(
-    (sum, o) => sum + (priceList.find((p) => p.id === o.packageId)?.price ?? 0),
-    0,
-  );
+  // Pipeline = live orders only (not cancelled/completed/archived), priced
+  // by the one resolver (the order's own price, else its package's).
+  const pipelineValue = orders
+    .filter((o) => !['cancelled', 'completed', 'archived'].includes(o.status))
+    .reduce((sum, o) => sum + agreedUsd(o), 0);
   const stale = intake.filter((o) => Date.now() - o.createdAt > 48 * 3_600_000);
 
   return (

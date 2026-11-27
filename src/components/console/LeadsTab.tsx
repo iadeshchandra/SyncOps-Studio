@@ -22,14 +22,18 @@ function gradeStyle(grade: string): string {
 
 export default function LeadsTab() {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [loadError, setLoadError] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
       setLeads(await listLeads());
-    } catch {
-      setLeads([]);
+      setLoadError(false);
+    } catch (err) {
+      // A failed load must never render as "no leads yet" (E-X4).
+      console.error('Leads failed to load', err);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -65,6 +69,16 @@ export default function LeadsTab() {
           <div className="flex items-center justify-center py-16 text-slate-500">
             <Loader2 className="h-5 w-5 animate-spin" />
             <span className="ml-2 text-sm">Reading leads…</span>
+          </div>
+        ) : loadError ? (
+          <div className="py-16 text-center">
+            <MailOpen className="mx-auto h-8 w-8 text-rose-700" />
+            <p className="mt-3 text-sm font-medium text-rose-300">
+              Leads could not be loaded — this is a connection problem, not an empty list.
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              Reopen the tab to try again. If it persists, check the console network tab.
+            </p>
           </div>
         ) : leads.length === 0 ? (
           <div className="py-16 text-center">

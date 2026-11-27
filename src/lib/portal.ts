@@ -12,6 +12,7 @@ import {
   where,
   limit,
   onSnapshot,
+  writeBatch,
 } from 'firebase/firestore';
 import { db, isDemoMode } from './firebase';
 
@@ -38,6 +39,8 @@ export interface PaymentEntry {
   method: string;
   note?: string;
   at: number;
+  /** Set when this entry was credited by approving a payment claim. */
+  claimId?: string;
 }
 
 export interface Order {
@@ -178,7 +181,7 @@ export const DEMO_ORDER: Order = {
   clientName: 'Demo Client',
   clientEmail: 'demo@syncops.studio',
   brandUrl: 'demo-brand.com',
-  packageId: 'omnichannel',
+  packageId: 'omnichannel-stack',
   packageName: 'Omnichannel Server Stack',
   status: 'In Progress',
   stageIndex: 2,
@@ -301,7 +304,7 @@ export async function listMyOrders(email: string): Promise<Order[]> {
   const target = email.trim().toLowerCase();
   if (!target) return [];
   if (!isDemoMode && db) {
-    const q = query(collection(db, 'orders'), where('clientEmail', '==', email.trim()));
+    const q = query(collection(db, 'orders'), where('clientEmail', '==', target));
     const snap = await getDocs(q);
     return snap.docs
       .map((s) => mapOrder(s.id, s.data()))
@@ -330,13 +333,19 @@ function mapMessage(orderId: string, id: string, d: Record<string, unknown>): Or
 export function subscribeMessages(
   orderId: string,
   cb: (msgs: OrderMessage[]) => void,
+  onError?: () => void,
 ): () => void {
   if (!isDemoMode && db) {
     const q = query(collection(db, 'orders', orderId, 'messages'), orderBy('createdAt', 'asc'));
     return onSnapshot(
       q,
       (snap) => cb(snap.docs.map((m) => mapMessage(orderId, m.id, m.data()))),
-      () => cb([]),
+      (err) => {
+        // Never render a failed subscription as "no messages yet" (A9/E-X3).
+        console.error('Message subscription failed', err);
+        cb([]);
+        onError?.();
+      },
     );
   }
 
@@ -438,6 +447,41 @@ export async function createRevision(
     status: 'pending',
   });
   writeJSON(key, revs);
+}
+
+/* ---------------- revision decisions (owner) ---------------- */
+
+/**
+ * Owner decision on a scope revision request (Deep Review #2, B-02/F-2 —
+ * the second chair: clients could file these and the queue announced them,
+ * but nothing existed to answer them).
+ */
+export async function decideRevision(
+  order: Order,
+  revision: RevisionRequest,
+  decision: 'approved' | 'declined',
+): Promise<void> {
+  if (!isDemoMode && db) {
+    await updateDoc(doc(db, 'orders', order.id, 'revisions', revision.id), {
+      status: decision,
+      decidedAt: Date.now(),
+    });
+  } else {
+    const key = `syncops_revs_${order.id}`;
+    writeJSON(
+      key,
+      readJSON<RevisionRequest[]>(key, []).map((r) =>
+        r.id === revision.id ? { ...r, status: decision } : r,
+      ),
+    );
+  }
+  const activity = appendActivity(
+    order,
+    'revision',
+    `Scope request ${decision}: ${revision.details.slice(0, 140)}`,
+    'architect',
+  );
+  await updateOrder(order.id, { activity });
 }
 
 /* ---------------- deliveries ---------------- */
@@ -601,6 +645,8 @@ export interface OrderSignals {
   oldestPendingDeliveryAt: number | null;
   pendingRevisions: number;
   pendingClaims: number;
+  oldestPendingClaimAt: number | null;
+  oldestPendingRevisionAt: number | null;
   latestMessage: OrderMessage | null;
   /** The most recent message is from the client — they are waiting on a reply. */
   clientWaiting: boolean;
@@ -626,7 +672,9 @@ export async function getOrderSignals(orderId: string): Promise<OrderSignals> {
     latest = seed.length ? seed.reduce((a, b) => (b.createdAt > a.createdAt ? b : a)) : null;
   }
   const { listClaims } = await import('./payments');
-  const claims = await listClaims(orderId).catch(() => [] as { status: string }[]);
+  const claims = await listClaims(orderId).catch(
+    () => [] as { status: string; createdAt: number }[],
+  );
   return {
     pendingDeliveries: pending.length,
     oldestPendingDeliveryAt: pending.length
@@ -634,6 +682,14 @@ export async function getOrderSignals(orderId: string): Promise<OrderSignals> {
       : null,
     pendingRevisions: revisions.filter((r) => r.status === 'pending').length,
     pendingClaims: claims.filter((c) => c.status === 'pending').length,
+    oldestPendingClaimAt: (() => {
+      const pending = claims.filter((c) => c.status === 'pending');
+      return pending.length ? Math.min(...pending.map((c) => c.createdAt)) : null;
+    })(),
+    oldestPendingRevisionAt: (() => {
+      const pending = revisions.filter((r) => r.status === 'pending');
+      return pending.length ? Math.min(...pending.map((r) => r.createdAt)) : null;
+    })(),
     latestMessage: latest,
     clientWaiting: latest?.sender === 'client',
   };
@@ -670,7 +726,7 @@ export async function listAttention(): Promise<AttentionItem[]> {
           kind: 'claim',
           order: o,
           text: 'Payment claim waiting — verify it to credit the ledger',
-          at: o.createdAt,
+          at: sig.oldestPendingClaimAt ?? o.createdAt,
         });
       }
       if (sig.pendingRevisions > 0) {
@@ -678,7 +734,7 @@ export async function listAttention(): Promise<AttentionItem[]> {
           kind: 'revision',
           order: o,
           text: `${sig.pendingRevisions} revision request${sig.pendingRevisions > 1 ? 's' : ''} awaiting your answer`,
-          at: o.createdAt,
+          at: sig.oldestPendingRevisionAt ?? o.createdAt,
         });
       }
       if (sig.clientWaiting && sig.latestMessage) {
@@ -800,7 +856,7 @@ export async function createOrderByOwner(input: NewOrderInput): Promise<string> 
   const now = Date.now();
   const payload = {
     clientName: input.clientName.trim(),
-    clientEmail: input.clientEmail.trim(),
+    clientEmail: input.clientEmail.trim().toLowerCase(),
     brandUrl: input.brandUrl.trim(),
     packageId: input.packageId,
     packageName: input.packageName,
@@ -833,6 +889,19 @@ export async function createOrderByOwner(input: NewOrderInput): Promise<string> 
 
 export async function deleteOrder(orderId: string): Promise<void> {
   if (!isDemoMode && db) {
+    // Cascading delete (B-10/F-9): the subcollections and the review hold
+    // client PII (chat, TrxIDs, files, intake answers) — deleting only the
+    // top document orphaned all of it in the database.
+    const subs = ['messages', 'revisions', 'deliveries', 'files', 'claims', 'intake'];
+    for (const sub of subs) {
+      const snap = await getDocs(collection(db, 'orders', orderId, sub));
+      for (let i = 0; i < snap.docs.length; i += 400) {
+        const batch = writeBatch(db);
+        snap.docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
+        await batch.commit();
+      }
+    }
+    await deleteDoc(doc(db, 'reviews', orderId)).catch(() => undefined);
     await deleteDoc(doc(db, 'orders', orderId));
     return;
   }

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeftRight,
@@ -20,6 +20,7 @@ import {
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useHireModal } from '../components/HireModal';
+import { usePageMeta } from '../lib/meta';
 import { cx } from '../lib/format';
 
 /* ------------------------------------------------------------------ */
@@ -166,9 +167,10 @@ function CellBody({ cell }: { cell: Cell }) {
 export default function Compare() {
   const { openHireModal } = useHireModal();
 
-  useEffect(() => {
-    document.title = 'Compare — SyncOps Studio vs Stape vs PixelFly';
-  }, []);
+  usePageMeta(
+    'Compare — SyncOps Studio vs Stape vs PixelFly',
+    'An honest comparison of SyncOps Studio with Stape and PixelFly: what each tool really does, where each one stops, and what a hands-on studio adds.',
+  );
 
   return (
     <div className="min-h-screen bg-slate-950">

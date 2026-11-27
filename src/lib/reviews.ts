@@ -1,4 +1,4 @@
-import { doc, getDoc, getDocs, setDoc, updateDoc, collection } from 'firebase/firestore';
+import { doc, getDoc, getDocs, setDoc, updateDoc, collection, query, where } from 'firebase/firestore';
 import { db, isDemoMode } from './firebase';
 
 export interface Review {
@@ -98,8 +98,17 @@ export async function listReviews(): Promise<Review[]> {
 
 /** Public: published reviews only — the site's proof wall. */
 export async function listPublishedReviews(): Promise<Review[]> {
-  const all = await listReviews().catch(() => [] as Review[]);
-  return all.filter((r) => r.published);
+  if (!isDemoMode && db) {
+    // Query for published only (A6/C-08/E-X1): Firestore rules are not
+    // filters — one unpublished review denied the whole unfiltered query,
+    // so the public proof wall silently rendered nothing.
+    const q = query(collection(db, 'reviews'), where('published', '==', true));
+    const snap = await getDocs(q);
+    return snap.docs
+      .map((d) => mapReview(d.id, d.data()))
+      .sort((a, b) => b.createdAt - a.createdAt);
+  }
+  return readLocal().filter((r) => r.published);
 }
 
 export async function setReviewPublished(id: string, published: boolean): Promise<void> {

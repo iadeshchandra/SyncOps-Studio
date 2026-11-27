@@ -29,11 +29,14 @@ export default function OrderFiles({
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [loadError, setLoadError] = useState(false);
   const refresh = useCallback(async () => {
     try {
       setFiles(await listOrderFiles(orderId));
+      setLoadError(false);
     } catch {
-      setFiles([]);
+      // A failed load is not an empty vault (A9).
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -98,6 +101,11 @@ export default function OrderFiles({
         shared between you and the studio · up to ~700 KB per file · images are compressed automatically
       </p>
       {error && <p className="mt-2 text-sm text-rose-300">{error}</p>}
+      {loadError && (
+        <p className="mb-3 rounded border border-rose-800/60 bg-rose-950/40 px-3 py-2 text-xs font-semibold text-rose-200">
+          Could not load the file list — check your connection and reopen this tab.
+        </p>
+      )}
       {loading ? (
         <p className="telemetry mt-3">loading files…</p>
       ) : files.length === 0 ? (

@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Plus,
   Clock3,
+  ShieldAlert,
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { useHireModal } from '../components/HireModal';
@@ -28,6 +29,40 @@ function statusTone(status: string): string {
   if (s === 'delivered') return 'border-emerald-700/60 bg-emerald-950/50 text-emerald-300';
   if (s === 'intake') return 'border-amber-700/60 bg-amber-950/50 text-amber-300';
   return 'border-cyan-700/60 bg-cyan-950/50 text-cyan-300';
+}
+
+function VerifyEmailBanner() {
+  const { user, resendVerification } = useAuth();
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  if (!user || user.emailVerified !== false) return null;
+  return (
+    <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-amber-700/50 bg-amber-950/30 px-4 py-3">
+      <ShieldAlert className="h-5 w-5 shrink-0 text-amber-400" />
+      <p className="min-w-0 flex-1 text-sm text-amber-100">
+        <span className="font-bold">Verify your email to unlock your projects.</span>{' '}
+        We sent a verification link to {user.email}. Until it is clicked, your projects,
+        payments and deliveries stay locked — this protects your account from anyone who
+        might register with your address.
+      </p>
+      <button
+        type="button"
+        disabled={busy || sent}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            await resendVerification();
+            setSent(true);
+          } finally {
+            setBusy(false);
+          }
+        }}
+        className="btn-ghost px-3.5 py-2 text-xs"
+      >
+        {sent ? 'Verification email sent' : busy ? 'Sending…' : 'Resend verification email'}
+      </button>
+    </div>
+  );
 }
 
 export default function ClientDashboard() {
@@ -90,6 +125,7 @@ export default function ClientDashboard() {
   return (
     <div className="min-h-screen bg-slate-950">
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+        <VerifyEmailBanner />
         <header className="glass flex flex-wrap items-center gap-3 rounded-xl px-4 py-3.5 sm:px-5">
           <Link to="/" className="flex items-center gap-2.5" aria-label="SyncOps Studio home">
             <span className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-500/15 text-emerald-400">
@@ -266,6 +302,24 @@ export default function ClientDashboard() {
           <Link to="/" className="btn-primary ml-auto inline-flex px-4 py-2.5 text-sm">
             <Plus className="h-4 w-4" /> Start a new project
           </Link>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-slate-800/80 bg-slate-900/40 px-5 py-4">
+          <p className="text-sm font-semibold text-slate-200">Your data</p>
+          <p className="mt-1 text-sm leading-relaxed text-slate-400">
+            Your projects, messages, files and reviews belong to you. Ask for an export or for
+            deletion at any time — deletion removes them within 30 days. The{' '}
+            <Link to="/terms" className="text-cyan-300 underline decoration-cyan-800 underline-offset-2">
+              Terms &amp; Refunds
+            </Link>{' '}
+            spell out the details.
+          </p>
+          <a
+            href="mailto:iadeshchandra@gmail.com?subject=Data%20request%20—%20SyncOps%20Studio%20account"
+            className="btn-ghost mt-3 inline-flex px-4 py-2 text-sm"
+          >
+            Request export or deletion
+          </a>
         </div>
       </div>
     </div>

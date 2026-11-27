@@ -344,8 +344,9 @@ export default function SettingsTab() {
       <section className="glass rounded-lg p-5 sm:p-6">
         <h3 className="h-display text-base">Feature flags</h3>
         <p className="mt-1 text-sm text-slate-400">
-          Stored in <span className="font-mono text-xs text-cyan-400">platformConfig/public</span>. Wired in a
-          future pass — toggles persist now, consumption lands with the enforcement update.
+          Stored in <span className="font-mono text-xs text-cyan-400">platformConfig/public</span> and enforced
+          live: Labs off sends /labs home; Hire Modal off replaces the order form with a
+          paused-intake notice.
         </p>
         <div className="mt-4 space-y-3">
           <Toggle

@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Loader2, X, Trash2, PackageCheck, ExternalLink, History, MessageSquare, Plus, Star, Banknote, ListChecks, Wallet } from 'lucide-react';
+import { Loader2, X, Trash2, PackageCheck, ExternalLink, History, MessageSquare, Plus, Star, Banknote, ListChecks, Wallet,
+  FileEdit,
+  Download,
+} from 'lucide-react';
 import {
   listOrders,
   updateOrder,
@@ -17,7 +20,7 @@ import {
 } from '../../lib/portal';
 import { getReview, setReviewPublished, type Review } from '../../lib/reviews';
 import { listClaims, decideClaim, type PaymentClaim } from '../../lib/payments';
-import { getIntakeForm, type IntakeForm } from '../../lib/portal';
+import { getIntakeForm, listRevisions, decideRevision, type IntakeForm, type RevisionRequest } from '../../lib/portal';
 import { ACCESS_CHECKLIST, checklistProgress } from '../../lib/checklist';
 import OrderFiles from '../OrderFiles';
 import { openInvoice } from '../../lib/invoice';
@@ -28,15 +31,14 @@ import ArchitectChat from '../ArchitectChat';
 import { logAudit } from '../../lib/admin';
 import { useAuth } from '../../lib/auth';
 import { fmtUSD, cx } from '../../lib/format';
+import { agreedUsd } from '../../lib/pricing';
 
 const DAY_MS = 86_400_000;
 const STATUSES = ['intake', 'active', 'delivered', 'completed', 'cancelled', 'archived'] as const;
-const PAYMENT_METHODS = ['Wise', 'Payoneer', 'bKash', 'Bank transfer', 'Fiverr', 'Upwork', 'Other'];
+const PAYMENT_METHODS = ['Wise', 'Payoneer', 'bKash', 'Bank transfer', 'Fiverr', 'Upwork', 'Other', 'Correction'];
 
 function priceOf(o: Order): number {
-  if (typeof o.price === 'number') return o.price;
-  const list = DEFAULT_SITE_CONFIG.pricing ?? PACKAGES;
-  return list.find((p) => p.id === o.packageId)?.price ?? 0;
+  return agreedUsd(o);
 }
 
 const DELIVERY_TONE: Record<Delivery['status'], string> = {
@@ -76,7 +78,13 @@ export default function OrdersTab() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [review, setReview] = useState<Review | null>(null);
   const [claims, setClaims] = useState<PaymentClaim[]>([]);
+  const [revisions, setRevisions] = useState<RevisionRequest[]>([]);
+  const [revBusyId, setRevBusyId] = useState<string | null>(null);
+  const [startOverrideOpen, setStartOverrideOpen] = useState(false);
+  const [startOverrideReason, setStartOverrideReason] = useState('');
+  const [deadlineInput, setDeadlineInput] = useState('');
   const [intakeForm, setIntakeForm] = useState<IntakeForm | null>(null);
+  const [decisionNotes, setDecisionNotes] = useState<Record<string, string>>({});
   const [creditInputs, setCreditInputs] = useState<Record<string, string>>({});
   const [claimBusyId, setClaimBusyId] = useState<string | null>(null);
   const [paySettings, setPaySettings] = useState<PaymentSettings | null>(null);
@@ -119,6 +127,12 @@ export default function OrdersTab() {
       listClaims(selected.id)
         .then(setClaims)
         .catch(() => setClaims([]));
+      listRevisions(selected.id)
+        .then(setRevisions)
+        .catch(() => setRevisions([]));
+      setStartOverrideOpen(false);
+      setStartOverrideReason('');
+      setDeadlineInput(new Date(selected.deadlineAt).toISOString().slice(0, 10));
       getIntakeForm(selected.id)
         .then(setIntakeForm)
         .catch(() => setIntakeForm(null));
@@ -127,6 +141,7 @@ export default function OrdersTab() {
     } else {
       setDeliveries([]);
       setReview(null);
+      setRevisions([]);
     }
   }, [selected?.id, refreshDeliveries]);
 
@@ -220,7 +235,7 @@ export default function OrdersTab() {
     setClaimBusyId(claim.id);
     setNotice(null);
     try {
-      await decideClaim(order, claim, approve, credited);
+      await decideClaim(order, claim, approve, credited, decisionNotes[claim.id]?.trim() || undefined);
       await logAudit(
         approve ? 'claim.approve' : 'claim.reject',
         `${order.id} ${claim.id} ${claim.currency} ${claim.amount}`,
@@ -238,20 +253,70 @@ export default function OrdersTab() {
     }
   };
 
-  const handleStartProject = async (order: Order) => {
+  const handleDecideRevision = async (
+    order: Order,
+    revision: RevisionRequest,
+    decision: 'approved' | 'declined',
+  ) => {
+    setRevBusyId(revision.id);
+    setNotice(null);
+    try {
+      await decideRevision(order, revision, decision);
+      setRevisions(await listRevisions(order.id));
+      await logAudit(`revision.${decision}`, `${order.id} ${revision.id}`, actor);
+      await refresh();
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : 'Could not save the decision.');
+    } finally {
+      setRevBusyId(null);
+    }
+  };
+
+  const handleSaveDeadline = async (order: Order) => {
+    const ts = new Date(deadlineInput).getTime();
+    if (!deadlineInput || Number.isNaN(ts)) {
+      setNotice('Pick a valid deadline date first.');
+      return;
+    }
+    const activity = appendActivity(
+      order,
+      'status',
+      `Deadline moved to ${new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.`,
+      'architect',
+    );
+    try {
+      await updateOrder(order.id, { deadlineAt: ts, activity });
+      setSelected((s) => (s && s.id === order.id ? { ...s, deadlineAt: ts, activity } : s));
+      await logAudit('order.deadline', `${order.id} ${ts}`, actor);
+      await refresh();
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : 'Could not save the deadline.');
+    }
+  };
+
+  const gateReady = (order: Order) => {
     const { done, total } = checklistProgress(order);
-    const ready = done === total && paidTotal(order) > 0;
+    return done === total && paidTotal(order) >= priceOf(order);
+  };
+
+  const handleStartProject = async (order: Order, overrideReason?: string) => {
+    const ready = gateReady(order);
+    if (!ready && !overrideReason) return; // the UI collects a reason first
     const activity = appendActivity(
       order,
       'status',
       ready
-        ? 'Project started — access, requirements and payment all in place.'
-        : 'Project started by the studio before every gate was green.',
+        ? 'Project started — access complete and the agreed amount verified as paid.'
+        : `Project started early by the studio — override reason: ${overrideReason}`,
       'architect',
     );
+    // Starting also moves the project to stage 1 so it appears in Projects.
+    const stageIndex = Math.max(order.stageIndex, 1);
     try {
-      await updateOrder(order.id, { status: 'active', activity });
-      setSelected((s) => (s && s.id === order.id ? { ...s, status: 'active', activity } : s));
+      await updateOrder(order.id, { status: 'active', stageIndex, activity });
+      setSelected((s) =>
+        s && s.id === order.id ? { ...s, status: 'active', stageIndex, activity } : s,
+      );
       await logAudit('order.start', order.id, actor);
       await refresh();
     } catch (e) {
@@ -259,9 +324,52 @@ export default function OrdersTab() {
     }
   };
 
+  // Owner data export (F-8): the whole book, downloadable any time — the
+  // app must never be the only place the studio's records exist.
+  const exportOrders = (format: 'json' | 'csv') => {
+    const stamp = new Date().toISOString().slice(0, 10);
+    let content: string;
+    let type: string;
+    if (format === 'json') {
+      content = JSON.stringify(orders, null, 2);
+      type = 'application/json';
+    } else {
+      const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+      const rows = [
+        ['ref', 'client', 'email', 'package', 'status', 'agreed_usd', 'paid_usd', 'created', 'deadline'].join(','),
+        ...orders.map((o) =>
+          [
+            esc(o.ref), esc(o.clientName), esc(o.clientEmail), esc(o.packageName || o.packageId),
+            esc(o.status), priceOf(o), paidTotal(o),
+            esc(new Date(o.createdAt).toISOString()), esc(new Date(o.deadlineAt).toISOString()),
+          ].join(','),
+        ),
+      ];
+      content = rows.join('\n');
+      type = 'text/csv';
+    }
+    const url = URL.createObjectURL(new Blob([content], { type }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `syncops-orders-${stamp}.${format}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleRecordPayment = async (order: Order) => {
     const amount = Number(payAmount);
-    if (!amount || amount <= 0) {
+    // Ledger corrections (B-05) are negative entries with a mandatory note —
+    // the audit-style way to undo a typo without rewriting history.
+    if (payMethod === 'Correction') {
+      if (!amount || amount >= 0) {
+        setNotice('A correction must be a negative amount (it reverses an earlier entry).');
+        return;
+      }
+      if (payNote.trim().length < 4) {
+        setNotice('A correction needs a note saying what it reverses.');
+        return;
+      }
+    } else if (!amount || amount <= 0) {
       setNotice('Enter a payment amount above zero.');
       return;
     }
@@ -275,7 +383,9 @@ export default function OrdersTab() {
       const activity = appendActivity(
         order,
         'payment',
-        `Payment recorded — ${fmtUSD(amount)} via ${payMethod}.`,
+        payMethod === 'Correction'
+          ? `Ledger correction — ${fmtUSD(amount)}: ${payNote.trim()}`
+          : `Payment recorded — ${fmtUSD(amount)} via ${payMethod}.`,
         'architect',
       );
       await updateOrder(order.id, { payments, activity });
@@ -389,13 +499,29 @@ export default function OrdersTab() {
           <p className="eyebrow">order_management</p>
           <h2 className="h-display mt-1 text-2xl">Orders</h2>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowNew(true)}
-          className="btn-primary ml-auto px-4 py-2.5 text-sm"
-        >
-          <Plus className="h-4 w-4" /> New order
-        </button>
+        <div className="ml-auto flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => exportOrders('json')}
+            className="btn-ghost px-4 py-2.5 text-sm"
+          >
+            <Download className="h-4 w-4" /> Export JSON
+          </button>
+          <button
+            type="button"
+            onClick={() => exportOrders('csv')}
+            className="btn-ghost px-4 py-2.5 text-sm"
+          >
+            <Download className="h-4 w-4" /> Export CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowNew(true)}
+            className="btn-primary px-4 py-2.5 text-sm"
+          >
+            <Plus className="h-4 w-4" /> New order
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -619,6 +745,30 @@ export default function OrdersTab() {
               ))}
             </dl>
 
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <label className="label-dark !mb-0" htmlFor="order-deadline">
+                Deadline
+              </label>
+              <input
+                id="order-deadline"
+                type="date"
+                value={deadlineInput}
+                onChange={(e) => setDeadlineInput(e.target.value)}
+                className="input-dark px-3 py-1.5 text-sm"
+              />
+              <button
+                type="button"
+                disabled={saving || !deadlineInput}
+                onClick={() => void handleSaveDeadline(selected)}
+                className="btn-ghost px-3.5 py-1.5 text-xs disabled:opacity-50"
+              >
+                Save deadline
+              </button>
+              <span className="text-xs text-slate-500">
+                Currently {new Date(selected.deadlineAt).toLocaleDateString()}
+              </span>
+            </div>
+
             <div className="mt-5">
               <p className="label-dark">Milestone stage</p>
               <div className="flex flex-wrap gap-2">
@@ -676,27 +826,55 @@ export default function OrdersTab() {
             </div>
 
             {selected.status === 'intake' && (
-              <div className="mt-5 flex flex-wrap items-center gap-3 rounded-md border border-cyan-800/50 bg-cyan-950/30 px-4 py-3">
-                <p className="text-sm text-cyan-100">
-                  <span className="font-semibold">Start gate:</span> access{' '}
-                  {checklistProgress(selected).done}/{checklistProgress(selected).total} · paid{' '}
-                  {fmtUSD(paidTotal(selected))} of {fmtUSD(priceOf(selected))}
-                  {checklistProgress(selected).done === checklistProgress(selected).total &&
-                  paidTotal(selected) > 0
-                    ? ' — ready when you are.'
-                    : ' — the project can still be started manually.'}
-                </p>
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={() => void handleStartProject(selected)}
-                  className="btn-primary ml-auto px-4 py-2 text-sm disabled:opacity-50"
-                >
-                  {checklistProgress(selected).done === checklistProgress(selected).total &&
-                  paidTotal(selected) > 0
-                    ? 'Start project'
-                    : 'Start anyway'}
-                </button>
+              <div className="mt-5 rounded-md border border-cyan-800/50 bg-cyan-950/30 px-4 py-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <p className="text-sm text-cyan-100">
+                    <span className="font-semibold">Start gate:</span> access{' '}
+                    {checklistProgress(selected).done}/{checklistProgress(selected).total} · paid{' '}
+                    {fmtUSD(paidTotal(selected))} of {fmtUSD(priceOf(selected))}
+                    {gateReady(selected)
+                      ? ' — ready when you are.'
+                      : ' — not fully green yet (access incomplete or the agreed amount is not fully verified).'}
+                  </p>
+                  {gateReady(selected) ? (
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => void handleStartProject(selected)}
+                      className="btn-primary ml-auto px-4 py-2 text-sm disabled:opacity-50"
+                    >
+                      Start project
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => setStartOverrideOpen((v) => !v)}
+                      className="btn-ghost ml-auto px-4 py-2 text-sm"
+                    >
+                      Start anyway…
+                    </button>
+                  )}
+                </div>
+                {!gateReady(selected) && startOverrideOpen && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <input
+                      type="text"
+                      value={startOverrideReason}
+                      onChange={(e) => setStartOverrideReason(e.target.value)}
+                      placeholder="Why start early? (recorded on the client's timeline)"
+                      className="input-dark min-w-0 flex-1 px-3 py-2 text-sm"
+                    />
+                    <button
+                      type="button"
+                      disabled={saving || startOverrideReason.trim().length < 4}
+                      onClick={() => void handleStartProject(selected, startOverrideReason.trim())}
+                      className="btn-primary px-4 py-2 text-sm disabled:opacity-50"
+                    >
+                      Confirm early start
+                    </button>
+                  </div>
+                )}
               </div>
             )}
             {cancelArmed && selected.status !== 'cancelled' && (
@@ -827,6 +1005,15 @@ export default function OrdersTab() {
                           {c.status === 'approved' && c.creditedUsd ? ` — credited $${c.creditedUsd}` : ''}
                         </span>
                       </p>
+                      {c.status === 'pending' &&
+                        claims.some(
+                          (o) => o.id !== c.id && o.status === 'approved' && o.trxId === c.trxId,
+                        ) && (
+                          <p className="mt-2 rounded border border-rose-800/60 bg-rose-950/40 px-2.5 py-1.5 text-xs font-semibold text-rose-200">
+                            Warning: this TrxID was already approved on this order — check
+                            before crediting it twice.
+                          </p>
+                        )}
                       {c.status === 'pending' && (
                         <div className="mt-2.5 flex flex-wrap items-center gap-2">
                           <input
@@ -839,6 +1026,15 @@ export default function OrdersTab() {
                             placeholder="Credit USD"
                             className="input-dark !w-32"
                             aria-label="USD amount to credit"
+                          />
+                          <input
+                            type="text"
+                            value={decisionNotes[c.id] ?? ''}
+                            onChange={(e) =>
+                              setDecisionNotes((m) => ({ ...m, [c.id]: e.target.value }))
+                            }
+                            placeholder="Note for the client (e.g. why a claim can't be verified)"
+                            className="input-dark min-w-0 flex-1 px-3 py-1.5 text-xs"
                           />
                           <button
                             type="button"
@@ -855,6 +1051,70 @@ export default function OrdersTab() {
                             className="btn-ghost px-3.5 py-2 text-xs"
                           >
                             Cannot verify
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Scope revision requests */}
+            {revisions.length > 0 && (
+              <div className="mt-6 border-t border-slate-800/80 pt-5">
+                <p className="label-dark flex items-center gap-2">
+                  <FileEdit className="h-4 w-4 text-amber-300" /> Scope revision requests
+                </p>
+                <div className="mt-3 space-y-2.5">
+                  {revisions.map((r) => (
+                    <div
+                      key={r.id}
+                      className="rounded-md border border-slate-800/80 bg-slate-950/60 px-3.5 py-3"
+                    >
+                      <p className="text-sm text-slate-200">
+                        <span className="font-mono text-xs font-bold uppercase tracking-wider text-amber-300">
+                          {r.type}
+                        </span>{' '}
+                        · {r.details}
+                      </p>
+                      <p className="telemetry mt-0.5">
+                        {new Date(r.createdAt).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}{' '}
+                        ·{' '}
+                        <span
+                          className={
+                            r.status === 'approved'
+                              ? 'text-emerald-300'
+                              : r.status === 'declined'
+                                ? 'text-rose-300'
+                                : 'text-amber-300'
+                          }
+                        >
+                          {r.status}
+                        </span>
+                      </p>
+                      {r.status === 'pending' && (
+                        <div className="mt-2.5 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            disabled={revBusyId === r.id}
+                            onClick={() => void handleDecideRevision(selected, r, 'approved')}
+                            className="btn-primary px-3.5 py-1.5 text-xs disabled:opacity-50"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            disabled={revBusyId === r.id}
+                            onClick={() => void handleDecideRevision(selected, r, 'declined')}
+                            className="btn-ghost px-3.5 py-1.5 text-xs"
+                          >
+                            Decline
                           </button>
                         </div>
                       )}

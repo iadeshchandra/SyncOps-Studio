@@ -83,8 +83,8 @@ export interface ProofStat {
 export const PROOF_STATS: ProofStat[] = [
   { value: '4.9/5', label: 'average rating · 322 Fiverr reviews' },
   { value: '240+', label: 'businesses tracked since 2019' },
-  { value: '15', label: 'tracking gigs, all major ad platforms' },
-  { value: '~1 hr', label: 'average response time' },
+  { value: '1', label: 'architect — you always talk to the builder' },
+  { value: '2019', label: 'practising on Fiverr since December 2019' },
 ];
 
 export interface ProofQuote {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { setPageMeta } from '../lib/meta';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, FileQuestion, Rocket } from 'lucide-react';
 import Header from '../components/Header';
@@ -59,11 +60,11 @@ export default function NoteDetail() {
 
   useEffect(() => {
     if (article) {
-      const prev = document.title;
-      document.title = `${article.title} — SyncOps Studio`;
-      return () => {
-        document.title = prev;
-      };
+      setPageMeta(
+        `${article.title} — SyncOps Studio`,
+        article.excerpt?.trim() ||
+          'A SyncOps Studio field note from a real tracking engagement.',
+      );
     }
   }, [article]);
 

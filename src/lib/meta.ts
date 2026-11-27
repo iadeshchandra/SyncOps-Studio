@@ -26,6 +26,17 @@ function upsertMeta(
 
 export function setPageMeta(title: string, description: string): void {
   document.title = title;
+  // Canonical + og:url follow the actual route, so shares of /work, /notes
+  // or /compare no longer canonicalise to the homepage (D-6).
+  const url = window.location.origin + window.location.pathname;
+  upsertMeta('meta[property="og:url"]', { property: 'og:url' }, url);
+  let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+  if (!canonical) {
+    canonical = document.createElement('link');
+    canonical.setAttribute('rel', 'canonical');
+    document.head.appendChild(canonical);
+  }
+  canonical.setAttribute('href', url);
   upsertMeta('meta[name="description"]', { name: 'description' }, description);
   upsertMeta('meta[property="og:title"]', { property: 'og:title' }, title);
   upsertMeta(

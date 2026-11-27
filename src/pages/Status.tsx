@@ -146,7 +146,7 @@ export default function Status() {
             <ShieldCheck className="h-4 w-4 text-emerald-400" />
             <h2 className="text-lg font-bold tracking-tight text-slate-50">Edge stream — simulated</h2>
           </div>
-          <Terminal title="syncops-edge — live stdout" bodyClassName="h-[420px]" className="w-full" />
+          <Terminal title="syncops-edge — drill log (demonstration)" bodyClassName="h-[420px]" className="w-full" />
         </section>
 
         {/* Incident history */}

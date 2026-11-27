@@ -5,7 +5,7 @@ import {
   doc,
   getDoc,
   setDoc,
-  updateDoc,
+  runTransaction,
   query,
   orderBy,
 } from 'firebase/firestore';
@@ -79,6 +79,8 @@ export interface PaymentClaim {
   createdAt: number;
   decidedAt?: number;
   creditedUsd?: number;
+  /** Owner's note on the decision — shown to the client (F-10). */
+  decisionNote?: string;
 }
 
 function mapClaim(id: string, d: Record<string, unknown>): PaymentClaim {
@@ -96,6 +98,7 @@ function mapClaim(id: string, d: Record<string, unknown>): PaymentClaim {
     createdAt: Number(d.createdAt ?? Date.now()),
     decidedAt: typeof d.decidedAt === 'number' ? d.decidedAt : undefined,
     creditedUsd: typeof d.creditedUsd === 'number' ? d.creditedUsd : undefined,
+    decisionNote: typeof d.decisionNote === 'string' ? d.decisionNote : undefined,
   };
 }
 
@@ -147,35 +150,92 @@ export async function createClaim(
   }
 }
 
-/** Owner decision. Approving credits the order ledger in USD. */
+/**
+ * Owner decision. Approving credits the order ledger in USD.
+ *
+ * Deep Review #2 (B-04/C-07): the decision is ONE transaction — the claim
+ * is re-read inside it and must still be pending, so a double-click, a
+ * retry, or a stale console snapshot can never credit twice. The credited
+ * ledger entry carries the claimId, making every credit traceable.
+ */
 export async function decideClaim(
   order: Order,
   claim: PaymentClaim,
   approve: boolean,
   creditedUsd: number,
+  decisionNote?: string,
 ): Promise<void> {
+  if (approve && !(creditedUsd > 0)) {
+    throw new Error('Enter the USD amount to credit for this claim first.');
+  }
   if (!isDemoMode && db) {
-    await updateDoc(doc(db, 'orders', order.id, 'claims', claim.id), {
-      status: approve ? 'approved' : 'rejected',
-      decidedAt: Date.now(),
-      ...(approve ? { creditedUsd } : {}),
+    const claimRef = doc(db, 'orders', order.id, 'claims', claim.id);
+    const orderRef = doc(db, 'orders', order.id);
+    const note = `${claim.currency} ${claim.amount.toLocaleString()} via ${claim.method} (TrxID ${claim.trxId})`;
+    await runTransaction(db, async (tx) => {
+      const claimSnap = await tx.get(claimRef);
+      if (!claimSnap.exists() || claimSnap.data().status !== 'pending') {
+        throw new Error('This claim was already decided — refresh the order before deciding again.');
+      }
+      const orderSnap = await tx.get(orderRef);
+      if (!orderSnap.exists()) throw new Error('Order not found.');
+      const data = orderSnap.data();
+      const now = Date.now();
+      const activity = Array.isArray(data.activity) ? [...data.activity] : [];
+      tx.update(claimRef, {
+        status: approve ? 'approved' : 'rejected',
+        decidedAt: now,
+        ...(approve ? { creditedUsd } : {}),
+        ...(decisionNote ? { decisionNote } : {}),
+      });
+      if (approve) {
+        const payments = Array.isArray(data.payments) ? [...data.payments] : [];
+        payments.push({
+          amount: creditedUsd,
+          method: claim.method,
+          note: `${claim.currency} ${claim.amount.toLocaleString()} · TrxID ${claim.trxId}`,
+          at: now,
+          claimId: claim.id,
+        });
+        activity.push({
+          kind: 'payment',
+          text: `Payment verified — ${note}, credited $${creditedUsd}.`,
+          at: now,
+          by: 'architect',
+        });
+        tx.update(orderRef, { payments, activity });
+      } else {
+        activity.push({
+          kind: 'payment',
+          text: `Payment claim could not be verified — ${note}.${decisionNote ? ` Studio note: ${decisionNote}` : ''}`,
+          at: now,
+          by: 'architect',
+        });
+        tx.update(orderRef, { activity });
+      }
     });
-  } else {
-    const list = readLocalClaims(order.id).map((c) =>
-      c.id === claim.id
-        ? {
-            ...c,
-            status: approve ? ('approved' as const) : ('rejected' as const),
-            decidedAt: Date.now(),
-            ...(approve ? { creditedUsd } : {}),
-          }
-        : c,
-    );
-    try {
-      localStorage.setItem(claimsKey(order.id), JSON.stringify(list));
-    } catch {
-      /* storage unavailable */
-    }
+    return;
+  }
+  // Demo mode: same pending guard against the local copy.
+  const local = readLocalClaims(order.id).find((c) => c.id === claim.id);
+  if (!local || local.status !== 'pending') {
+    throw new Error('This claim was already decided — refresh the order before deciding again.');
+  }
+  const list = readLocalClaims(order.id).map((c) =>
+    c.id === claim.id
+      ? {
+          ...c,
+          status: approve ? ('approved' as const) : ('rejected' as const),
+          decidedAt: Date.now(),
+          ...(approve ? { creditedUsd } : {}),
+          ...(decisionNote ? { decisionNote } : {}),
+        }
+      : c,
+  );
+  try {
+    localStorage.setItem(claimsKey(order.id), JSON.stringify(list));
+  } catch {
+    /* storage unavailable */
   }
   if (approve) {
     const payments = [
@@ -185,6 +245,7 @@ export async function decideClaim(
         method: claim.method,
         note: `${claim.currency} ${claim.amount.toLocaleString()} · TrxID ${claim.trxId}`,
         at: Date.now(),
+        claimId: claim.id,
       },
     ];
     const activity = appendActivity(
@@ -198,7 +259,7 @@ export async function decideClaim(
     const activity = appendActivity(
       order,
       'payment',
-      `Payment claim could not be verified — ${claim.currency} ${claim.amount.toLocaleString()} via ${claim.method} (TrxID ${claim.trxId}).`,
+      `Payment claim could not be verified — ${claim.currency} ${claim.amount.toLocaleString()} via ${claim.method} (TrxID ${claim.trxId}).${decisionNote ? ` Studio note: ${decisionNote}` : ''}`,
       'architect',
     );
     await updateOrder(order.id, { activity });

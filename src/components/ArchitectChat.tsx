@@ -43,10 +43,16 @@ export default function ArchitectChat({
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const [loadError, setLoadError] = useState(false);
   useEffect(() => {
-    return subscribeMessages(orderId, (incoming) => {
-      setMessages((prev) => mergeMessages(prev, incoming));
-    });
+    return subscribeMessages(
+      orderId,
+      (incoming) => {
+        setLoadError(false);
+        setMessages((prev) => mergeMessages(prev, incoming));
+      },
+      () => setLoadError(true),
+    );
   }, [orderId]);
 
   useEffect(() => {
@@ -86,20 +92,23 @@ export default function ArchitectChat({
         <div className="flex items-center gap-2">
           <Lock className="h-4 w-4 text-emerald-400" />
           <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-300">
-            Encrypted Channel
+            Architect Channel
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-          </span>
           <p className="text-xs font-semibold text-slate-300">{peerLabel}</p>
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-emerald-400/80">online</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-slate-500">
+            replies within 1 business day
+          </p>
         </div>
       </div>
 
       {/* messages */}
+      {loadError && (
+        <div className="border-b border-rose-800/60 bg-rose-950/50 px-4 py-2 text-xs font-semibold text-rose-200">
+          Could not load messages — check your connection. Anything you send still goes out.
+        </div>
+      )}
       <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
         {messages.length === 0 && (
           <div className="flex h-full items-center justify-center">

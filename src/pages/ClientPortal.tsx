@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { isDemoMode } from '../lib/firebase';
+import { agreedUsd } from '../lib/pricing';
 import {
   getOrder,
   listMyOrders,
@@ -50,8 +51,6 @@ import {
 } from '../lib/payments';
 import { getReview, submitReview } from '../lib/reviews';
 import type { Review } from '../lib/reviews';
-import { PACKAGES } from '../data/content';
-import { DEFAULT_SITE_CONFIG } from '../lib/siteConfig';
 import type { Order, RevisionRequest, Delivery } from '../lib/portal';
 import { orderRef } from '../lib/portal';
 import MilestoneTracker from '../components/MilestoneTracker';
@@ -143,6 +142,7 @@ export default function ClientPortal() {
   const [claimBusy, setClaimBusy] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
   const [checklistBusy, setChecklistBusy] = useState<string | null>(null);
+  const [checklistError, setChecklistError] = useState<string | null>(null);
   const [intake, setIntake] = useState({
     storePlatform: '',
     adAccountIds: '',
@@ -310,8 +310,9 @@ export default function ClientPortal() {
     try {
       await updateOrder(order.id, { checklist: next });
       setOrder({ ...order, checklist: next });
+      setChecklistError(null);
     } catch {
-      /* the tick simply does not save; the client can retry */
+      setChecklistError('That tick could not be saved — check your connection and tap it again.');
     } finally {
       setChecklistBusy(null);
     }
@@ -535,12 +536,7 @@ export default function ClientPortal() {
                   </dd>
                 </div>
                 {(() => {
-                  const agreed =
-                    typeof order.price === 'number'
-                      ? order.price
-                      : ((DEFAULT_SITE_CONFIG.pricing ?? PACKAGES).find(
-                          (x) => x.id === order.packageId,
-                        )?.price ?? 0);
+                  const agreed = agreedUsd(order);
                   if (agreed <= 0) return null;
                   const paid = paidTotal(order);
                   return (
@@ -565,6 +561,14 @@ export default function ClientPortal() {
                       </p>
                     </div>
 
+                    {agreed - paid > 0 && (
+                      <p className="rounded-md border border-slate-800/80 bg-slate-950/60 px-3 py-2 text-xs leading-relaxed text-slate-400">
+                        Paying? Put your order reference{' '}
+                        <span className="font-mono font-bold text-slate-200">{order.ref}</span> in
+                        the payment note — that is how a payment that arrives without a claim
+                        still finds its project.
+                      </p>
+                    )}
                     {agreed - paid > 0 && paySettings && (paySettings.bkashQrDataUrl || paySettings.bkashNumber || paySettings.wiseNote || paySettings.payoneerNote) && (
                       <div className="rounded-md border border-slate-800/80 bg-slate-950/60 px-3 py-3">
                         <p className="flex items-center gap-2 text-sm font-semibold text-slate-100">
@@ -694,6 +698,14 @@ export default function ClientPortal() {
                                   ? 'could not be verified'
                                   : 'awaiting verification'}
                             </span>
+                            {c.status === 'rejected' && (
+                              <span className="w-full text-slate-400">
+                                {c.decisionNote ? `Studio note: ${c.decisionNote}. ` : ''}
+                                The usual cause is a mistyped transaction ID — check it in
+                                your payment app and submit a new claim, or message us in
+                                the Architect Channel.
+                              </span>
+                            )}
                           </p>
                         ))}
                       </div>
@@ -748,6 +760,11 @@ export default function ClientPortal() {
                 </p>
                 <p className="telemetry mt-3">
                   {checklistProgress(order).done} of {checklistProgress(order).total} access items done
+                  {checklistError && (
+                    <span className="mt-1 block text-xs font-semibold text-rose-300">
+                      {checklistError}
+                    </span>
+                  )}
                 </p>
                 <div className="mt-3 space-y-2">
                   {ACCESS_CHECKLIST.map((item) => {
@@ -927,7 +944,21 @@ export default function ClientPortal() {
               ))}
             </div>
 
-            {tab === 'chat' && <ArchitectChat orderId={order.id} />}
+            {tab === 'chat' && (
+              <div>
+                <p className="mb-3 text-xs leading-relaxed text-slate-500">
+                  Genuinely urgent — an ad account down, a launch today? Email{' '}
+                  <a
+                    href={`mailto:iadeshchandra@gmail.com?subject=${encodeURIComponent(`Urgent — ${order.ref}`)}`}
+                    className="font-semibold text-cyan-300 underline decoration-cyan-800 underline-offset-2"
+                  >
+                    iadeshchandra@gmail.com
+                  </a>{' '}
+                  with your order reference in the subject.
+                </p>
+                <ArchitectChat orderId={order.id} />
+              </div>
+            )}
 
             {tab === 'deliveries' && (
               <div className="glass rounded-xl p-6">

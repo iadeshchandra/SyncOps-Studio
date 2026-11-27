@@ -116,7 +116,7 @@ export default function RoasCalculator() {
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-slate-400">True unrestricted monthly revenue</span>
+              <span className="text-slate-400">Estimated unrestricted monthly revenue</span>
               <span className="font-mono font-bold text-slate-100">{fmtUSD(r.trueRevenue)}</span>
             </div>
           </div>
@@ -136,7 +136,8 @@ export default function RoasCalculator() {
               <span className="text-lg font-bold text-rose-400/70">/mo</span>
             </p>
             <p className="mt-2 font-mono text-sm text-rose-200/80">
-              {fmtUSD(annualized)} bleeding away every year — invisible to your dashboard.
+              {fmtUSD(annualized)} per year at this loss rate — an estimate (assumptions
+              below), and invisible to your dashboard either way.
             </p>
           </div>
 
@@ -144,7 +145,7 @@ export default function RoasCalculator() {
             <div className="flex items-center gap-2.5">
               <TrendingUp className="h-5 w-5 text-emerald-400" />
               <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-emerald-300">
-                Recoverable with SyncOps CAPI
+                Estimated recoverable with server-side CAPI
               </p>
             </div>
             <p className="mt-4 font-mono text-4xl font-black tracking-tight text-emerald-300 sm:text-5xl">
@@ -152,9 +153,18 @@ export default function RoasCalculator() {
               <span className="text-lg font-bold text-emerald-400/70">/mo</span>
             </p>
             <p className="mt-2 text-sm text-emerald-200/80">
-              90% capture rate at 9.0+ Event Match Quality — recovered, deduplicated, dispatched.
+              Assumes ~90% of the lost signal is captured once events are recovered,
+              deduplicated and dispatched server-side. An estimate, not a measured result —
+              your first month of live data replaces it.
             </p>
           </div>
+
+          <p className="rounded-md border border-slate-800 bg-slate-950/60 px-3.5 py-2.5 text-xs leading-relaxed text-slate-400">
+            How this estimate works: a fixed 30% signal-loss assumption (ITP, ad
+            blockers, relay drops) and a 90% capture assumption after server-side
+            tagging. The honest way to replace assumptions with numbers is to
+            measure — that is the engagement.
+          </p>
 
           <button
             type="button"

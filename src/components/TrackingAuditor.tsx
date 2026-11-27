@@ -207,7 +207,9 @@ export default function TrackingAuditor() {
               <div className="w-full">
                 <p className="mb-3 rounded-md border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs leading-relaxed text-slate-400">
                   Simulated estimate — modelled instantly on the five failure patterns we check
-                  first on a real engagement. The emailed report is verified by hand.
+                  first on a real engagement. The findings below are illustrative examples of
+                  those patterns for a store like yours, not live checks run against your
+                  domain; the emailed report is verified by hand.
                 </p>
                 <div className="mb-2 flex justify-between font-mono text-xs">
                   <span className="text-slate-400">Overall score</span>

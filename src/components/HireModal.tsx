@@ -13,6 +13,7 @@ import { X, ChevronLeft, ChevronRight, Check, AlertCircle, Loader2, Satellite, R
 import type { LucideIcon } from 'lucide-react';
 import { db, isDemoMode } from '../lib/firebase';
 import { makeOrderRef } from '../lib/portal';
+import { useSiteConfig } from '../lib/siteConfig';
 import type { ServiceLine } from '../data/services';
 import { useServiceLines } from '../lib/siteConfig';
 import { cx, fmtUSD } from '../lib/format';
@@ -66,7 +67,31 @@ export function useHireModal(): { openHireModal: (prefill?: HirePrefill) => void
 
 export function HireModalRoot() {
   const ctx = useContext(HireModalContext);
+  const { config } = useSiteConfig();
   if (!ctx || !ctx.modal.open) return null;
+  // Feature flag, wired (nit 4): with intake off, the CTA opens an honest
+  // paused panel instead of the order form.
+  if (config.enableHireModal === false) {
+    return (
+      <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+        <div className="glass w-full max-w-md rounded-2xl p-6 text-center">
+          <p className="eyebrow">intake_paused</p>
+          <h3 className="h-display mt-2 text-xl">Project intake is briefly paused</h3>
+          <p className="mt-3 text-sm leading-relaxed text-slate-400">
+            The studio is at capacity and is not taking new orders through the site right
+            now. For anything urgent, email{' '}
+            <a href="mailto:iadeshchandra@gmail.com" className="font-semibold text-cyan-300">
+              iadeshchandra@gmail.com
+            </a>
+            .
+          </p>
+          <button type="button" onClick={ctx.closeHireModal} className="btn-primary mt-5 px-5 py-2.5 text-sm">
+            Back to site
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
     <HireModal
       key={ctx.modal.nonce}
@@ -206,7 +231,7 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
     const refCode = makeOrderRef(now);
     const payload = {
       clientName: name.trim(),
-      clientEmail: email.trim(),
+      clientEmail: email.trim().toLowerCase(),
       brandUrl: storeUrl.trim(),
       packageId,
       packageName,
@@ -352,7 +377,7 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
                   },
                   {
                     t: 'Your project portal goes live',
-                    d: 'Milestones, SLA countdown, encrypted architect channel and credential vault.',
+                    d: 'Milestones, SLA countdown, encrypted architect channel and a shared file vault for your artifacts.',
                   },
                 ].map((s, i) => (
                   <li key={s.t} className="flex gap-4">
@@ -643,13 +668,21 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
 
         {/* Footer */}
         {submittedId ? (
-          <div className="flex flex-col gap-3 border-t border-slate-800/80 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="border-t border-slate-800/80 px-6 py-4">
+            <p className="mb-3 text-sm leading-relaxed text-slate-300">
+              Your portal opens after sign-in — use{' '}
+              <span className="font-mono font-bold text-slate-100">{email.trim().toLowerCase()}</span>,
+              the exact email on this order. New here? Create your account with that same
+              address and your project will be waiting.
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button type="button" onClick={onClose} className="btn-ghost !px-4 !py-2.5">
               Back to site
             </button>
             <button type="button" onClick={goToPortal} className="btn-primary !px-6 !py-2.5">
               Open your project portal <ArrowRight className="h-4 w-4" />
             </button>
+            </div>
           </div>
         ) : (
         <div className="flex items-center justify-between gap-3 border-t border-slate-800/80 px-6 py-4">
@@ -682,6 +715,16 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
                 </>
               )}
             </button>
+          )}
+          {!submittedId && step === STEPS.length - 1 && (
+            <p className="px-6 pb-4 text-center text-xs leading-relaxed text-slate-500">
+              Submitting places your project in intake — nothing is charged here. Payments are
+              made directly to the studio and verified by hand; the{' '}
+              <a href="/terms" target="_blank" rel="noreferrer" className="text-cyan-400 underline decoration-cyan-800 underline-offset-2">
+                Terms &amp; Refunds
+              </a>{' '}
+              explain exactly how that works.
+            </p>
           )}
         </div>
         )}

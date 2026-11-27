@@ -52,7 +52,7 @@ export default function SlaTimer({ deadlineAt }: { deadlineAt: number }) {
       </p>
       <p className="mt-2 text-[13px] text-slate-400">
         {overdue
-          ? 'Handover target passed — your Lead Architect has been notified and is re-forecasting.'
+          ? 'Handover target passed — message your Lead Architect in the Architect Channel; the studio reviews every project daily and will re-forecast the date here.'
           : critical
             ? 'Handover window is under 24 hours. Final QA is underway.'
             : warning

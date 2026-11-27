@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -63,6 +63,14 @@ export default function StudioConsole() {
     const t = searchParams.get('tab');
     return t && TABS.some((x) => x.id === t) ? t : 'overview';
   });
+
+  // Deep links (attention queue, client roster) must work even when the
+  // console is already open — re-sync the tab whenever the URL changes
+  // (B-03: a one-time initializer made those links look dead).
+  useEffect(() => {
+    const t = searchParams.get('tab');
+    if (t && TABS.some((x) => x.id === t)) setActive(t);
+  }, [searchParams]);
 
   const activeTab = TABS.find((t) => t.id === active) ?? TABS[0];
 

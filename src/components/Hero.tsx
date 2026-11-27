@@ -27,12 +27,14 @@ function makeLine(tick: number): TermLine {
   };
 }
 
+// Fallback ticker (only if the owner empties the CMS list): real, checkable
+// facts about the studio — never invented metrics (Deep Review #2, D-3).
 const TICKER = [
-  '99.99% UPTIME SLA',
-  '9.2 AVG EVENT MATCH QUALITY',
-  '12MS EDGE LATENCY',
-  '2.4B EVENTS PROCESSED / YR',
-  '38% AVG RECOVERED REVENUE',
+  'SERVER-SIDE TAGGING & CAPI',
+  'META · TIKTOK · GOOGLE · SNAP',
+  '4.9/5 ACROSS 322 FIVERR REVIEWS',
+  '240+ BUSINESSES SINCE 2019',
+  'FIRST-PARTY DATA INFRASTRUCTURE',
 ];
 
 function TerminalVisualizer() {
@@ -128,7 +130,7 @@ export default function Hero() {
                 Audit My Tracking
               </a>
               <Link to="/status" className="btn-ghost">
-                View Live Telemetry
+                View System Status
               </Link>
             </div>
             <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2">

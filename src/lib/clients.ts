@@ -14,7 +14,7 @@ export interface ClientSummary {
 /** Group orders into one row per client (by email), newest activity first. */
 export function summarizeClients(
   orders: Order[],
-  priceOf: (packageId: string) => number,
+  priceOf: (order: Order) => number,
 ): ClientSummary[] {
   const byEmail = new Map<string, Order[]>();
   for (const o of orders) {
@@ -33,7 +33,7 @@ export function summarizeClients(
       orders: sorted,
       activeCount: list.filter((o) => o.status !== 'archived' && o.status !== 'completed')
         .length,
-      totalValue: list.reduce((sum, o) => sum + priceOf(o.packageId), 0),
+      totalValue: list.reduce((sum, o) => sum + priceOf(o), 0),
       lastActivityAt: Math.max(...list.map((o) => o.createdAt)),
     });
   }

@@ -25,6 +25,9 @@
     <loc>https://syncopsstudio.web.app/compare</loc>
   </url>
   <url>
+    <loc>https://syncopsstudio.web.app/terms</loc>
+  </url>
+  <url>
     <loc>https://syncopsstudio.web.app/notes</loc>
   </url>
   <url>
@@ -32,5 +35,11 @@
   </url>
   <url>
     <loc>https://syncopsstudio.web.app/notes/emq-explained</loc>
+  </url>
+  <url>
+    <loc>https://syncopsstudio.web.app/notes/tiktok-purchase-that-never-fired</loc>
+  </url>
+  <url>
+    <loc>https://syncopsstudio.web.app/notes/microsoft-ads-account-reinstated</loc>
   </url>
 </urlset>

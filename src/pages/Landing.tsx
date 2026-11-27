@@ -45,7 +45,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="border-t border-slate-800/60 bg-slate-900/20">
+        <section className="border-t border-slate-800/60">
           <PricingGrid />
         </section>
 

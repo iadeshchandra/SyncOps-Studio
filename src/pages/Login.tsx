@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import {
   ShieldCheck,
   Lock,
@@ -41,7 +41,7 @@ const BADGES = [
 ];
 
 export default function Login() {
-  const { user, loading, signInDemo, signInEmail, signUpEmail, signInGoogle } = useAuth();
+  const { user, loading, signInDemo, signInEmail, signUpEmail, signInGoogle, resetPassword } = useAuth();
   const { config } = useSiteConfig();
   // Console-saved testimonials carry `author`; the compiled-in fallback uses
   // `name`. Normalize to one display shape so both render identically.
@@ -51,12 +51,37 @@ export default function Login() {
     name: 'author' in t ? t.author : t.name,
   }));
   const navigate = useNavigate();
+  const location = useLocation();
+  // Only client destinations are honoured — never an arbitrary URL.
+  const fromState = (location.state as { from?: string } | null)?.from;
+  const destination =
+    fromState && fromState.startsWith('/client/') ? fromState : '/client/dashboard';
   const [tab, setTab] = useState<'signin' | 'signup'>('signin');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const forgot = async () => {
+    if (busy) return;
+    setError(null);
+    setNotice(null);
+    if (!email.trim()) {
+      setError('Enter your email above first, then tap “Forgot password?”.');
+      return;
+    }
+    setBusy(true);
+    try {
+      await resetPassword(email);
+      setNotice('Password reset email sent — check your inbox and follow its link to set a new password.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not send the reset email.');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -65,9 +90,9 @@ export default function Login() {
       </div>
     );
   }
-  if (user) return <Navigate to="/client/dashboard" replace />;
+  if (user) return <Navigate to={destination} replace />;
 
-  const go = () => navigate('/client/dashboard');
+  const go = () => navigate(destination);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -184,7 +209,7 @@ export default function Login() {
           <p className="eyebrow mb-2">client_access</p>
           <h2 className="h-display text-2xl">Project Tracking Portal</h2>
           <p className="mt-2 text-sm text-slate-400">
-            Sign in to follow your build, message your architect, and open the credentials vault.
+            Sign in to follow your build, message your architect, review deliveries and share project files.
           </p>
 
           {/* tabs */}
@@ -252,10 +277,29 @@ export default function Login() {
               />
             </div>
 
+            {tab === 'signin' && (
+              <div className="-mt-1 text-right">
+                <button
+                  type="button"
+                  onClick={forgot}
+                  className="text-xs font-semibold text-cyan-300 underline-offset-2 hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
+
             {error && (
               <div className="flex items-start gap-2 rounded-md border border-rose-800/60 bg-rose-950/50 px-3 py-2.5">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" />
                 <p className="text-sm text-rose-200">{error}</p>
+              </div>
+            )}
+
+            {notice && (
+              <div className="flex items-start gap-2 rounded-md border border-emerald-800/60 bg-emerald-950/50 px-3 py-2.5">
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                <p className="text-sm text-emerald-200">{notice}</p>
               </div>
             )}
 
