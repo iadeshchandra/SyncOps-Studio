@@ -43,9 +43,12 @@ export default function LeadsTab() {
     void refresh();
   }, [refresh]);
 
+  // In-app two-step delete (window.confirm is auto-dismissed in some
+  // browsers, which silently vetoed the delete there).
+  const [armedDeleteId, setArmedDeleteId] = useState<string | null>(null);
   const remove = async (id: string) => {
-    if (!window.confirm('Delete this lead?')) return;
     await deleteLead(id);
+    setArmedDeleteId(null);
     setLeads((prev) => prev.filter((l) => l.id !== id));
   };
 
@@ -123,9 +126,12 @@ export default function LeadsTab() {
                     <td className="px-4 py-3 text-right">
                       <button
                         className="inline-flex items-center gap-1 text-xs font-medium text-rose-400/80 transition-colors hover:text-rose-300"
-                        onClick={() => void remove(l.id)}
+                        onClick={() =>
+                          armedDeleteId === l.id ? void remove(l.id) : setArmedDeleteId(l.id)
+                        }
                       >
                         <Trash2 className="h-3.5 w-3.5" />
+                        {armedDeleteId === l.id ? 'Sure?' : ''}
                       </button>
                     </td>
                   </tr>

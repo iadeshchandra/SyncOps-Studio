@@ -275,13 +275,10 @@ export default function ServicesTab() {
     }
   };
 
+  // In-app two-step reset (window.confirm is auto-dismissed in some
+  // browsers, which silently vetoed the reset there).
+  const [resetArmed, setResetArmed] = useState(false);
   const reset = async () => {
-    if (
-      !window.confirm(
-        'Reset service lines to the built-in defaults? Your console edits will be discarded.',
-      )
-    )
-      return;
     setResetting(true);
     setNotice(null);
     try {
@@ -293,6 +290,7 @@ export default function ServicesTab() {
       setNotice({ ok: false, text: e instanceof Error ? e.message : 'Reset failed.' });
     } finally {
       setResetting(false);
+      setResetArmed(false);
     }
   };
 
@@ -343,7 +341,7 @@ export default function ServicesTab() {
           <button
             type="button"
             className="btn-ghost !px-3 !py-2 text-xs"
-            onClick={reset}
+            onClick={() => (resetArmed ? void reset() : setResetArmed(true))}
             disabled={resetting || saving}
           >
             {resetting ? (
@@ -351,7 +349,7 @@ export default function ServicesTab() {
             ) : (
               <RotateCcw className="h-3.5 w-3.5" />
             )}
-            Reset to built-in defaults
+            {resetArmed ? 'Click again to confirm reset' : 'Reset to built-in defaults'}
           </button>
           <button className="btn-primary" onClick={save} disabled={saving || resetting}>
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}

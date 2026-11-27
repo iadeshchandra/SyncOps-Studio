@@ -100,6 +100,13 @@ export default function OrdersTab() {
   const [payBusy, setPayBusy] = useState(false);
   const [cancelArmed, setCancelArmed] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  // In-app delete confirmation. window.confirm is silently auto-dismissed
+  // (returns false) in embedded/automated browsers, which made Delete order
+  // a no-op there — the confirmation must live in the page, not the browser.
+  const [deleteArmed, setDeleteArmed] = useState(false);
+  useEffect(() => {
+    setDeleteArmed(false);
+  }, [selected?.id]);
   const [showNew, setShowNew] = useState(false);
   const [nName, setNName] = useState('');
   const [nEmail, setNEmail] = useState('');
@@ -472,11 +479,10 @@ export default function OrdersTab() {
   };
 
   const handleDelete = (order: Order) => {
-    if (!window.confirm(`Delete order ${order.id} (${order.clientName})? This cannot be undone.`))
-      return;
     void mutate(
       async () => {
         await deleteOrder(order.id);
+        setDeleteArmed(false);
         setSelected(null);
       },
       'order.delete',
@@ -815,14 +821,39 @@ export default function OrdersTab() {
                   ))}
                 </select>
               </div>
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => handleDelete(selected)}
-                className="ml-auto inline-flex items-center gap-2 rounded-md border border-rose-800/70 bg-rose-950/40 px-4 py-2.5 text-sm font-semibold text-rose-300 transition-colors hover:border-rose-600 disabled:opacity-50"
-              >
-                <Trash2 className="h-4 w-4" /> {saving ? 'Working…' : 'Delete order'}
-              </button>
+              {deleteArmed ? (
+                <div className="ml-auto flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-rose-200">
+                    Delete {selected.ref ?? selected.id} and all its data — messages, claims,
+                    files, review? This cannot be undone.
+                  </span>
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => handleDelete(selected)}
+                    className="inline-flex items-center gap-2 rounded-md bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-rose-500 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4" /> {saving ? 'Working…' : 'Delete permanently'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => setDeleteArmed(false)}
+                    className="rounded-md border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 disabled:opacity-50"
+                  >
+                    Keep order
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => setDeleteArmed(true)}
+                  className="ml-auto inline-flex items-center gap-2 rounded-md border border-rose-800/70 bg-rose-950/40 px-4 py-2.5 text-sm font-semibold text-rose-300 transition-colors hover:border-rose-600 disabled:opacity-50"
+                >
+                  <Trash2 className="h-4 w-4" /> Delete order
+                </button>
+              )}
             </div>
 
             {selected.status === 'intake' && (

@@ -192,14 +192,29 @@ export default function ProductsTab() {
   const toggleSection = (id: string) =>
     setOpen((prev) => ({ ...prev, [id]: !prev[id] }));
 
+  const [discardArmed, setDiscardArmed] = useState(false);
   const patch = (p: Partial<Product>) => {
     setDraft((d) => (d ? { ...d, ...p } : d));
     setDirty(true);
+    setDiscardArmed(false);
   };
 
+  // Two-step unsaved-changes guard: window.confirm is auto-dismissed in
+  // some browsers, which silently trapped the editor on one record. The
+  // first attempt to leave shows a notice and arms the discard; repeating
+  // the same action discards and proceeds.
   const guardUnsaved = (): boolean => {
-    if (dirty && !window.confirm('Discard unsaved changes?')) return false;
-    return true;
+    if (!dirty) return true;
+    if (discardArmed) {
+      setDiscardArmed(false);
+      return true;
+    }
+    setDiscardArmed(true);
+    setNotice({
+      ok: false,
+      text: 'Unsaved changes — Save first, or repeat the action to discard them.',
+    });
+    return false;
   };
 
   const select = (id: string) => {
@@ -266,14 +281,11 @@ export default function ProductsTab() {
     }
   };
 
+  // In-app two-step delete (window.confirm is auto-dismissed in some
+  // browsers, which silently vetoed the delete there).
+  const [armedDeleteId, setArmedDeleteId] = useState<string | null>(null);
   const remove = async () => {
     if (!draft) return;
-    if (
-      !window.confirm(
-        `Delete product "${draft.name || draft.id}" (${draft.id})? This cannot be undone.`,
-      )
-    )
-      return;
     setDeleting(true);
     try {
       await deleteProduct(draft.id);
@@ -286,6 +298,7 @@ export default function ProductsTab() {
       setNotice({ ok: false, text: e instanceof Error ? e.message : 'Delete failed.' });
     } finally {
       setDeleting(false);
+      setArmedDeleteId(null);
     }
   };
 
@@ -338,11 +351,13 @@ export default function ProductsTab() {
             <button
               type="button"
               className="btn-ghost !px-3 !py-2 text-xs !text-rose-400/90 hover:!text-rose-300"
-              onClick={remove}
+              onClick={() =>
+                armedDeleteId === draft.id ? void remove() : setArmedDeleteId(draft.id)
+              }
               disabled={deleting}
             >
               {deleting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              Delete
+              {armedDeleteId === draft.id ? 'Confirm delete?' : 'Delete'}
             </button>
           )}
           <button className="btn-primary" onClick={save} disabled={saving || !draft}>
