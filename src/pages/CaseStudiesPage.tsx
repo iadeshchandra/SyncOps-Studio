@@ -3,16 +3,13 @@ import { ArrowRight } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import CaseStudies from '../components/CaseStudies';
-import { usePageMeta } from '../lib/meta';
+import { useConfigPageMeta } from '../lib/meta';
 import { formatArticleDate, useArticles } from '../lib/articles';
 
 export default function CaseStudiesPage() {
   const { articles, loading } = useArticles();
   const cases = articles.filter((a) => a.tags.some((t) => t.toLowerCase() === 'case study'));
-  usePageMeta(
-    'Case Studies — SyncOps Studio',
-    'Documented repairs from real engagements: the problem, the diagnosis, the fix, and how it was proven. Plus the studio\u2019s public, verifiable review record.',
-  );
+  useConfigPageMeta('case-studies');
 
   return (
     <div className="min-h-screen bg-slate-950">

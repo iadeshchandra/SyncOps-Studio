@@ -4,7 +4,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useSiteConfig } from '../lib/siteConfig';
 import { PAGE_WORDS } from '../data/content';
-import { usePageMeta } from '../lib/meta';
+import { useConfigPageMeta } from '../lib/meta';
 import { PROOF_STATS } from '../data/content';
 import { useHireModal } from '../components/HireModal';
 
@@ -40,10 +40,7 @@ const FITS: string[] = [
 
 export default function ForAgencies() {
   const { openHireModal } = useHireModal();
-  usePageMeta(
-    'For Agencies — SyncOps Studio',
-    'White-label server-side tracking delivery for agencies: fixed published prices you can mark up, deliverables under your brand, everything built in your client\u2019s own accounts.',
-  );
+  useConfigPageMeta('agencies');
 
   const { config } = useSiteConfig();
   const w = config.pageWords?.agencies ?? PAGE_WORDS.agencies;

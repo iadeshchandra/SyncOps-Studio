@@ -10,12 +10,17 @@ import {
 import { logAudit } from '../../lib/admin';
 import { EXTRA_FAQS, FAQS, type FaqItem } from '../../components/FaqList';
 import {
+  FOOTER_LINKS,
+  NAV_LINKS,
   PACKAGES,
+  PAGE_SEO,
   PAGE_WORDS,
   PIPELINE_STEPS,
   PROOF_STATS,
+  type LinkItem,
   type PageWords,
   type PageWordsKey,
+  type SeoKey,
   type PipelineStep,
   type ProofStat,
 } from '../../data/content';
@@ -80,6 +85,15 @@ export default function ContentTab() {
   const [heroSubtitle, setHeroSubtitle] = useState('');
   const [pipelineSteps, setPipelineSteps] = useState<PipelineStep[]>([]);
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
+  const [seo, setSeo] = useState<Record<SeoKey, { title: string; description: string }>>(() => {
+    const out = {} as Record<SeoKey, { title: string; description: string }>;
+    (Object.keys(PAGE_SEO) as SeoKey[]).forEach((k) => {
+      out[k] = { ...PAGE_SEO[k] };
+    });
+    return out;
+  });
+  const [navLinks, setNavLinks] = useState<LinkItem[]>([]);
+  const [footerLinks, setFooterLinks] = useState<LinkItem[]>([]);
   const [pageWords, setPageWords] = useState<Record<PageWordsKey, PageWords>>({
     about: { ...PAGE_WORDS.about },
     process: { ...PAGE_WORDS.process },
@@ -109,6 +123,15 @@ export default function ContentTab() {
     setProofStats((config.proofStats ?? PROOF_STATS).map((s) => ({ ...s })));
     setFaqs((config.faqs ?? FAQS).map((f) => ({ ...f })));
     setFaqsExtra((config.faqsExtra ?? EXTRA_FAQS).map((f) => ({ ...f })));
+    setSeo(() => {
+      const out = {} as Record<SeoKey, { title: string; description: string }>;
+      (Object.keys(PAGE_SEO) as SeoKey[]).forEach((k) => {
+        out[k] = { ...(config.seo?.[k] ?? PAGE_SEO[k]) };
+      });
+      return out;
+    });
+    setNavLinks((config.navLinks ?? NAV_LINKS).map((l) => ({ ...l })));
+    setFooterLinks((config.footerLinks ?? FOOTER_LINKS).map((l) => ({ ...l })));
     setPageWords({
       about: { ...(config.pageWords?.about ?? PAGE_WORDS.about) },
       process: { ...(config.pageWords?.process ?? PAGE_WORDS.process) },
@@ -135,6 +158,9 @@ export default function ContentTab() {
         faqs,
         faqsExtra,
         pageWords,
+        seo,
+        navLinks,
+        footerLinks,
         pricing,
         proofQuotes: proofQuotes,
         testimonials,
@@ -234,6 +260,125 @@ export default function ContentTab() {
             onChange={(e) => setHeroSubtitle(e.target.value)}
           />
         </Field>
+      </SectionCard>
+
+      <SectionCard
+        title="Search titles & descriptions"
+        desc="What Google shows for each page: the blue title line and the short description under it. Changes apply to visitors right away; the copy baked in for crawlers refreshes on the next site update."
+      >
+        {(
+          [
+            ['home', 'HOME PAGE'],
+            ['about', 'ABOUT'],
+            ['process', 'PROCESS'],
+            ['agencies', 'FOR AGENCIES'],
+            ['contact', 'CONTACT'],
+            ['faq', 'FAQ'],
+            ['pricing', 'PRICING'],
+            ['reviews', 'REVIEWS'],
+            ['case-studies', 'CASE STUDIES'],
+            ['notes', 'FIELD NOTES'],
+            ['work', 'WORK'],
+            ['compare', 'COMPARE'],
+            ['labs', 'LABS'],
+            ['status', 'STATUS'],
+            ['terms', 'TERMS & REFUNDS'],
+            ['privacy', 'PRIVACY'],
+          ] as [SeoKey, string][]
+        ).map(([key, label]) => (
+          <div key={key} className="rounded-md border border-slate-800 bg-slate-950/60 p-4">
+            <span className="telemetry text-cyan-400">{label}</span>
+            <div className="mt-3 grid gap-3">
+              <Field label="Title (the blue line in Google)">
+                <input
+                  className="input-dark"
+                  value={seo[key].title}
+                  onChange={(e) => setSeo({ ...seo, [key]: { ...seo[key], title: e.target.value } })}
+                />
+              </Field>
+              <Field label="Description (the text under the title)">
+                <textarea
+                  rows={2}
+                  className="input-dark"
+                  value={seo[key].description}
+                  onChange={(e) =>
+                    setSeo({ ...seo, [key]: { ...seo[key], description: e.target.value } })
+                  }
+                />
+              </Field>
+            </div>
+          </div>
+        ))}
+      </SectionCard>
+
+      <SectionCard
+        title="Menu & footer links"
+        desc="The page links in the top menu (on phones the same list appears in the menu, now including About and Contact) and in the footer's Studio column. The address is the page path, like /about."
+      >
+        <p className="telemetry text-cyan-400">TOP MENU LINKS</p>
+        {navLinks.map((l, i) => (
+          <div key={i} className="flex items-start gap-2">
+            <div className="grid flex-1 gap-3 sm:grid-cols-2">
+              <Field label="Words shown">
+                <input
+                  className="input-dark"
+                  value={l.label}
+                  onChange={(e) => setNavLinks(updateAt(navLinks, i, { label: e.target.value }))}
+                />
+              </Field>
+              <Field label="Goes to (page address)">
+                <input
+                  className="input-dark"
+                  value={l.to}
+                  onChange={(e) => setNavLinks(updateAt(navLinks, i, { to: e.target.value }))}
+                />
+              </Field>
+            </div>
+            <button
+              className="mt-6 inline-flex shrink-0 items-center gap-1 text-xs font-medium text-rose-400/80 transition-colors hover:text-rose-300"
+              onClick={() => setNavLinks(navLinks.filter((_, idx) => idx !== i))}
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Remove
+            </button>
+          </div>
+        ))}
+        <button className="btn-ghost w-full" onClick={() => setNavLinks([...navLinks, { label: '', to: '/' }])}>
+          <Plus className="h-4 w-4" /> Add menu link
+        </button>
+
+        <p className="telemetry !mt-8 text-cyan-400">FOOTER — STUDIO COLUMN</p>
+        {footerLinks.map((l, i) => (
+          <div key={i} className="flex items-start gap-2">
+            <div className="grid flex-1 gap-3 sm:grid-cols-2">
+              <Field label="Words shown">
+                <input
+                  className="input-dark"
+                  value={l.label}
+                  onChange={(e) => setFooterLinks(updateAt(footerLinks, i, { label: e.target.value }))}
+                />
+              </Field>
+              <Field label="Goes to (page address)">
+                <input
+                  className="input-dark"
+                  value={l.to}
+                  onChange={(e) => setFooterLinks(updateAt(footerLinks, i, { to: e.target.value }))}
+                />
+              </Field>
+            </div>
+            <button
+              className="mt-6 inline-flex shrink-0 items-center gap-1 text-xs font-medium text-rose-400/80 transition-colors hover:text-rose-300"
+              onClick={() => setFooterLinks(footerLinks.filter((_, idx) => idx !== i))}
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Remove
+            </button>
+          </div>
+        ))}
+        <button
+          className="btn-ghost w-full"
+          onClick={() => setFooterLinks([...footerLinks, { label: '', to: '/' }])}
+        >
+          <Plus className="h-4 w-4" /> Add footer link
+        </button>
       </SectionCard>
 
       <SectionCard

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowUpRight, BadgeCheck, Star } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { usePageMeta } from '../lib/meta';
+import { useConfigPageMeta } from '../lib/meta';
 import { PROOF_STATS, PROOF_URL } from '../data/content';
 import { PROOF_QUOTES } from '../data/content';
 import { useSiteConfig } from '../lib/siteConfig';
@@ -28,10 +28,7 @@ export default function Reviews() {
     };
   }, []);
 
-  usePageMeta(
-    'Reviews — SyncOps Studio',
-    'What clients say about SyncOps Studio: a public 4.9/5 record across 322 Fiverr reviews, plus reviews from completed studio engagements.',
-  );
+  useConfigPageMeta('reviews');
 
   return (
     <div className="min-h-screen bg-slate-950">

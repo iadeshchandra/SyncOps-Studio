@@ -2,17 +2,14 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Check } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { usePageMeta } from '../lib/meta';
+import { useConfigPageMeta } from '../lib/meta';
 import { useServiceLines } from '../lib/siteConfig';
 import { useHireModal } from '../components/HireModal';
 
 export default function Pricing() {
   const lines = useServiceLines();
   const { openHireModal } = useHireModal();
-  usePageMeta(
-    'Pricing — SyncOps Studio',
-    'Every SyncOps Studio package and price, in one place: fixed-scope, one-time engineering fees across CAPI infrastructure, analytics setup, app builds and ChatGPT Ads measurement.',
-  );
+  useConfigPageMeta('pricing');
 
   return (
     <div className="min-h-screen bg-slate-950">

@@ -2,7 +2,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { logAudit } from './admin';
-import type { Package, PageWords, PageWordsKey, PipelineStep, ProofQuote, ProofStat } from '../data/content';
+import type { LinkItem, Package, PageWords, PageWordsKey, PipelineStep, ProofQuote, ProofStat, SeoKey } from '../data/content';
 import { SERVICE_LINES, type ServiceLine } from '../data/services';
 
 /**
@@ -62,6 +62,9 @@ export interface SiteConfig {
   faqs?: { q: string; a: string }[] | null;
   faqsExtra?: { q: string; a: string }[] | null;
   pageWords?: Partial<Record<PageWordsKey, PageWords>> | null;
+  seo?: Partial<Record<SeoKey, { title: string; description: string }>> | null;
+  navLinks?: LinkItem[] | null;
+  footerLinks?: LinkItem[] | null;
   pricing: PackageConfig[] | null;
   proofQuotes: ProofQuote[] | null;
   testimonials: TestimonialConfig[] | null;
@@ -99,6 +102,9 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   faqs: null,
   faqsExtra: null,
   pageWords: null,
+  seo: null,
+  navLinks: null,
+  footerLinks: null,
   pricing: null,
   proofQuotes: null,
   testimonials: null,

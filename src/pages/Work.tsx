@@ -5,7 +5,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useHireModal } from '../components/HireModal';
 import { useProducts } from '../lib/products';
-import { usePageMeta } from '../lib/meta';
+import { useConfigPageMeta } from '../lib/meta';
 import {
   ACCENT_STYLES,
   STATUS_LABELS,
@@ -104,10 +104,7 @@ function SkeletonGrid() {
 }
 
 export default function Work() {
-  usePageMeta(
-    'Work — SyncOps Studio',
-    'The SyncOps Studio portfolio: real products engineered and shipped by the studio — the same team and process we bring to client builds.'
-  );
+  useConfigPageMeta('work');
   const { products, loading } = useProducts();
   const { openHireModal } = useHireModal();
   const [filter, setFilter] = useState<Filter>('all');

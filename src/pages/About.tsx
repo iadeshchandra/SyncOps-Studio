@@ -4,7 +4,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useSiteConfig } from '../lib/siteConfig';
 import { PAGE_WORDS } from '../data/content';
-import { usePageMeta } from '../lib/meta';
+import { useConfigPageMeta } from '../lib/meta';
 import { PROOF_STATS, PROOF_URL } from '../data/content';
 import { useHireModal } from '../components/HireModal';
 
@@ -38,10 +38,7 @@ const PRINCIPLES: { icon: typeof KeyRound; title: string; body: string }[] = [
 
 export default function About() {
   const { openHireModal } = useHireModal();
-  usePageMeta(
-    'About — SyncOps Studio',
-    'SyncOps Studio is a one-architect measurement studio: server-side tracking and CAPI infrastructure, practised since 2019, 322 Fiverr reviews at 4.9/5, 240+ businesses tracked.',
-  );
+  useConfigPageMeta('about');
 
   const { config } = useSiteConfig();
   const w = config.pageWords?.about ?? PAGE_WORDS.about;

@@ -111,6 +111,118 @@ export const PAGE_WORDS: Record<PageWordsKey, PageWords> = {
   },
 };
 
+export type SeoKey =
+  | 'home' | 'about' | 'process' | 'agencies' | 'contact' | 'faq' | 'pricing'
+  | 'reviews' | 'case-studies' | 'notes' | 'work' | 'compare' | 'labs'
+  | 'status' | 'terms' | 'privacy';
+
+/**
+ * Each public page's Google title + description — the code defaults the
+ * console edits. Keep scripts/prerender-meta.mjs in step: it bakes these
+ * defaults into the static HTML for crawlers.
+ */
+export const PAGE_SEO: Record<SeoKey, { title: string; description: string }> = {
+  home: {
+    title: 'SyncOps Studio — First-Party Data Infrastructure & Server-Side Tagging',
+    description: 'SyncOps Studio — elite first-party data infrastructure, server-side tagging and Conversion API architecture for 7-to-9 figure e-commerce brands.',
+  },
+  about: {
+    title: 'About — SyncOps Studio',
+    description: 'SyncOps Studio is a one-architect measurement studio: server-side tracking and CAPI infrastructure, practised since 2019, 322 Fiverr reviews at 4.9/5, 240+ businesses tracked.',
+  },
+  process: {
+    title: 'How We Work — SyncOps Studio',
+    description: 'The SyncOps engagement process: architecture call and free audit, fixed-scope proposal, access checklist and start gate, build, verification on real traffic, and a handover with the keys.',
+  },
+  agencies: {
+    title: 'For Agencies — SyncOps Studio',
+    description: 'White-label server-side tracking delivery for agencies: fixed published prices you can mark up, deliverables under your brand, everything built in your client\u2019s own accounts.',
+  },
+  contact: {
+    title: 'Contact — SyncOps Studio',
+    description: 'Contact SyncOps Studio: email the architect directly, use live chat, or order through Fiverr. What happens after you write, step by step.',
+  },
+  faq: {
+    title: 'FAQ — SyncOps Studio',
+    description: 'Straight answers about server-side tracking with SyncOps Studio: ownership, pricing, timelines, migration, payments, refunds and privacy.',
+  },
+  pricing: {
+    title: 'Pricing — SyncOps Studio',
+    description: 'Every SyncOps Studio package and price, in one place: fixed-scope, one-time engineering fees across CAPI infrastructure, analytics setup, app builds and ChatGPT Ads measurement.',
+  },
+  reviews: {
+    title: 'Reviews — SyncOps Studio',
+    description: 'What clients say about SyncOps Studio: a public 4.9/5 record across 322 Fiverr reviews, plus reviews from completed studio engagements.',
+  },
+  'case-studies': {
+    title: 'Case Studies — SyncOps Studio',
+    description: 'Documented repairs from real engagements: the problem, the diagnosis, the fix, and how it was proven. Plus the studio\u2019s public, verifiable review record.',
+  },
+  notes: {
+    title: 'Field Notes — SyncOps Studio',
+    description: 'Field notes from real tracking engagements: what broke, how it was diagnosed, and what fixed it — Meta CAPI, TikTok Events API, Microsoft Ads and more.',
+  },
+  work: {
+    title: 'Work — SyncOps Studio',
+    description: 'The SyncOps Studio portfolio: real products engineered and shipped by the studio — the same team and process we bring to client builds.',
+  },
+  compare: {
+    title: 'Compare — SyncOps Studio vs Stape vs PixelFly',
+    description: 'An honest comparison of SyncOps Studio with Stape and PixelFly: what each tool really does, where each one stops, and what a hands-on studio adds.',
+  },
+  labs: {
+    title: 'SyncOps Labs — SyncOps Studio',
+    description: 'SyncOps Labs: a live Conversions API payload workbench, a first-party DNS generator and server-side tracking masterclasses — the tooling our architects use on client engagements.',
+  },
+  status: {
+    title: 'System Status — SyncOps Studio',
+    description: 'SyncOps Studio infrastructure: uptime design targets, the telemetry model, an edge-stream demonstration and incident-response drills.',
+  },
+  terms: {
+    title: 'Terms & Refunds — SyncOps Studio',
+    description: 'How a SyncOps Studio engagement works: fixed scope, direct payments, the refund policy, revision rounds, timelines and your data rights.',
+  },
+  privacy: {
+    title: 'Privacy Policy — SyncOps Studio',
+    description: 'What data SyncOps Studio collects and why, cookies and Google AdSense advertising, who processes data, and your export and deletion rights.',
+  },
+};
+
+export interface LinkItem {
+  label: string;
+  to: string;
+}
+
+/** Header menu page links — the code defaults the console edits. */
+export const NAV_LINKS: LinkItem[] = [
+  { label: 'Labs', to: '/labs' },
+  { label: 'Work', to: '/work' },
+  { label: 'Compare', to: '/compare' },
+  { label: 'Field Notes', to: '/notes' },
+  { label: 'About', to: '/about' },
+  { label: 'Contact', to: '/contact' },
+];
+
+/** Footer "Studio" column links — the code defaults the console edits. */
+export const FOOTER_LINKS: LinkItem[] = [
+  { label: 'How we work', to: '/process' },
+  { label: 'Case studies', to: '/case-studies' },
+  { label: 'About the studio', to: '/about' },
+  { label: 'Contact', to: '/contact' },
+  { label: 'Our work', to: '/work' },
+  { label: 'Compare: Studio vs DIY', to: '/compare' },
+  { label: 'Terms & Refunds', to: '/terms' },
+  { label: 'Privacy Policy', to: '/privacy' },
+  { label: 'Field notes', to: '/notes' },
+  { label: 'Pricing', to: '/pricing' },
+  { label: 'Reviews', to: '/reviews' },
+  { label: 'For agencies', to: '/for-agencies' },
+  { label: 'FAQ', to: '/faq' },
+  { label: 'Live status', to: '/status' },
+  { label: 'SyncOps Labs', to: '/labs' },
+  { label: 'Studio Console', to: '/studio/console' },
+];
+
 export interface ProofStat {
   value: string;
   label: string;

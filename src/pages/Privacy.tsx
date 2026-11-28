@@ -1,6 +1,6 @@
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { usePageMeta } from '../lib/meta';
+import { useConfigPageMeta } from '../lib/meta';
 
 const SECTIONS: { title: string; body: string[] }[] = [
   {
@@ -55,10 +55,7 @@ const SECTIONS: { title: string; body: string[] }[] = [
 ];
 
 export default function Privacy() {
-  usePageMeta(
-    'Privacy Policy — SyncOps Studio',
-    'What data SyncOps Studio collects and why, cookies and Google AdSense advertising, who processes data, and your export and deletion rights.',
-  );
+  useConfigPageMeta('privacy');
 
   return (
     <div className="min-h-screen bg-slate-950">

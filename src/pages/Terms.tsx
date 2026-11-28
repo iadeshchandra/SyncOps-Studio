@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { usePageMeta } from '../lib/meta';
+import { useConfigPageMeta } from '../lib/meta';
 
 const SECTIONS: { title: string; body: string[] }[] = [
   {
@@ -48,10 +48,7 @@ const SECTIONS: { title: string; body: string[] }[] = [
 ];
 
 export default function Terms() {
-  usePageMeta(
-    'Terms & Refunds — SyncOps Studio',
-    'How a SyncOps Studio engagement works: fixed scope, direct payments, the refund policy, revision rounds, timelines and your data rights.',
-  );
+  useConfigPageMeta('terms');
 
   return (
     <div className="min-h-screen bg-slate-950">

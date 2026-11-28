@@ -3,7 +3,7 @@ import { ArrowUpRight, Mail, MessagesSquare, ShieldCheck } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { PAGE_WORDS } from '../data/content';
-import { usePageMeta } from '../lib/meta';
+import { useConfigPageMeta } from '../lib/meta';
 import { useSiteConfig } from '../lib/siteConfig';
 import { PROOF_URL } from '../data/content';
 import { useHireModal } from '../components/HireModal';
@@ -27,10 +27,7 @@ export default function Contact() {
   const { config } = useSiteConfig();
   const { openHireModal } = useHireModal();
   const email = config.contactEmail;
-  usePageMeta(
-    'Contact — SyncOps Studio',
-    'Contact SyncOps Studio: email the architect directly, use live chat, or order through Fiverr. What happens after you write, step by step.',
-  );
+  useConfigPageMeta('contact');
 
   const w = config.pageWords?.contact ?? PAGE_WORDS.contact;
 

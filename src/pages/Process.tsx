@@ -6,7 +6,7 @@ import Footer from '../components/Footer';
 import ProtocolPipeline from '../components/ProtocolPipeline';
 import { useSiteConfig } from '../lib/siteConfig';
 import { PAGE_WORDS } from '../data/content';
-import { usePageMeta } from '../lib/meta';
+import { useConfigPageMeta } from '../lib/meta';
 import { useHireModal } from '../components/HireModal';
 
 const STEPS: { icon: LucideIcon; title: string; body: string; mono: string }[] = [
@@ -58,10 +58,7 @@ const NEEDS: string[] = [
 
 export default function Process() {
   const { openHireModal } = useHireModal();
-  usePageMeta(
-    'How We Work — SyncOps Studio',
-    'The SyncOps engagement process: architecture call and free audit, fixed-scope proposal, access checklist and start gate, build, verification on real traffic, and a handover with the keys.',
-  );
+  useConfigPageMeta('process');
 
   const { config } = useSiteConfig();
   const w = config.pageWords?.process ?? PAGE_WORDS.process;

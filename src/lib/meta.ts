@@ -76,6 +76,16 @@ export function useJsonLd(id: string, data: unknown): void {
   }, [id, data]);
 }
 
+import { useSiteConfig } from './siteConfig';
+import { PAGE_SEO, type SeoKey } from '../data/content';
+
+/** Page meta from the console-managed SEO settings, with code defaults. */
+export function useConfigPageMeta(key: SeoKey): void {
+  const { config } = useSiteConfig();
+  const seo = config.seo?.[key] ?? PAGE_SEO[key];
+  usePageMeta(seo.title, seo.description);
+}
+
 export function usePageMeta(title: string, description: string): void {
   useEffect(() => {
     setPageMeta(title, description);

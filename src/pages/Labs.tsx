@@ -5,7 +5,7 @@ import Footer from '../components/Footer';
 import PayloadBuilder from '../components/PayloadBuilder';
 import DnsGenerator from '../components/DnsGenerator';
 import { cx } from '../lib/format';
-import { usePageMeta } from '../lib/meta';
+import { useConfigPageMeta } from '../lib/meta';
 
 const MASTERCLASSES = [
   {
@@ -119,10 +119,7 @@ function MasterclassCard({ mc }: { mc: (typeof MASTERCLASSES)[number] }) {
 }
 
 export default function Labs() {
-  usePageMeta(
-    'SyncOps Labs — SyncOps Studio',
-    'SyncOps Labs: a live Conversions API payload workbench, a first-party DNS generator and server-side tracking masterclasses — the tooling our architects use on client engagements.'
-  );
+  useConfigPageMeta('labs');
 
   return (
     <div className="min-h-screen bg-slate-950">

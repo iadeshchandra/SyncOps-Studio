@@ -20,7 +20,7 @@ import {
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useHireModal } from '../components/HireModal';
-import { usePageMeta } from '../lib/meta';
+import { useConfigPageMeta } from '../lib/meta';
 import { cx } from '../lib/format';
 
 /* ------------------------------------------------------------------ */
@@ -167,10 +167,7 @@ function CellBody({ cell }: { cell: Cell }) {
 export default function Compare() {
   const { openHireModal } = useHireModal();
 
-  usePageMeta(
-    'Compare — SyncOps Studio vs Stape vs PixelFly',
-    'An honest comparison of SyncOps Studio with Stape and PixelFly: what each tool really does, where each one stops, and what a hands-on studio adds.',
-  );
+  useConfigPageMeta('compare');
 
   return (
     <div className="min-h-screen bg-slate-950">

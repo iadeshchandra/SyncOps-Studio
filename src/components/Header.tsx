@@ -3,6 +3,8 @@ import type { MouseEvent, ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { cx } from '../lib/format';
+import { useSiteConfig } from '../lib/siteConfig';
+import { NAV_LINKS } from '../data/content';
 
 const JUMPS = [
   { label: 'Auditor', to: '#auditor' },
@@ -73,6 +75,8 @@ function LogoMark() {
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const { config } = useSiteConfig();
+  const navLinks = config.navLinks ?? NAV_LINKS;
   const close = () => setOpen(false);
 
   const navLinkCls =
@@ -94,24 +98,11 @@ export default function Header() {
               {j.label}
             </JumpLink>
           ))}
-          <Link to="/labs" className={navLinkCls}>
-            Labs
-          </Link>
-          <Link to="/work" className={navLinkCls}>
-            Work
-          </Link>
-          <Link to="/compare" className={navLinkCls}>
-            Compare
-          </Link>
-          <Link to="/notes" className={navLinkCls}>
-            Field Notes
-          </Link>
-          <Link to="/about" className={navLinkCls}>
-            About
-          </Link>
-          <Link to="/contact" className={navLinkCls}>
-            Contact
-          </Link>
+          {navLinks.map((l) => (
+            <Link key={l.to} to={l.to} className={navLinkCls}>
+              {l.label}
+            </Link>
+          ))}
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
@@ -165,34 +156,16 @@ export default function Header() {
                 {j.label}
               </JumpLink>
             ))}
-            <Link
-              to="/labs"
-              onClick={close}
-              className="block rounded-md px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white"
-            >
-              Labs
-            </Link>
-            <Link
-              to="/work"
-              onClick={close}
-              className="block rounded-md px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white"
-            >
-              Work
-            </Link>
-            <Link
-              to="/compare"
-              onClick={close}
-              className="block rounded-md px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white"
-            >
-              Compare
-            </Link>
-            <Link
-              to="/notes"
-              onClick={close}
-              className="block rounded-md px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white"
-            >
-              Field Notes
-            </Link>
+            {navLinks.map((l) => (
+              <Link
+                key={l.to}
+                to={l.to}
+                onClick={close}
+                className="block rounded-md px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white"
+              >
+                {l.label}
+              </Link>
+            ))}
             <Link
               to="/status"
               onClick={close}

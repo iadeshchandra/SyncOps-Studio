@@ -1,6 +1,7 @@
 import type { MouseEvent, ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSiteConfig } from '../lib/siteConfig';
+import { FOOTER_LINKS } from '../data/content';
 
 function JumpLink({ to, children }: { to: string; children: ReactNode }) {
   const navigate = useNavigate();
@@ -41,54 +42,15 @@ export default function Footer() {
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-2 lg:grid-cols-4">
         <div>
           <p className="eyebrow mb-4">Studio</p>
-          <Link to="/process" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
-            How we work
-          </Link>
-          <Link to="/case-studies" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
-            Case studies
-          </Link>
-          <Link to="/about" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
-            About the studio
-          </Link>
-          <Link to="/contact" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
-            Contact
-          </Link>
-          <Link to="/work" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
-            Our work
-          </Link>
-          <Link to="/compare" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
-            Compare: Studio vs DIY
-          </Link>
-          <Link to="/terms" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
-            Terms &amp; Refunds
-          </Link>
-          <Link to="/privacy" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
-            Privacy Policy
-          </Link>
-          <Link to="/notes" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
-            Field notes
-          </Link>
-          <Link to="/pricing" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
-            Pricing
-          </Link>
-          <Link to="/reviews" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
-            Reviews
-          </Link>
-          <Link to="/for-agencies" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
-            For agencies
-          </Link>
-          <Link to="/faq" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
-            FAQ
-          </Link>
-          <Link to="/status" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
-            Live status
-          </Link>
-          <Link to="/labs" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
-            SyncOps Labs
-          </Link>
-          <Link to="/studio/console" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
-            Studio Console
-          </Link>
+          {(config.footerLinks ?? FOOTER_LINKS).map((l) => (
+            <Link
+              key={l.to}
+              to={l.to}
+              className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100"
+            >
+              {l.label}
+            </Link>
+          ))}
         </div>
 
         <div>

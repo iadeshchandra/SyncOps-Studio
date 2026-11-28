@@ -1,5 +1,5 @@
 import { } from 'react';
-import { usePageMeta } from '../lib/meta';
+import { useConfigPageMeta } from '../lib/meta';
 import { Link } from 'react-router-dom';
 import { ArrowRight, NotebookPen } from 'lucide-react';
 import Header from '../components/Header';
@@ -63,10 +63,7 @@ function SkeletonGrid() {
 export default function Notes() {
   const { articles, loading } = useArticles();
 
-  usePageMeta(
-    'Field Notes — SyncOps Studio',
-    'Field notes from real tracking engagements: what broke, how it was diagnosed, and what fixed it — Meta CAPI, TikTok Events API, Microsoft Ads and more.',
-  );
+  useConfigPageMeta('notes');
 
   return (
     <div className="min-h-screen bg-slate-950">

@@ -5,7 +5,7 @@ import Footer from '../components/Footer';
 import TelemetryBento from '../components/TelemetryBento';
 import Terminal from '../components/Terminal';
 import { NODES, type TelemetryNode } from '../lib/telemetry';
-import { usePageMeta } from '../lib/meta';
+import { useConfigPageMeta } from '../lib/meta';
 
 const POLL_SECONDS = 30;
 
@@ -48,10 +48,7 @@ export default function Status() {
   const [nodes, setNodes] = useState<TelemetryNode[]>(NODES);
   const [lastRefresh, setLastRefresh] = useState<string | null>(null);
 
-  usePageMeta(
-    'System Status — SyncOps Studio',
-    'SyncOps Studio infrastructure: uptime design targets, the telemetry model, an edge-stream demonstration and incident-response drills.'
-  );
+  useConfigPageMeta('status');
 
   useEffect(() => {
     const id = window.setInterval(() => {

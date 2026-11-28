@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import FaqList, { EXTRA_FAQS, FAQS } from '../components/FaqList';
-import { usePageMeta, useJsonLd } from '../lib/meta';
+import { useConfigPageMeta, useJsonLd } from '../lib/meta';
 import { useSiteConfig } from '../lib/siteConfig';
 import { useHireModal } from '../components/HireModal';
 
@@ -10,10 +10,7 @@ export default function FaqPage() {
   const { openHireModal } = useHireModal();
   const { config } = useSiteConfig();
   const allFaqs = [...(config.faqs ?? FAQS), ...(config.faqsExtra ?? EXTRA_FAQS)];
-  usePageMeta(
-    'FAQ — SyncOps Studio',
-    'Straight answers about server-side tracking with SyncOps Studio: ownership, pricing, timelines, migration, payments, refunds and privacy.',
-  );
+  useConfigPageMeta('faq');
 
   useJsonLd('faq-schema', {
     '@context': 'https://schema.org',
