@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import type { ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './lib/auth';
@@ -9,34 +9,52 @@ import { ClientProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
 import { useSiteConfig } from './lib/siteConfig';
 import Landing from './pages/Landing';
-import Status from './pages/Status';
-import Terms from './pages/Terms';
-import Privacy from './pages/Privacy';
-import Labs from './pages/Labs';
-import Work from './pages/Work';
-import ProductDetail from './pages/ProductDetail';
-import Compare from './pages/Compare';
-import Notes from './pages/Notes';
-import NoteDetail from './pages/NoteDetail';
-import Login from './pages/Login';
-import ClientPortal from './pages/ClientPortal';
-import ClientDashboard from './pages/ClientDashboard';
 import Maintenance from './pages/Maintenance';
-import StudioConsole from './pages/StudioConsole';
-import About from './pages/About';
-import Contact from './pages/Contact';
-import CaseStudiesPage from './pages/CaseStudiesPage';
-import ServiceDetail from './pages/ServiceDetail';
-import FaqPage from './pages/FaqPage';
-import Process from './pages/Process';
-import ForAgencies from './pages/ForAgencies';
-import Pricing from './pages/Pricing';
-import Reviews from './pages/Reviews';
+
+/**
+ * Route-level code splitting: every page except the homepage (Landing)
+ * and the maintenance screen loads as its own chunk, only when visited.
+ * The Studio Console and client portal are the heaviest parts of the app
+ * and no public visitor should ever download them.
+ */
+const Status = lazy(() => import('./pages/Status'));
+const Terms = lazy(() => import('./pages/Terms'));
+const Privacy = lazy(() => import('./pages/Privacy'));
+const Labs = lazy(() => import('./pages/Labs'));
+const Work = lazy(() => import('./pages/Work'));
+const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const Compare = lazy(() => import('./pages/Compare'));
+const Notes = lazy(() => import('./pages/Notes'));
+const NoteDetail = lazy(() => import('./pages/NoteDetail'));
+const Login = lazy(() => import('./pages/Login'));
+const ClientPortal = lazy(() => import('./pages/ClientPortal'));
+const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
+const StudioConsole = lazy(() => import('./pages/StudioConsole'));
+const About = lazy(() => import('./pages/About'));
+const Contact = lazy(() => import('./pages/Contact'));
+const CaseStudiesPage = lazy(() => import('./pages/CaseStudiesPage'));
+const ServiceDetail = lazy(() => import('./pages/ServiceDetail'));
+const FaqPage = lazy(() => import('./pages/FaqPage'));
+const Process = lazy(() => import('./pages/Process'));
+const ForAgencies = lazy(() => import('./pages/ForAgencies'));
+const Pricing = lazy(() => import('./pages/Pricing'));
+const Reviews = lazy(() => import('./pages/Reviews'));
 
 /**
  * Hash-scroll restoration: links like `/#auditor` (used by the Compare
  * page and cross-page CTAs) must land on the section, not the page top.
  */
+/** Branded stand-in shown for the split second a page chunk loads. */
+function PageFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#020617]">
+      <div className="animate-pulse font-mono text-xs uppercase tracking-[0.3em] text-emerald-300/70">
+        SyncOps Studio
+      </div>
+    </div>
+  );
+}
+
 function HashScroll() {
   const { pathname, hash } = useLocation();
   useEffect(() => {
@@ -82,6 +100,7 @@ export default function App() {
           <TawkChat />
           <Measurement />
           <SiteGate>
+            <Suspense fallback={<PageFallback />}>
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/status" element={<Status />} />
@@ -130,6 +149,7 @@ export default function App() {
               />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </Suspense>
           </SiteGate>
           <HireModalRoot />
         </BrowserRouter>
