@@ -92,7 +92,42 @@ export default function LeadsTab() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="grid gap-3 md:hidden">
+            {leads.map((l) => (
+              <div key={l.id} className="rounded-lg border border-slate-800 bg-slate-950/40 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <a
+                    href={`mailto:${l.email}?subject=Your%20SyncOps%20tracking%20audit%20report`}
+                    className="break-all font-mono text-xs text-cyan-300 hover:text-cyan-200 hover:underline"
+                  >
+                    {l.email}
+                  </a>
+                  <span
+                    className={`inline-flex shrink-0 items-center rounded border px-2 py-0.5 font-mono text-[11px] font-bold ${gradeStyle(l.grade)}`}
+                  >
+                    {l.grade} · {l.score}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <p className="break-all font-mono text-xs text-slate-300">{l.domain}</p>
+                  <p className="telemetry whitespace-nowrap">{formatTs(l.createdAt)}</p>
+                </div>
+                <div className="mt-1 text-right">
+                  <button
+                    className="inline-flex items-center gap-1 text-xs font-medium text-rose-400/80 transition-colors hover:text-rose-300"
+                    onClick={() =>
+                      armedDeleteId === l.id ? void remove(l.id) : setArmedDeleteId(l.id)
+                    }
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {armedDeleteId === l.id ? 'Sure?' : ''}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[720px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-800">
@@ -139,6 +174,7 @@ export default function LeadsTab() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </section>
     </div>

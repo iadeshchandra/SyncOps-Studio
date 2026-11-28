@@ -104,7 +104,33 @@ export default function DnsGenerator() {
         )}
 
         {valid && (
-          <div className="overflow-x-auto rounded-lg border border-slate-800">
+          <>
+          <div className="grid gap-3 md:hidden">
+            <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-4 font-mono text-[12px]">
+              <div className="flex items-center justify-between gap-3">
+                <span className="rounded border border-cyan-700/60 bg-cyan-950/60 px-1.5 py-0.5 text-cyan-300">
+                  CNAME
+                </span>
+                <span className="text-slate-400">TTL 3600</span>
+              </div>
+              <p className="telemetry mt-3">Host</p>
+              <p className="break-all text-slate-200">{host}</p>
+              <p className="telemetry mt-2">Value</p>
+              <p className="break-all text-emerald-300">{TARGET}</p>
+              <div className="mt-3 flex gap-2">
+                <CopyButton text={host} label="Copy host" />
+                <CopyButton text={TARGET} label="Copy value" />
+              </div>
+            </div>
+            <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-4 font-mono text-[12px]">
+              <p className="leading-relaxed text-slate-400">
+                <span className="text-slate-400">Target value:</span>{' '}
+                <span className="break-all text-emerald-300">{TARGET}</span>
+                <span className="text-slate-600"> — SyncOps tagging-server endpoint</span>
+              </p>
+            </div>
+          </div>
+          <div className="hidden overflow-x-auto rounded-lg border border-slate-800 md:block">
             <table className="w-full min-w-[560px] text-left font-mono text-[12px]">
               <thead>
                 <tr className="border-b border-slate-800 bg-slate-900/80 text-[10px] uppercase tracking-[0.18em] text-slate-500">
@@ -133,6 +159,7 @@ export default function DnsGenerator() {
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         <div>

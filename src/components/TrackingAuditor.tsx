@@ -26,6 +26,92 @@ function statusIcon(status: 'pass' | 'warn' | 'fail') {
   return <XCircle className="h-5 w-5 shrink-0 text-rose-400" />;
 }
 
+/**
+ * The idle-state visual: a clearly-labelled SAMPLE report in the exact
+ * format a real diagnostic produces (the Trackable pattern — show the
+ * product, don't describe it). The store is fictional and every line
+ * says so; the moment a real scan starts, this disappears.
+ */
+function SampleReport() {
+  const rows: { status: 'pass' | 'warn' | 'fail'; title: string; detail: string }[] = [
+    {
+      status: 'fail',
+      title: 'Purchase counted twice',
+      detail:
+        'Browser pixel and server event fire without a shared event ID — ROAS inflates and budgets chase phantom sales.',
+    },
+    {
+      status: 'fail',
+      title: 'No server-side CAPI',
+      detail:
+        'Safari and iOS cut the signal off within days, so your best buyers quietly vanish from optimisation.',
+    },
+    {
+      status: 'warn',
+      title: 'Event Match Quality 5.4 / 10',
+      detail:
+        'Email and phone are not hashed into the payload, so the platforms cannot match most buyers to profiles.',
+    },
+    {
+      status: 'warn',
+      title: 'Consent defaults to granted',
+      detail:
+        'Events fire before the consent banner is answered — a compliance risk in the EU and UK.',
+    },
+    {
+      status: 'pass',
+      title: 'Tag manager present',
+      detail:
+        'GTM is installed and firing on the key pages — a sound base to build the server-side layer on.',
+    },
+  ];
+  return (
+    <div className="relative mt-6 overflow-hidden rounded-lg border border-slate-800 bg-slate-950/40 p-6 sm:p-8">
+      <span className="absolute right-4 top-4 rounded-full border border-amber-400/50 bg-amber-400/10 px-2.5 py-1 font-mono text-[10px] font-bold tracking-[0.18em] text-amber-300">
+        SAMPLE
+      </span>
+      <div className="flex flex-wrap items-center gap-4">
+        <div
+          className={cx(
+            'flex h-20 w-20 shrink-0 flex-col items-center justify-center rounded-2xl border-2 bg-slate-950/80',
+            gradeStyle('C'),
+          )}
+        >
+          <span className="font-mono text-3xl font-black">C</span>
+          <span className="mt-0.5 font-mono text-[9px] tracking-[0.2em] text-slate-500">
+            SIGNAL HEALTH
+          </span>
+        </div>
+        <div className="min-w-0">
+          <p className="font-mono text-sm font-bold text-slate-100">sample-store.com</p>
+          <p className="mt-1 text-sm text-slate-400">
+            Overall score <span className="font-bold text-slate-100">58/100</span> · 2 critical ·
+            2 warnings · 1 passing
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            A sample report, in the exact format your diagnostic produces.
+          </p>
+        </div>
+      </div>
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        {rows.map((r) => (
+          <div key={r.title} className="rounded-lg border border-slate-800 bg-slate-950/60 p-4">
+            <p className="flex items-center gap-2 text-sm font-semibold text-slate-100">
+              {statusIcon(r.status)} {r.title}
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-slate-400">{r.detail}</p>
+          </div>
+        ))}
+      </div>
+      <p className="mt-5 text-xs leading-relaxed text-slate-500">
+        Sample findings for a fictional store. Run the diagnostic above — your report is
+        simulated instantly on the same five patterns, then verified by hand if you ask for
+        the full version by email.
+      </p>
+    </div>
+  );
+}
+
 export default function TrackingAuditor() {
   const [domain, setDomain] = useState('');
   const [platform, setPlatform] = useState<Platform>('shopify');
@@ -43,13 +129,14 @@ export default function TrackingAuditor() {
     return () => pending.forEach((t) => window.clearTimeout(t));
   }, []);
 
-  const runDiagnostic = () => {
-    const d = domain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+  const runDiagnostic = (override?: string) => {
+    const d = (typeof override === 'string' ? override : domain).trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
     if (!/^[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/.test(d)) {
       setError('Enter a valid store domain, e.g. brand.com');
       return;
     }
     setError('');
+    if (typeof override === 'string') setDomain(d);
     setResult(null);
     setLeadEmail('');
     setLeadState('idle');
@@ -71,6 +158,30 @@ export default function TrackingAuditor() {
       );
     });
   };
+
+  // Hero handoff: the hero form stores {domain, nonce} and fires an
+  // event; a fresh page load leaves the same note in sessionStorage.
+  // Either way, pick it up once per nonce and run the diagnostic.
+  const handoffNonce = useRef('');
+  useEffect(() => {
+    const take = () => {
+      const raw = window.sessionStorage.getItem('syncops_audit_handoff');
+      if (!raw) return;
+      window.sessionStorage.removeItem('syncops_audit_handoff');
+      try {
+        const { domain: d, nonce } = JSON.parse(raw) as { domain: string; nonce: string };
+        if (!d || !nonce || nonce === handoffNonce.current) return;
+        handoffNonce.current = nonce;
+        runDiagnostic(d);
+      } catch {
+        /* malformed handoff — ignore */
+      }
+    };
+    take();
+    window.addEventListener('syncops:audit-request', take);
+    return () => window.removeEventListener('syncops:audit-request', take);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const progress = Math.round((stageIdx / SCAN_STAGES.length) * 100);
 
@@ -144,7 +255,7 @@ export default function TrackingAuditor() {
           <div className="flex items-end">
             <button
               type="button"
-              onClick={runDiagnostic}
+              onClick={() => runDiagnostic()}
               disabled={phase === 'scanning'}
               className="btn-primary w-full lg:w-auto"
             >
@@ -188,6 +299,8 @@ export default function TrackingAuditor() {
             </div>
           </div>
         )}
+
+        {phase === 'idle' && <SampleReport />}
 
         {phase === 'done' && result && (
           <div className="mt-6 border-t border-slate-800/80 pt-8">

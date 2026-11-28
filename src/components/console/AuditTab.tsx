@@ -62,7 +62,24 @@ export default function AuditTab() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="grid gap-3 md:hidden">
+            {entries.map((e) => (
+              <div key={e.id} className="rounded-lg border border-slate-800 bg-slate-950/40 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="inline-flex items-center rounded border border-indigo-700/60 bg-indigo-950/60 px-2 py-0.5 font-mono text-[11px] text-indigo-300">
+                    {e.action}
+                  </span>
+                  <p className="telemetry whitespace-nowrap">{formatTs(e.createdAt)}</p>
+                </div>
+                <p className="mt-2 font-mono text-xs text-slate-300">{e.actor}</p>
+                <p className="mt-1 break-words text-xs leading-relaxed text-slate-400">
+                  {e.details || <span className="text-slate-600">—</span>}
+                </p>
+              </div>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[680px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-800">
@@ -90,6 +107,7 @@ export default function AuditTab() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </section>
     </div>

@@ -28,16 +28,14 @@ export default function Landing() {
         </section>
 
         <section className="border-t border-slate-800/60">
-          <RoasCalculator />
-        </section>
-
-        <section className="border-t border-slate-800/60 bg-slate-900/20">
-          <ProtocolPipeline />
-        </section>
-
-        <section className="border-t border-slate-800/60">
           <CaseStudies />
         </section>
+
+        
+
+        
+
+        
 
         <section className="border-t border-slate-800/60 bg-slate-900/20">
           <div id="services" className="scroll-mt-24">
@@ -47,6 +45,14 @@ export default function Landing() {
 
         <section className="border-t border-slate-800/60">
           <PricingGrid />
+        </section>
+
+        <section className="border-t border-slate-800/60 bg-slate-900/20">
+          <ProtocolPipeline />
+        </section>
+
+        <section className="border-t border-slate-800/60">
+          <RoasCalculator />
         </section>
 
         <section className="border-t border-slate-800/60">

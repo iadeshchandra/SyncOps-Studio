@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Terminal } from 'lucide-react';
 import { demoHex } from '../lib/format';
@@ -99,6 +99,27 @@ function TerminalVisualizer() {
 
 export default function Hero() {
   const { config } = useSiteConfig();
+  const [auditDomain, setAuditDomain] = useState('');
+
+  // The hero IS the audit form (the Trackable pattern): hand the domain
+  // to the Tracking Auditor section and scroll to it. The auditor reads
+  // the handoff on mount and on the event, then runs itself.
+  const startAudit = (e: FormEvent) => {
+    e.preventDefault();
+    const d = auditDomain
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .replace(/\/.*$/, '');
+    if (d) {
+      window.sessionStorage.setItem(
+        'syncops_audit_handoff',
+        JSON.stringify({ domain: d, nonce: Date.now().toString(36) }),
+      );
+      window.dispatchEvent(new Event('syncops:audit-request'));
+    }
+    document.getElementById('auditor')?.scrollIntoView({ behavior: 'smooth' });
+  };
   const tickerItems = config.tickerItems.length > 0 ? config.tickerItems : TICKER;
   return (
     <div className="relative overflow-hidden">
@@ -125,14 +146,33 @@ export default function Hero() {
               server-side tagging and Conversion API architecture that defeats Safari ITP, iOS
               14.5+ and ad blockers with 9.0+ Event Match Quality.
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <a href="#auditor" className="btn-primary">
-                Audit My Tracking
-              </a>
-              <Link to="/status" className="btn-ghost">
-                View System Status
-              </Link>
-            </div>
+            <form onSubmit={startAudit} className="mt-8">
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <label htmlFor="hero-audit-domain" className="sr-only">
+                  Your store domain
+                </label>
+                <input
+                  id="hero-audit-domain"
+                  type="text"
+                  value={auditDomain}
+                  onChange={(e) => setAuditDomain(e.target.value)}
+                  placeholder="yourstore.com"
+                  className="input-dark flex-1 font-mono"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <button type="submit" className="btn-primary whitespace-nowrap">
+                  Audit My Tracking
+                </button>
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-slate-500">
+                Free diagnostic, no sign-up — it runs the Tracking Auditor below on your
+                domain. Prefer proof first?{' '}
+                <Link to="/status" className="font-semibold text-slate-300 underline decoration-slate-600 underline-offset-4 transition-colors hover:text-emerald-300">
+                  View system status
+                </Link>
+              </p>
+            </form>
             <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2">
               {config.heroStats.map((s) => (
                 <div key={s.label}>

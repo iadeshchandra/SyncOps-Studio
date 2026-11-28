@@ -184,7 +184,117 @@ export default function ApiKeysTab() {
 
       {/* Key table */}
       <section className="glass overflow-hidden rounded-lg">
-        <div className="overflow-x-auto">
+        <div className="grid gap-3 md:hidden">
+          {loading ? (
+            <div className="rounded-lg border border-slate-800 bg-slate-950/40 px-4 py-10 text-center text-slate-500">
+              <Loader2 className="mx-auto h-5 w-5 animate-spin" />
+            </div>
+          ) : keys.length === 0 ? (
+            <div className="rounded-lg border border-slate-800 bg-slate-950/40 px-4 py-10 text-center">
+              <KeyRound className="mx-auto h-6 w-6 text-slate-600" />
+              <p className="mt-2 text-sm text-slate-500">No keys yet. Add the first one below.</p>
+            </div>
+          ) : (
+            keys.map((k) => (
+              <div key={k.id} className="rounded-lg border border-slate-800 bg-slate-950/40 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="break-all font-mono text-xs font-semibold text-slate-200">{k.name}</p>
+                  <span
+                    className={cx(
+                      'inline-flex shrink-0 items-center rounded border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider',
+                      k.scope === 'client'
+                        ? 'border-emerald-700/60 bg-emerald-950/60 text-emerald-400'
+                        : 'border-rose-800/60 bg-rose-950/60 text-rose-400',
+                    )}
+                  >
+                    {k.scope === 'client' ? 'client-safe' : 'server-only'}
+                  </span>
+                </div>
+                <button
+                  className="group mt-2 inline-flex max-w-full items-center gap-2 font-mono text-xs text-slate-300"
+                  onClick={() => setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))}
+                  title={revealed[k.id] ? 'Mask value' : 'Reveal value'}
+                >
+                  <span className={cx('break-all text-left', !k.enabled && 'line-through opacity-50')}>
+                    {revealed[k.id] ? k.value : maskValue(k.value)}
+                  </span>
+                  {revealed[k.id] ? (
+                    <EyeOff className="h-3.5 w-3.5 shrink-0 text-slate-500 group-hover:text-slate-300" />
+                  ) : (
+                    <Eye className="h-3.5 w-3.5 shrink-0 text-slate-500 group-hover:text-slate-300" />
+                  )}
+                </button>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                  <span className="telemetry">
+                    {new Date(k.createdAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </span>
+                  <span className={cx('telemetry', k.enabled ? 'text-emerald-400' : 'text-slate-500')}>
+                    {k.enabled ? '● enabled' : '○ disabled'}
+                  </span>
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                  <button
+                    className="rounded border border-slate-700 px-2.5 py-1 text-xs font-medium text-slate-300 transition-colors hover:border-cyan-500/60 hover:text-cyan-300"
+                    onClick={() => testKey(k)}
+                  >
+                    Test
+                  </button>
+                  <button
+                    className="rounded border border-slate-700 px-2.5 py-1 text-xs font-medium text-slate-300 transition-colors hover:border-amber-500/60 hover:text-amber-300"
+                    onClick={() => void toggleEnabled(k)}
+                    disabled={busy}
+                  >
+                    {k.enabled ? 'Disable' : 'Enable'}
+                  </button>
+                  {confirmDelete === k.id ? (
+                    <span className="inline-flex items-center gap-1">
+                      <button
+                        className="rounded border border-rose-700 bg-rose-950/60 px-2.5 py-1 text-xs font-bold text-rose-300"
+                        onClick={() => deleteKey(k)}
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-400"
+                        onClick={() => setConfirmDelete(null)}
+                      >
+                        Cancel
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      className="rounded border border-slate-700 p-1.5 text-slate-400 transition-colors hover:border-rose-700 hover:text-rose-300"
+                      onClick={() => setConfirmDelete(k.id)}
+                      aria-label={`Delete ${k.name}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                {testResults[k.id] && (
+                  <p
+                    className={cx(
+                      'mt-2 flex items-center gap-1 text-xs',
+                      testResults[k.id].ok ? 'text-emerald-400' : 'text-rose-400',
+                    )}
+                  >
+                    {testResults[k.id].ok ? (
+                      <CheckCircle2 className="h-3 w-3" />
+                    ) : (
+                      <XCircle className="h-3 w-3" />
+                    )}
+                    {testResults[k.id].message}
+                  </p>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead>
               <tr className="border-b border-slate-800">

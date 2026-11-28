@@ -577,7 +577,50 @@ export default function OrdersTab() {
         </span>
       </div>
 
-      <div className="glass overflow-x-auto rounded-xl">
+      <div className="grid gap-3 md:hidden">
+        {visibleOrders.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            onClick={() => setSelected(o)}
+            className="glass rounded-xl p-4 text-left transition-colors hover:bg-slate-800/30"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate font-semibold text-slate-100">{o.clientName}</p>
+                <p className="telemetry truncate">{o.clientEmail}</p>
+                <p className="telemetry text-cyan-300/80">{orderRef(o)}</p>
+              </div>
+              <span
+                className={cx(
+                  'shrink-0 rounded border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider',
+                  statusTone(o.status),
+                )}
+              >
+                {o.status}
+              </span>
+            </div>
+            <p className="mt-2 truncate text-sm text-slate-300">{o.packageName || o.packageId}</p>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+              <span className="telemetry">{o.brandUrl}</span>
+              <span className="telemetry">{fmtUSD(o.adSpend)}</span>
+              <span className="telemetry">
+                S{o.stageIndex + 1} · {STAGES[o.stageIndex]?.title ?? '?'}
+              </span>
+              <span className="telemetry">{ageDays(o.createdAt)}</span>
+            </div>
+          </button>
+        ))}
+        {visibleOrders.length === 0 && (
+          <div className="glass rounded-xl px-4 py-10 text-center text-sm text-slate-500">
+            {orders.length === 0
+              ? 'No orders yet. New Hire Modal intakes will appear here.'
+              : 'No orders match this search or filter.'}
+          </div>
+        )}
+      </div>
+
+      <div className="glass hidden overflow-x-auto rounded-xl md:block">
         <table className="w-full min-w-[860px] text-left text-sm">
           <thead>
             <tr className="border-b border-slate-800/80">

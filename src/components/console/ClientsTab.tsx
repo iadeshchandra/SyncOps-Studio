@@ -74,7 +74,39 @@ export default function ClientsTab() {
         <div className="glass rounded-xl border-rose-800/60 p-4 text-sm text-rose-300">{error}</div>
       )}
 
-      <div className="glass overflow-x-auto rounded-xl">
+      <div className="grid gap-3 md:hidden">
+        {clients.map((c) => (
+          <button
+            key={c.email}
+            type="button"
+            onClick={() => setSelected(c)}
+            className="glass rounded-xl p-4 text-left transition-colors hover:bg-slate-800/30"
+          >
+            <p className="truncate font-semibold text-slate-100">{c.name}</p>
+            <p className="telemetry truncate">{c.email}</p>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+              <span className="telemetry">{c.orders.length} orders</span>
+              <span className="telemetry">{c.activeCount} active</span>
+              <span className="telemetry">{fmtUSD(c.totalValue)}</span>
+              <span className="telemetry">
+                last{' '}
+                {new Date(c.lastActivityAt).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+              </span>
+            </div>
+          </button>
+        ))}
+        {clients.length === 0 && (
+          <div className="glass rounded-xl px-4 py-10 text-center text-sm text-slate-500">
+            No clients yet. Clients appear here automatically from their first order.
+          </div>
+        )}
+      </div>
+
+      <div className="glass hidden overflow-x-auto rounded-xl md:block">
         <table className="w-full min-w-[760px] text-left text-sm">
           <thead>
             <tr className="border-b border-slate-800/80">
