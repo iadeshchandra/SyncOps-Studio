@@ -12,6 +12,7 @@ import { cx } from '../lib/format';
 export default function Reviews() {
   const { config } = useSiteConfig();
   const quotes = config.proofQuotes ?? PROOF_QUOTES;
+  const stats = config.proofStats ?? PROOF_STATS;
   const [studioReviews, setStudioReviews] = useState<Review[]>([]);
 
   useEffect(() => {
@@ -43,7 +44,7 @@ export default function Reviews() {
         </p>
 
         <div className="mt-10 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {PROOF_STATS.map((s) => (
+          {stats.map((s) => (
             <div key={s.label} className="glass rounded-lg p-5">
               <p className="font-mono text-2xl font-black text-slate-50">{s.value}</p>
               <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.14em] text-slate-500">
@@ -80,7 +81,7 @@ export default function Reviews() {
           rel="noreferrer"
           className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-cyan-300 transition-colors hover:text-cyan-200"
         >
-          Read all 322 reviews on Fiverr
+          Read all reviews on Fiverr
           <ArrowUpRight className="h-4 w-4" />
         </a>
 

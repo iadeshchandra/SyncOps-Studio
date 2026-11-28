@@ -13,7 +13,7 @@ export interface ServicePackage {
 }
 
 export interface ServiceLineProof {
-  /** Short trust line, e.g. '4.9★ · 322 Fiverr reviews'. Real and verifiable only. */
+  /** Short trust line, e.g. '4.9★ · 323 Fiverr reviews'. Real and verifiable only. */
   text: string;
   url: string;
   urlLabel: string;
@@ -56,7 +56,7 @@ export const SERVICE_LINES: ServiceLine[] = [
       'attribution your media buying can finally trust.',
     icon: 'Satellite',
     proof: {
-      text: '4.9/5 from 322 Fiverr reviews · 240+ businesses tracked since 2019',
+      text: '4.9/5 from 320+ Fiverr reviews · 240+ businesses tracked since 2019',
       url: 'https://www.fiverr.com/adesh_chandra',
       urlLabel: 'Read the reviews',
     },
@@ -126,7 +126,7 @@ export const SERVICE_LINES: ServiceLine[] = [
       'spend is measured once, correctly, everywhere.',
     icon: 'Radar',
     proof: {
-      text: '4.9/5 from 322 Fiverr reviews · the same hands that set up 240+ businesses',
+      text: '4.9/5 from 320+ Fiverr reviews · the same hands that set up 240+ businesses',
       url: 'https://www.fiverr.com/adesh_chandra',
       urlLabel: 'Read the reviews',
     },
@@ -239,7 +239,7 @@ export const SERVICE_LINES: ServiceLine[] = [
       'conversions that actually happened, counted once. Built by the same hands as our Meta CAPI work.',
     icon: 'Bot',
     proof: {
-      text: '4.9/5 from 322 Fiverr reviews · 240+ businesses tracked since 2019',
+      text: '4.9/5 from 320+ Fiverr reviews · 240+ businesses tracked since 2019',
       url: 'https://www.fiverr.com/adesh_chandra',
       urlLabel: 'Read the reviews',
     },

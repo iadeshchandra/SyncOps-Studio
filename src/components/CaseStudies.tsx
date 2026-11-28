@@ -8,7 +8,7 @@ import { cx } from '../lib/format';
 /**
  * Client proof section (id="cases" — nav anchor preserved).
  * Everything here is real and verifiable: the founder's Fiverr practice
- * (322 reviews at 4.9★) with a link to read them. Never invented.
+ * (323 reviews at 4.9★) with a link to read them. Never invented.
  * The owner can edit the quotes from Studio Console → Content.
  */
 export default function CaseStudies() {
@@ -106,7 +106,7 @@ export default function CaseStudies() {
         rel="noreferrer"
         className="mt-8 inline-flex items-center gap-1.5 text-sm font-semibold text-cyan-300 transition-colors hover:text-cyan-200"
       >
-        Read all 322 reviews on Fiverr
+        Read all reviews on Fiverr
         <ArrowUpRight className="h-4 w-4" />
       </a>
     </div>

@@ -446,7 +446,7 @@ export default function ServicesTab() {
                 <Field label="Proof text" className="sm:col-span-2">
                   <input
                     className="input-dark"
-                    placeholder="4.9/5 from 322 Fiverr reviews · 240+ businesses tracked since 2019"
+                    placeholder="4.9/5 from 323 Fiverr reviews · 240+ businesses tracked since 2019"
                     value={line.proof.text}
                     onChange={(e) => patchProof(li, { text: e.target.value })}
                   />

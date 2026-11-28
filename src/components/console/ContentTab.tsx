@@ -688,7 +688,7 @@ export default function ContentTab() {
                 />
                 <input
                   className="input-dark"
-                  placeholder="average rating · 322 Fiverr reviews"
+                  placeholder="average rating · 323 Fiverr reviews"
                   value={s.label}
                   onChange={(e) => setProofStats(updateAt(proofStats, i, { label: e.target.value }))}
                 />

@@ -83,7 +83,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   heroStats: [
     { value: '240+', label: 'businesses served' },
     { value: '4.9/5', label: 'average client rating' },
-    { value: '322', label: 'verified Fiverr reviews' },
+    { value: '323', label: 'verified Fiverr reviews' },
   ],
   tickerItems: [
     'SERVER-SIDE TRACKING',

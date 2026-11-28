@@ -70,7 +70,7 @@ export const PACKAGES: Package[] = [
 /* ------------------------------------------------------------------ */
 /* Client proof — real, verifiable, linked. Never invented.            */
 /* The studio's trust case is the founder's 6-year Fiverr practice:   */
-/* 322 reviews at 4.9★, 240+ businesses tracked since 2019.            */
+/* 323 reviews at 4.9★, 240+ businesses tracked since 2019.            */
 /* ------------------------------------------------------------------ */
 
 export const PROOF_URL = 'https://www.fiverr.com/adesh_chandra';
@@ -128,7 +128,7 @@ export const PAGE_SEO: Record<SeoKey, { title: string; description: string }> = 
   },
   about: {
     title: 'About — SyncOps Studio',
-    description: 'SyncOps Studio is a one-architect measurement studio: server-side tracking and CAPI infrastructure, practised since 2019, 322 Fiverr reviews at 4.9/5, 240+ businesses tracked.',
+    description: 'SyncOps Studio is a one-architect measurement studio: server-side tracking and CAPI infrastructure, practised since 2019, 320+ Fiverr reviews at 4.9/5, 240+ businesses tracked.',
   },
   process: {
     title: 'How We Work — SyncOps Studio',
@@ -152,7 +152,7 @@ export const PAGE_SEO: Record<SeoKey, { title: string; description: string }> = 
   },
   reviews: {
     title: 'Reviews — SyncOps Studio',
-    description: 'What clients say about SyncOps Studio: a public 4.9/5 record across 322 Fiverr reviews, plus reviews from completed studio engagements.',
+    description: 'What clients say about SyncOps Studio: a public 4.9/5 record across 320+ Fiverr reviews, plus reviews from completed studio engagements.',
   },
   'case-studies': {
     title: 'Case Studies — SyncOps Studio',
@@ -228,7 +228,7 @@ export interface ProofStat {
 }
 
 export const PROOF_STATS: ProofStat[] = [
-  { value: '4.9/5', label: 'average rating · 322 Fiverr reviews' },
+  { value: '4.9/5', label: 'average rating · 323 Fiverr reviews' },
   { value: '240+', label: 'businesses tracked since 2019' },
   { value: '1', label: 'architect — you always talk to the builder' },
   { value: '2019', label: 'practising on Fiverr since December 2019' },

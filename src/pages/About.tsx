@@ -123,7 +123,7 @@ export default function About() {
               rel="noreferrer"
               className="inline-flex items-center gap-1 font-semibold text-cyan-300 underline decoration-cyan-800 underline-offset-2 hover:text-cyan-200"
             >
-              read the 322 reviews on Fiverr
+              read the reviews on Fiverr
               <ArrowUpRight className="h-3.5 w-3.5" />
             </a>{' '}
             — or skip the reading and{' '}

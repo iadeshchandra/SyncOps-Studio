@@ -193,7 +193,7 @@ export default function Compare() {
             className="mt-5 inline-flex items-center gap-2 rounded-md border border-amber-700/40 bg-amber-950/30 px-3 py-2 text-xs text-amber-200/90 transition-colors hover:border-amber-600/60"
           >
             <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-400" />
-            Studio proof: 4.9/5 from 322 Fiverr reviews · 240+ businesses tracked since 2019
+            Studio proof: 4.9/5 from 320+ Fiverr reviews · 240+ businesses tracked since 2019
             <ArrowUpRight className="h-3.5 w-3.5" />
           </a>
         </section>

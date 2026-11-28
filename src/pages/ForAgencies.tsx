@@ -27,7 +27,7 @@ const MODEL: { icon: typeof Building2; title: string; body: string }[] = [
   {
     icon: MessagesSquare,
     title: 'One specialist, on the record',
-    body: 'You deal with the architect who does the work — the same practitioner behind 322 public reviews. Project progress lives in a portal record you can inspect any time, so reporting up to your client is never guesswork.',
+    body: 'You deal with the architect who does the work — the same practitioner behind 320+ public reviews. Project progress lives in a portal record you can inspect any time, so reporting up to your client is never guesswork.',
   },
 ];
 
