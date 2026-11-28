@@ -39,7 +39,7 @@ export default function CaseStudies() {
       </p>
 
       <div className="mt-10 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {PROOF_STATS.map((s) => (
+        {(config.proofStats ?? PROOF_STATS).map((s) => (
           <div key={s.label} className="glass rounded-lg p-5">
             <p className="font-mono text-2xl font-black text-slate-50">{s.value}</p>
             <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.14em] text-slate-500">

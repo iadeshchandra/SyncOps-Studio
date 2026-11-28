@@ -104,6 +104,11 @@ export default function Hero() {
   // The hero IS the audit form (the Trackable pattern): hand the domain
   // to the Tracking Auditor section and scroll to it. The auditor reads
   // the handoff on mount and on the event, then runs itself.
+  const heroTitle =
+    config.heroTitle ?? 'Reclaim the 30% of ad signal Safari, iOS and ad blockers steal.';
+  const heroHighlight = config.heroHighlight ?? '30%';
+  const hlAt = heroHighlight ? heroTitle.indexOf(heroHighlight) : -1;
+
   const startAudit = (e: FormEvent) => {
     e.preventDefault();
     const d = auditDomain
@@ -133,18 +138,23 @@ export default function Hero() {
       <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-20 sm:px-6 lg:pt-28">
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div>
-            <p className="eyebrow mb-5">First-Party Data Infrastructure</p>
+            <p className="eyebrow mb-5">{config.heroEyebrow ?? 'First-Party Data Infrastructure'}</p>
             <h1 className="h-display text-4xl leading-[1.05] sm:text-5xl lg:text-6xl">
-              Reclaim the{' '}
-              <span className="bg-gradient-to-r from-rose-400 to-rose-500 bg-clip-text text-transparent">
-                30%
-              </span>{' '}
-              of ad signal Safari, iOS and ad blockers steal.
+              {hlAt >= 0 ? (
+                <>
+                  {heroTitle.slice(0, hlAt)}
+                  <span className="bg-gradient-to-r from-rose-400 to-rose-500 bg-clip-text text-transparent">
+                    {heroHighlight}
+                  </span>
+                  {heroTitle.slice(hlAt + heroHighlight.length)}
+                </>
+              ) : (
+                heroTitle
+              )}
             </h1>
             <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-400 sm:text-lg">
-              SyncOps Studio engineers first-party data infrastructure for 7–9 figure brands —
-              server-side tagging and Conversion API architecture that defeats Safari ITP, iOS
-              14.5+ and ad blockers with 9.0+ Event Match Quality.
+              {config.heroSubtitle ??
+                'SyncOps Studio engineers first-party data infrastructure for 7–9 figure brands — server-side tagging and Conversion API architecture that defeats Safari ITP, iOS 14.5+ and ad blockers with 9.0+ Event Match Quality.'}
             </p>
             <form onSubmit={startAudit} className="mt-8">
               <div className="flex flex-col gap-3 sm:flex-row">

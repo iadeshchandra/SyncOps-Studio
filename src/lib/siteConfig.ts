@@ -2,7 +2,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { logAudit } from './admin';
-import type { Package, ProofQuote } from '../data/content';
+import type { Package, PipelineStep, ProofQuote, ProofStat } from '../data/content';
 import { SERVICE_LINES, type ServiceLine } from '../data/services';
 
 /**
@@ -53,6 +53,12 @@ export interface SiteConfig {
   responseSla: string;
   heroStats: HeroStat[];
   tickerItems: string[];
+  heroEyebrow?: string;
+  heroTitle?: string;
+  heroHighlight?: string;
+  heroSubtitle?: string;
+  pipelineSteps?: PipelineStep[] | null;
+  proofStats?: ProofStat[] | null;
   pricing: PackageConfig[] | null;
   proofQuotes: ProofQuote[] | null;
   testimonials: TestimonialConfig[] | null;
@@ -80,6 +86,13 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
     '240+ BUSINESSES SERVED',
     '4.9/5 CLIENT RATING',
   ],
+  heroEyebrow: 'First-Party Data Infrastructure',
+  heroTitle: 'Reclaim the 30% of ad signal Safari, iOS and ad blockers steal.',
+  heroHighlight: '30%',
+  heroSubtitle:
+    'SyncOps Studio engineers first-party data infrastructure for 7–9 figure brands — server-side tagging and Conversion API architecture that defeats Safari ITP, iOS 14.5+ and ad blockers with 9.0+ Event Match Quality.',
+  pipelineSteps: null,
+  proofStats: null,
   pricing: null,
   proofQuotes: null,
   testimonials: null,

@@ -1,9 +1,12 @@
 import { Globe, Server, GitCompareArrows, Send } from 'lucide-react';
 import { PIPELINE_STEPS } from '../data/content';
+import { useSiteConfig } from '../lib/siteConfig';
 
 const ICONS = [Globe, Server, GitCompareArrows, Send];
 
 export default function ProtocolPipeline() {
+  const { config } = useSiteConfig();
+  const steps = config.pipelineSteps ?? PIPELINE_STEPS;
   return (
     <div id="pipeline" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 lg:py-28">
       <p className="eyebrow mb-4">Protocol Architecture</p>
@@ -19,8 +22,8 @@ export default function ProtocolPipeline() {
           aria-hidden="true"
         />
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {PIPELINE_STEPS.map((step, i) => {
-            const Icon = ICONS[i];
+          {steps.map((step, i) => {
+            const Icon = ICONS[i % ICONS.length];
             return (
               <div key={step.title} className="glass card-hover relative rounded-lg p-6">
                 <div className="relative z-10 mb-5 flex h-16 w-16 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-950">

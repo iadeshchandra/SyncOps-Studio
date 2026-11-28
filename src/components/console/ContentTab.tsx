@@ -8,7 +8,13 @@ import {
   type TestimonialConfig,
 } from '../../lib/siteConfig';
 import { logAudit } from '../../lib/admin';
-import { PACKAGES } from '../../data/content';
+import {
+  PACKAGES,
+  PIPELINE_STEPS,
+  PROOF_STATS,
+  type PipelineStep,
+  type ProofStat,
+} from '../../data/content';
 import { cx } from '../../lib/format';
 
 /** Replace the item at index i with a patched copy. */
@@ -64,6 +70,12 @@ export default function ContentTab() {
   const [proofQuotes, setProofQuotes] = useState<ProofQuoteConfig[]>([]);
   const [testimonials, setTestimonials] = useState<TestimonialConfig[]>([]);
   const [heroStats, setHeroStats] = useState<{ value: string; label: string }[]>([]);
+  const [heroEyebrow, setHeroEyebrow] = useState('');
+  const [heroTitle, setHeroTitle] = useState('');
+  const [heroHighlight, setHeroHighlight] = useState('');
+  const [heroSubtitle, setHeroSubtitle] = useState('');
+  const [pipelineSteps, setPipelineSteps] = useState<PipelineStep[]>([]);
+  const [proofStats, setProofStats] = useState<ProofStat[]>([]);
   const [tickerText, setTickerText] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [responseSla, setResponseSla] = useState('');
@@ -77,6 +89,12 @@ export default function ContentTab() {
     setProofQuotes((config.proofQuotes ?? []).map((q) => ({ ...q })));
     setTestimonials((config.testimonials ?? []).map((t) => ({ ...t })));
     setHeroStats((config.heroStats ?? DEFAULT_HERO_STATS).map((s) => ({ ...s })));
+    setHeroEyebrow(config.heroEyebrow ?? '');
+    setHeroTitle(config.heroTitle ?? '');
+    setHeroHighlight(config.heroHighlight ?? '');
+    setHeroSubtitle(config.heroSubtitle ?? '');
+    setPipelineSteps((config.pipelineSteps ?? PIPELINE_STEPS).map((s) => ({ ...s })));
+    setProofStats((config.proofStats ?? PROOF_STATS).map((s) => ({ ...s })));
     setTickerText((config.tickerItems ?? []).join('\n'));
     setContactEmail(config.contactEmail ?? '');
     setResponseSla(config.responseSla ?? '');
@@ -88,6 +106,12 @@ export default function ContentTab() {
     setNotice(null);
     try {
       await saveSiteConfig({
+        heroEyebrow: heroEyebrow.trim(),
+        heroTitle: heroTitle.trim(),
+        heroHighlight: heroHighlight.trim(),
+        heroSubtitle: heroSubtitle.trim(),
+        pipelineSteps,
+        proofStats,
         pricing,
         proofQuotes: proofQuotes,
         testimonials,
@@ -150,6 +174,45 @@ export default function ContentTab() {
       </div>
 
       {/* Pricing tiers */}
+      <SectionCard
+        title="Homepage headline"
+        desc="The big words at the very top of the homepage. The highlighted word is shown in colour — it must appear inside the headline exactly as written."
+      >
+        <Field label="Small line above the headline">
+          <input
+            className="input-dark"
+            value={heroEyebrow}
+            onChange={(e) => setHeroEyebrow(e.target.value)}
+            placeholder="First-Party Data Infrastructure"
+          />
+        </Field>
+        <Field label="Headline">
+          <textarea
+            rows={2}
+            className="input-dark"
+            value={heroTitle}
+            onChange={(e) => setHeroTitle(e.target.value)}
+            placeholder="Reclaim the 30% of ad signal Safari, iOS and ad blockers steal."
+          />
+        </Field>
+        <Field label="Highlighted word (shown in colour)">
+          <input
+            className="input-dark font-mono"
+            value={heroHighlight}
+            onChange={(e) => setHeroHighlight(e.target.value)}
+            placeholder="30%"
+          />
+        </Field>
+        <Field label="Sub-headline (the paragraph under the headline)">
+          <textarea
+            rows={3}
+            className="input-dark"
+            value={heroSubtitle}
+            onChange={(e) => setHeroSubtitle(e.target.value)}
+          />
+        </Field>
+      </SectionCard>
+
       <SectionCard
         title="Pricing tiers"
         desc="The three architecture packages shown on the landing page. Highlighted tier renders with the emerald 'most deployed' treatment."
@@ -361,6 +424,95 @@ export default function ContentTab() {
       </SectionCard>
 
       {/* Hero & ticker */}
+      <SectionCard
+        title="How it works steps"
+        desc="The four pipeline steps on the homepage. Keep the detail line short and technical-looking — it is the small mono text at the bottom of each step."
+      >
+        {pipelineSteps.map((s, i) => (
+          <div key={i} className="rounded-md border border-slate-800 bg-slate-950/60 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <span className="telemetry text-cyan-400">STEP {i + 1}</span>
+              <button
+                className="inline-flex items-center gap-1 text-xs font-medium text-rose-400/80 transition-colors hover:text-rose-300"
+                onClick={() => setPipelineSteps(pipelineSteps.filter((_, idx) => idx !== i))}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Remove
+              </button>
+            </div>
+            <div className="mt-3 grid gap-3">
+              <Field label="Step title">
+                <input
+                  className="input-dark"
+                  value={s.title}
+                  onChange={(e) => setPipelineSteps(updateAt(pipelineSteps, i, { title: e.target.value }))}
+                />
+              </Field>
+              <Field label="What happens in this step">
+                <textarea
+                  rows={2}
+                  className="input-dark"
+                  value={s.desc}
+                  onChange={(e) => setPipelineSteps(updateAt(pipelineSteps, i, { desc: e.target.value }))}
+                />
+              </Field>
+              <Field label="Detail line (small mono text)">
+                <input
+                  className="input-dark font-mono text-xs"
+                  value={s.mono}
+                  onChange={(e) => setPipelineSteps(updateAt(pipelineSteps, i, { mono: e.target.value }))}
+                  placeholder="ss.brand.com → edge PoP · 12ms"
+                />
+              </Field>
+            </div>
+          </div>
+        ))}
+        <button
+          className="btn-ghost w-full"
+          onClick={() => setPipelineSteps([...pipelineSteps, { title: '', desc: '', mono: '' }])}
+        >
+          <Plus className="h-4 w-4" /> Add step
+        </button>
+      </SectionCard>
+
+      <SectionCard
+        title="Proof statistics"
+        desc="The numbers band in the homepage proof section. Only real, checkable numbers — never invent."
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          {proofStats.map((s, i) => (
+            <div key={i} className="rounded-md border border-slate-800 bg-slate-950/60 p-3">
+              <div className="flex items-center justify-between">
+                <span className="telemetry text-cyan-400">NUMBER {i + 1}</span>
+                <button
+                  className="text-rose-400/80 transition-colors hover:text-rose-300"
+                  onClick={() => setProofStats(proofStats.filter((_, idx) => idx !== i))}
+                  aria-label="Remove statistic"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className="mt-2 space-y-2">
+                <input
+                  className="input-dark font-mono"
+                  placeholder="4.9/5"
+                  value={s.value}
+                  onChange={(e) => setProofStats(updateAt(proofStats, i, { value: e.target.value }))}
+                />
+                <input
+                  className="input-dark"
+                  placeholder="average rating · 322 Fiverr reviews"
+                  value={s.label}
+                  onChange={(e) => setProofStats(updateAt(proofStats, i, { label: e.target.value }))}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+        <button className="btn-ghost" onClick={() => setProofStats([...proofStats, { value: '', label: '' }])}>
+          <Plus className="h-4 w-4" /> Add statistic
+        </button>
+      </SectionCard>
+
       <SectionCard title="Hero & ticker" desc="Hero stat blocks, the scrolling stats ticker, and contact details.">
         <div className="grid gap-3 sm:grid-cols-3">
           {heroStats.map((s, i) => (
