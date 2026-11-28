@@ -13,7 +13,7 @@ import { useLocation } from 'react-router-dom';
  * with the page's own critical render.
  */
 const TAWK_SRC = 'https://embed.tawk.to/6b07c472c92de43d0454392d/default';
-const EXCLUDED_PREFIXES = ['/login', '/client', '/hq-z8k4x7q2'];
+const EXCLUDED_PREFIXES = ['/login', '/client', '/ekanto'];
 
 declare global {
   interface Window {

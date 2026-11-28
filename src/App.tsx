@@ -79,7 +79,7 @@ function SiteGate({ children }: { children: ReactNode }) {
   // Maintenance never locks clients out of their own portal or the login
   // they need to reach it — the status page promises exactly that (nit 2).
   const clientPath =
-    pathname === '/login' || pathname.startsWith('/client') || pathname.startsWith('/hq-z8k4x7q2');
+    pathname === '/login' || pathname.startsWith('/client') || pathname.startsWith('/ekanto');
   if (config.maintenanceMode && !clientPath) {
     return <Maintenance />;
   }
@@ -141,7 +141,7 @@ export default function App() {
                 }
               />
               <Route
-                path="/hq-z8k4x7q2"
+                path="/ekanto"
                 element={
                   <AdminRoute>
                     <StudioConsole />
