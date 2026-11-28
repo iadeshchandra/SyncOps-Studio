@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import FaqList, { FAQS, type FaqItem } from '../components/FaqList';
-import { usePageMeta } from '../lib/meta';
+import { usePageMeta, useJsonLd } from '../lib/meta';
 import { useHireModal } from '../components/HireModal';
 
 const EXTRA_FAQS: FaqItem[] = [
@@ -34,6 +34,16 @@ export default function FaqPage() {
     'FAQ — SyncOps Studio',
     'Straight answers about server-side tracking with SyncOps Studio: ownership, pricing, timelines, migration, payments, refunds and privacy.',
   );
+
+  useJsonLd('faq-schema', {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [...FAQS, ...EXTRA_FAQS].map((f) => ({
+      '@type': 'Question',
+      name: f.q,
+      acceptedAnswer: { '@type': 'Answer', text: f.a },
+    })),
+  });
 
   return (
     <div className="min-h-screen bg-slate-950">

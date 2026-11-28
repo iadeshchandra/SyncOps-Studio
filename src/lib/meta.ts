@@ -58,6 +58,24 @@ export function setPageMeta(title: string, description: string): void {
   );
 }
 
+/**
+ * Injects a JSON-LD structured-data block (by id) for the lifetime of
+ * the component — used for FAQPage schema so search engines can show
+ * the questions directly in results. Removed on unmount.
+ */
+export function useJsonLd(id: string, data: unknown): void {
+  useEffect(() => {
+    const el = document.createElement('script');
+    el.type = 'application/ld+json';
+    el.id = id;
+    el.textContent = JSON.stringify(data);
+    document.head.appendChild(el);
+    return () => {
+      el.remove();
+    };
+  }, [id, data]);
+}
+
 export function usePageMeta(title: string, description: string): void {
   useEffect(() => {
     setPageMeta(title, description);

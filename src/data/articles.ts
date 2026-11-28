@@ -154,4 +154,33 @@ THE LESSON
 
 Treat a suspension as a documentation problem first and a catastrophe second. Keep your business records reachable, write the appeal to the reviewer's checklist rather than to your own frustration, and set honest timelines. Accounts come back when the evidence is boring, complete and true.`,
   },
+  {
+    id: 'deduplication-explained',
+    title: 'One purchase, counted once: deduplication, explained honestly',
+    excerpt:
+      'Run a browser pixel and a server API together and every purchase arrives twice. Deduplication is the discipline that merges them into one event — and the first thing that silently breaks when it is done casually.',
+    tags: ['deduplication', 'meta capi', 'server-side tracking'],
+    published: true,
+    publishedAt: '2026-11-28',
+    order: 4,
+    body: `The moment a store adds server-side tracking alongside its browser pixel — which is exactly what we recommend — it creates a new problem: every purchase now arrives at the ad platform twice. Once from the customer's browser, once from the server. If the platform counted both, your conversion numbers would double overnight, your ROAS would look miraculous, and your campaigns would optimise toward fiction. Deduplication is what stands between that outcome and the truth.
+
+HOW THE PLATFORMS MERGE TWO EVENTS INTO ONE
+
+Meta, TikTok and the others solve this the same way: identity by name and number. When the browser event and the server event carry the same event name and the same event ID, the platform treats them as two reports of one happening and merges them — keeping the richer of the two. Meta's window for that merge is 48 hours; the pair must match on the event name and the event_id (for web events, within the same pixel or dataset). TikTok's Events API works the same way with its own event_id. No shared ID, no merge: two events, counted twice, and no warning anywhere in the interface that it happened.
+
+This is why the event ID has to be born in one place. In a sound setup, a single ID is generated per real-world action — per order, per lead, per signup — and handed to both the browser tag and the server payload. The moment the browser invents one ID and the server invents another, deduplication is already lost, and everything downstream inherits the double count.
+
+WHAT BREAKS IT IN PRACTICE
+
+Three failure modes cover almost every broken stack we audit. First, mismatched names: the browser sends one event name while the server sends another — TikTok's rename of its checkout event from CompletePayment to Purchase stranded exactly this kind of pair, two halves of the same purchase speaking different languages. Second, regenerated IDs: a thank-you page that mints a fresh ID on every load will deduplicate against nothing, and a page refresh becomes a second conversion. Third, double sources: two server integrations, or a native platform app plus a custom setup, both sending the same event with different IDs — each one individually correct, together a double count.
+
+The mirror-image failure exists too, and it is quieter: events that never fire at all, because the browser half depended on a page the customer never reached. Deduplication discipline and source discipline are the same discipline — one event, one source of truth, one ID.
+
+HOW TO CHECK YOUR OWN STACK
+
+You do not need to take anyone's word for any of this; the platforms show their work. In Meta's Events Manager, open your dataset and look at a single event: a healthy setup shows browser and server events arriving and being deduplicated, with the deduplicated share visible in the event details. Test Events tells the same story live — fire one purchase and watch whether it lands once, marked as deduplicated, or twice as strangers. On TikTok, Test Events shows the same merge for Events API traffic.
+
+If you see two unmerged purchases for one order, your campaigns are training on inflated numbers and every optimisation decision since then has been slightly wrong. If you see one clean, deduplicated event with a strong match score, your measurement layer is doing its job. The difference between those two states is rarely money. It is almost always just care about IDs.`,
+  },
 ];

@@ -106,6 +106,12 @@ export default function Header() {
           <Link to="/notes" className={navLinkCls}>
             Field Notes
           </Link>
+          <Link to="/about" className={navLinkCls}>
+            About
+          </Link>
+          <Link to="/contact" className={navLinkCls}>
+            Contact
+          </Link>
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
