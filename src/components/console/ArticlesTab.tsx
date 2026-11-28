@@ -75,6 +75,7 @@ export default function ArticlesTab() {
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Article | null>(null);
+  const [tagsText, setTagsText] = useState('');
   const [idTouched, setIdTouched] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -129,6 +130,7 @@ export default function ArticlesTab() {
     if (!a) return;
     setSelectedId(id);
     setDraft({ ...a });
+    setTagsText(a.tags.join(', '));
     setIdTouched(true);
     setDirty(false);
     setNotice(null);
@@ -138,6 +140,7 @@ export default function ArticlesTab() {
     if (!guardUnsaved()) return;
     setSelectedId(null);
     setDraft(blankArticle(articles.length));
+    setTagsText('');
     setIdTouched(false);
     setDirty(false);
     setNotice(null);
@@ -158,7 +161,7 @@ export default function ArticlesTab() {
     if (!draft) return;
     const clean: Article = {
       ...draft,
-      id: draft.id.trim(),
+      id: slugify(draft.id),
       tags: draft.tags.map((t) => t.trim()).filter(Boolean),
       publishedAt: draft.publishedAt.trim() || todayIso(),
     };
@@ -177,6 +180,7 @@ export default function ArticlesTab() {
       setArticles((prev) => sortList([...prev.filter((a) => a.id !== clean.id), clean]));
       setSelectedId(clean.id);
       setDraft(clean);
+      setTagsText(clean.tags.join(', '));
       setIdTouched(true);
       setDirty(false);
       setNotice({ ok: true, text: 'Saved — live on next load.' });
@@ -198,6 +202,7 @@ export default function ArticlesTab() {
       setArticles((prev) => prev.filter((a) => a.id !== draft.id));
       setSelectedId(null);
       setDraft(null);
+      setTagsText('');
       setDirty(false);
       setNotice({ ok: true, text: 'Article deleted.' });
     } catch (e) {
@@ -355,8 +360,9 @@ export default function ArticlesTab() {
                     value={draft.id}
                     onChange={(e) => {
                       setIdTouched(true);
-                      patch({ id: slugify(e.target.value) });
+                      patch({ id: e.target.value });
                     }}
+                    onBlur={() => patch({ id: slugify(draft.id) })}
                   />
                 </Field>
                 <Field label="Publish date">
@@ -399,15 +405,16 @@ export default function ArticlesTab() {
                   <input
                     className="input-dark font-mono text-sm"
                     placeholder="meta capi, data quality"
-                    value={draft.tags.join(', ')}
-                    onChange={(e) =>
+                    value={tagsText}
+                    onChange={(e) => {
+                      setTagsText(e.target.value);
                       patch({
                         tags: e.target.value
                           .split(',')
                           .map((s) => s.trim())
                           .filter(Boolean),
-                      })
-                    }
+                      });
+                    }}
                   />
                 </Field>
                 <Field label="Display order (lower first)">

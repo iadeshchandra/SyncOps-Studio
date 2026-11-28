@@ -253,7 +253,7 @@ export default function ProductsTab() {
 
   const save = async () => {
     if (!draft) return;
-    const clean: Product = { ...draft, id: draft.id.trim() };
+    const clean: Product = { ...draft, id: slugify(draft.id) };
     if (!clean.id) {
       setNotice({ ok: false, text: 'Product ID / slug is required.' });
       return;
@@ -452,8 +452,9 @@ export default function ProductsTab() {
                       value={draft.id}
                       onChange={(e) => {
                         setIdTouched(true);
-                        patch({ id: slugify(e.target.value) });
+                        patch({ id: e.target.value });
                       }}
+                      onBlur={() => patch({ id: slugify(draft.id) })}
                     />
                   </Field>
                   <Field label="Name">
