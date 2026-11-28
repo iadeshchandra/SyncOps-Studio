@@ -68,7 +68,15 @@ export default function Footer() {
           <Link to="/notes" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
             Field notes
           </Link>
-          <JumpLink to="#pricing">Pricing</JumpLink>
+          <Link to="/pricing" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
+            Pricing
+          </Link>
+          <Link to="/reviews" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
+            Reviews
+          </Link>
+          <Link to="/for-agencies" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
+            For agencies
+          </Link>
           <Link to="/faq" className="block py-1 text-sm text-slate-400 transition-colors hover:text-slate-100">
             FAQ
           </Link>

@@ -29,6 +29,9 @@ import CaseStudiesPage from './pages/CaseStudiesPage';
 import ServiceDetail from './pages/ServiceDetail';
 import FaqPage from './pages/FaqPage';
 import Process from './pages/Process';
+import ForAgencies from './pages/ForAgencies';
+import Pricing from './pages/Pricing';
+import Reviews from './pages/Reviews';
 
 /**
  * Hash-scroll restoration: links like `/#auditor` (used by the Compare
@@ -94,6 +97,9 @@ export default function App() {
               <Route path="/services/:lineId" element={<ServiceDetail />} />
               <Route path="/faq" element={<FaqPage />} />
               <Route path="/process" element={<Process />} />
+              <Route path="/for-agencies" element={<ForAgencies />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/reviews" element={<Reviews />} />
               <Route path="/notes" element={<Notes />} />
               <Route path="/notes/:slug" element={<NoteDetail />} />
               <Route path="/login" element={<Login />} />
