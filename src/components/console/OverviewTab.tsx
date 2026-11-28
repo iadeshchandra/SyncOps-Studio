@@ -117,7 +117,7 @@ export default function OverviewTab() {
             {attention.map((a, i) => (
               <Link
                 key={`${a.kind}-${a.order.id}-${i}`}
-                to={`/studio/console?tab=orders&order=${a.order.id}`}
+                to={`/hq-z8k4x7q2?tab=orders&order=${a.order.id}`}
                 className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-slate-800/80 bg-slate-950/60 px-3.5 py-2.5 transition-colors hover:border-slate-600"
               >
                 <span className="font-semibold text-slate-100">{a.order.clientName}</span>

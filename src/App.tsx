@@ -71,7 +71,7 @@ function HashScroll() {
 /**
  * Global maintenance gate. When the owner enables maintenance mode in the
  * Studio Console, every public route renders the Maintenance page — except
- * /studio/* so the owner can always reach the console to turn it back off.
+ * the console path so the owner can always reach the console to turn it back off.
  */
 function SiteGate({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
@@ -79,7 +79,7 @@ function SiteGate({ children }: { children: ReactNode }) {
   // Maintenance never locks clients out of their own portal or the login
   // they need to reach it — the status page promises exactly that (nit 2).
   const clientPath =
-    pathname === '/login' || pathname.startsWith('/client') || pathname.startsWith('/studio');
+    pathname === '/login' || pathname.startsWith('/client') || pathname.startsWith('/hq-z8k4x7q2');
   if (config.maintenanceMode && !clientPath) {
     return <Maintenance />;
   }
@@ -141,7 +141,7 @@ export default function App() {
                 }
               />
               <Route
-                path="/studio/console"
+                path="/hq-z8k4x7q2"
                 element={
                   <AdminRoute>
                     <StudioConsole />

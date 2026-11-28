@@ -11,7 +11,7 @@ import { initMeasurement } from '../lib/measurement';
 export default function Measurement() {
   const { pathname } = useLocation();
   useEffect(() => {
-    if (pathname.startsWith('/studio')) return;
+    if (pathname.startsWith('/hq-z8k4x7q2')) return;
     initMeasurement();
   }, [pathname]);
   return null;

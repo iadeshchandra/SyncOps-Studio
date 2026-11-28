@@ -220,7 +220,6 @@ export const FOOTER_LINKS: LinkItem[] = [
   { label: 'FAQ', to: '/faq' },
   { label: 'Live status', to: '/status' },
   { label: 'SyncOps Labs', to: '/labs' },
-  { label: 'Studio Console', to: '/studio/console' },
 ];
 
 export interface ProofStat {
