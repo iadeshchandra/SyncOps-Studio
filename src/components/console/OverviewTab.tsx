@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ClipboardList, Inbox, Rocket, Banknote, Loader2, TriangleAlert, BellRing, ArrowRight } from 'lucide-react';
 import { listOrders, listAttention, orderRef, STAGES, type Order, type AttentionItem } from '../../lib/portal';
-import { agreedUsd } from '../../lib/pricing';
+import { agreedUsdIn } from '../../lib/pricing';
+import { useServiceLines } from '../../lib/siteConfig';
 import { fmtUSD } from '../../lib/format';
 
 const DAY_MS = 86_400_000;
@@ -86,9 +87,10 @@ export default function OverviewTab() {
   const active = orders.filter((o) => o.stageIndex >= 1 && o.stageIndex <= 3);
   // Pipeline = live orders only (not cancelled/completed/archived), priced
   // by the one resolver (the order's own price, else its package's).
+  const lines = useServiceLines();
   const pipelineValue = orders
     .filter((o) => !['cancelled', 'completed', 'archived'].includes(o.status))
-    .reduce((sum, o) => sum + agreedUsd(o), 0);
+    .reduce((sum, o) => sum + agreedUsdIn(lines, o), 0);
   const stale = intake.filter((o) => Date.now() - o.createdAt > 48 * 3_600_000);
 
   return (

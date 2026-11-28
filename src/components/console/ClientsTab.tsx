@@ -4,11 +4,8 @@ import { Loader2, X, Mail, StickyNote, ArrowRight } from 'lucide-react';
 import { listOrders, orderRef, STAGES, type Order } from '../../lib/portal';
 import { summarizeClients, getClientNote, saveClientNote, type ClientSummary } from '../../lib/clients';
 import { fmtUSD, cx } from '../../lib/format';
-import { agreedUsd } from '../../lib/pricing';
-
-function priceOf(o: Order): number {
-  return agreedUsd(o);
-}
+import { agreedUsdIn } from '../../lib/pricing';
+import { useServiceLines } from '../../lib/siteConfig';
 
 export default function ClientsTab() {
   const [clients, setClients] = useState<ClientSummary[]>([]);
@@ -18,16 +15,17 @@ export default function ClientsTab() {
   const [note, setNote] = useState('');
   const [noteState, setNoteState] = useState<'idle' | 'saving' | 'saved'>('idle');
 
+  const lines = useServiceLines();
   const refresh = useCallback(async () => {
     try {
-      setClients(summarizeClients(await listOrders(), priceOf));
+      setClients(summarizeClients(await listOrders(), (o) => agreedUsdIn(lines, o)));
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load clients.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [lines]);
 
   useEffect(() => {
     void refresh();

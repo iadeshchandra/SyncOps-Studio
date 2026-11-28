@@ -1,13 +1,14 @@
 import { Check } from 'lucide-react';
 import { PACKAGES } from '../data/content';
 import { cx, fmtUSD } from '../lib/format';
-import { useSiteConfig, type PackageConfig } from '../lib/siteConfig';
+import { useServiceLines, type PackageConfig } from '../lib/siteConfig';
+import { priceForPackageIn } from '../lib/pricing';
 import { useHireModal } from './HireModal';
 
 export default function PricingGrid() {
   const { openHireModal } = useHireModal();
-  const { config } = useSiteConfig();
-  const packages: PackageConfig[] = config.pricing ?? PACKAGES;
+  const lines = useServiceLines();
+  const packages: PackageConfig[] = PACKAGES;
 
   return (
     <div id="pricing" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 lg:py-28">
@@ -41,7 +42,7 @@ export default function PricingGrid() {
               <p className="mt-2 text-sm leading-relaxed text-slate-400">{pkg.tagline}</p>
               <div className="mt-5 flex items-baseline gap-2">
                 <span className="font-mono text-4xl font-black tracking-tight text-slate-50">
-                  {fmtUSD(pkg.price)}
+                  {fmtUSD(priceForPackageIn(lines, pkg.id))}
                 </span>
               </div>
               <p className="telemetry mt-1">{pkg.priceNote}</p>

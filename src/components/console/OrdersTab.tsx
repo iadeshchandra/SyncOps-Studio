@@ -25,20 +25,20 @@ import { ACCESS_CHECKLIST, checklistProgress } from '../../lib/checklist';
 import OrderFiles from '../OrderFiles';
 import { openInvoice } from '../../lib/invoice';
 import { getPaymentSettings, type PaymentSettings } from '../../lib/payments';
-import { PACKAGES } from '../../data/content';
-import { DEFAULT_SITE_CONFIG } from '../../lib/siteConfig';
+import { SERVICE_LINES, displayPrice, packagePriceUsd, type ServiceLine } from '../../data/services';
+import { useServiceLines } from '../../lib/siteConfig';
 import ArchitectChat from '../ArchitectChat';
 import { logAudit } from '../../lib/admin';
 import { useAuth } from '../../lib/auth';
 import { fmtUSD, cx } from '../../lib/format';
-import { agreedUsd } from '../../lib/pricing';
+import { agreedUsdIn } from '../../lib/pricing';
 
 const DAY_MS = 86_400_000;
 const STATUSES = ['intake', 'active', 'delivered', 'completed', 'cancelled', 'archived'] as const;
 const PAYMENT_METHODS = ['Wise', 'Payoneer', 'bKash', 'Nagad', 'Bangla QR', 'UPI', 'Bank transfer', 'Fiverr', 'Upwork', 'Other', 'Correction'];
 
-function priceOf(o: Order): number {
-  return agreedUsd(o);
+function priceOf(o: Order, lines: ServiceLine[]): number {
+  return agreedUsdIn(lines, o);
 }
 
 const DELIVERY_TONE: Record<Delivery['status'], string> = {
@@ -111,7 +111,9 @@ export default function OrdersTab() {
   const [nName, setNName] = useState('');
   const [nEmail, setNEmail] = useState('');
   const [nBrand, setNBrand] = useState('');
-  const [nPkg, setNPkg] = useState(PACKAGES[0]?.id ?? '');
+  const lines = useServiceLines();
+  const allPackages = lines.flatMap((l) => l.packages);
+  const [nPkg, setNPkg] = useState(SERVICE_LINES[0]?.packages[0]?.id ?? '');
   const [nBusy, setNBusy] = useState(false);
   const [dNote, setDNote] = useState('');
   const [dLinks, setDLinks] = useState('');
@@ -303,7 +305,7 @@ export default function OrdersTab() {
 
   const gateReady = (order: Order) => {
     const { done, total } = checklistProgress(order);
-    return done === total && paidTotal(order) >= priceOf(order);
+    return done === total && paidTotal(order) >= priceOf(order, lines);
   };
 
   const handleStartProject = async (order: Order, overrideReason?: string) => {
@@ -347,7 +349,7 @@ export default function OrdersTab() {
         ...orders.map((o) =>
           [
             esc(o.ref), esc(o.clientName), esc(o.clientEmail), esc(o.packageName || o.packageId),
-            esc(o.status), priceOf(o), paidTotal(o),
+            esc(o.status), priceOf(o, lines), paidTotal(o),
             esc(new Date(o.createdAt).toISOString()), esc(new Date(o.deadlineAt).toISOString()),
           ].join(','),
         ),
@@ -429,7 +431,7 @@ export default function OrdersTab() {
     );
 
   const handleCreateOrder = async () => {
-    const pkg = (DEFAULT_SITE_CONFIG.pricing ?? PACKAGES).find((x) => x.id === nPkg) ?? PACKAGES[0];
+    const pkg = allPackages.find((x) => x.id === nPkg) ?? allPackages[0];
     if (!pkg || nName.trim().length < 2 || !nEmail.includes('@')) {
       setNotice('New order needs a client name and a valid email.');
       return;
@@ -443,7 +445,7 @@ export default function OrdersTab() {
         brandUrl: nBrand,
         packageId: pkg.id,
         packageName: pkg.name,
-        price: pkg.price,
+        price: packagePriceUsd(pkg),
       });
       await logAudit('order.create', id, actor);
       setShowNew(false);
@@ -724,11 +726,13 @@ export default function OrdersTab() {
                 className="input-dark w-full"
                 aria-label="Package"
               >
-                {(DEFAULT_SITE_CONFIG.pricing ?? PACKAGES).map((pkg) => (
-                  <option key={pkg.id} value={pkg.id}>
-                    {pkg.name} — {fmtUSD(pkg.price)}
-                  </option>
-                ))}
+                {lines.map((l) =>
+                  l.packages.map((pkg) => (
+                    <option key={pkg.id} value={pkg.id}>
+                      {l.name}: {pkg.name} — {displayPrice(pkg)}
+                    </option>
+                  )),
+                )}
               </select>
             </div>
             <div className="mt-5 flex gap-2.5">
@@ -905,7 +909,7 @@ export default function OrdersTab() {
                   <p className="text-sm text-cyan-100">
                     <span className="font-semibold">Start gate:</span> access{' '}
                     {checklistProgress(selected).done}/{checklistProgress(selected).total} · paid{' '}
-                    {fmtUSD(paidTotal(selected))} of {fmtUSD(priceOf(selected))}
+                    {fmtUSD(paidTotal(selected))} of {fmtUSD(priceOf(selected, lines))}
                     {gateReady(selected)
                       ? ' — ready when you are.'
                       : ' — not fully green yet (access incomplete or the agreed amount is not fully verified).'}
@@ -1206,7 +1210,7 @@ export default function OrdersTab() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => openInvoice(selected, priceOf(selected), paySettings)}
+                  onClick={() => openInvoice(selected, priceOf(selected, lines), paySettings)}
                   className="btn-ghost ml-auto px-3.5 py-2 text-xs"
                 >
                   Download invoice (PDF)
@@ -1214,7 +1218,7 @@ export default function OrdersTab() {
               </div>
               <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
                 <span className="text-slate-400">
-                  Agreed <span className="font-mono font-bold text-slate-100">{fmtUSD(priceOf(selected))}</span>
+                  Agreed <span className="font-mono font-bold text-slate-100">{fmtUSD(priceOf(selected, lines))}</span>
                 </span>
                 <span className="text-slate-400">
                   Paid <span className="font-mono font-bold text-emerald-300">{fmtUSD(paidTotal(selected))}</span>
@@ -1222,7 +1226,7 @@ export default function OrdersTab() {
                 <span className="text-slate-400">
                   Balance{' '}
                   <span className="font-mono font-bold text-amber-300">
-                    {fmtUSD(Math.max(0, priceOf(selected) - paidTotal(selected)))}
+                    {fmtUSD(Math.max(0, priceOf(selected, lines) - paidTotal(selected)))}
                   </span>
                 </span>
               </div>

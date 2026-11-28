@@ -65,6 +65,7 @@ export interface SiteConfig {
   seo?: Partial<Record<SeoKey, { title: string; description: string }>> | null;
   navLinks?: LinkItem[] | null;
   footerLinks?: LinkItem[] | null;
+  /** Retired in Batch 6: prices live on the service lines now. Kept only for the one-time bridge in useServiceLines. */
   pricing: PackageConfig[] | null;
   proofQuotes: ProofQuote[] | null;
   testimonials: TestimonialConfig[] | null;
@@ -208,7 +209,21 @@ export function useServiceLines(): ServiceLine[] {
   const { config } = useSiteConfig();
   // An empty saved array is treated as "no override" — consumers index
   // lines[0] and line.packages[0], so the effective list is never empty.
-  return config.services && config.services.length > 0 ? config.services : SERVICE_LINES;
+  if (config.services && config.services.length > 0) return config.services;
+  // One-time bridge (Batch 6): services never saved, but the retired pricing
+  // tiers were — honour those numbers for matching package ids, so a price
+  // the owner set in the old second home is never silently lost. Once the
+  // Services tab is saved even once, this bridge never runs again.
+  if (config.pricing && config.pricing.length > 0) {
+    const legacy = new Map(config.pricing.map((p) => [p.id, p.price]));
+    return SERVICE_LINES.map((line) => ({
+      ...line,
+      packages: line.packages.map((pkg) =>
+        legacy.has(pkg.id) ? { ...pkg, priceUsd: legacy.get(pkg.id) ?? pkg.priceUsd } : pkg,
+      ),
+    }));
+  }
+  return SERVICE_LINES;
 }
 
 /** Shared reactive config for every component. Safe to call anywhere — no provider needed. */

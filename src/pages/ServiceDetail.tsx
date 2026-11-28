@@ -5,6 +5,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { usePageMeta } from '../lib/meta';
 import { useServiceLines } from '../lib/siteConfig';
+import { displayPrice } from '../data/services';
 import { useHireModal } from '../components/HireModal';
 
 const ICONS: Record<string, LucideIcon> = { Satellite, Radar, AppWindow, Bot };
@@ -70,7 +71,7 @@ export default function ServiceDetail() {
           {line.packages.map((pkg) => (
             <div key={pkg.id} className="glass card-hover flex flex-col rounded-lg p-6">
               <h3 className="font-bold text-slate-50">{pkg.name}</h3>
-              <p className="mt-2 font-mono text-3xl font-black text-slate-50">{pkg.price}</p>
+              <p className="mt-2 font-mono text-3xl font-black text-slate-50">{displayPrice(pkg)}</p>
               <p className="mt-2 text-sm leading-relaxed text-slate-400">{pkg.blurb}</p>
               <ul className="mt-5 flex-1 space-y-2.5">
                 {pkg.features.map((f) => (

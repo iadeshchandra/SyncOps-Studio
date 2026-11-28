@@ -5,7 +5,9 @@
 export interface ServicePackage {
   id: string;
   name: string;
-  price: string; // formatted label, e.g. '$2,400' or 'Custom'
+  price: string; // formatted label, e.g. '$2,400' or 'Custom' — derived from priceUsd on save
+  /** The money truth (Batch 6): numeric USD price. Optional only so lines saved before it existed still load — packagePriceUsd() falls back to parsing the label. */
+  priceUsd?: number;
   blurb: string;
   features: string[];
 }
@@ -30,6 +32,19 @@ export interface ServiceLine {
   migrationNote?: string;
 }
 
+/** The numeric USD price of a package: priceUsd when present, else parsed from the label. */
+export function packagePriceUsd(pkg: ServicePackage): number {
+  if (typeof pkg.priceUsd === 'number' && Number.isFinite(pkg.priceUsd)) return pkg.priceUsd;
+  const n = Number(String(pkg.price ?? '').replace(/[^0-9.]/g, ''));
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** The one display label for a package's price, derived from the number: $2,400 — or Custom when 0. */
+export function displayPrice(pkg: ServicePackage): string {
+  const usd = packagePriceUsd(pkg);
+  return usd > 0 ? `$${usd.toLocaleString('en-US')}` : 'Custom';
+}
+
 export const SERVICE_LINES: ServiceLine[] = [
   {
     id: 'capi',
@@ -52,6 +67,7 @@ export const SERVICE_LINES: ServiceLine[] = [
         id: 'single-capi-node',
         name: 'Single CAPI Node',
         price: '$2,400',
+        priceUsd: 2400,
         blurb: 'One network, fully server-side. The fastest path to honest attribution.',
         features: [
           'Meta CAPI on Cloud Run / Stape container',
@@ -68,6 +84,7 @@ export const SERVICE_LINES: ServiceLine[] = [
         id: 'omnichannel-stack',
         name: 'Omnichannel Server Stack',
         price: '$5,800',
+        priceUsd: 5800,
         blurb: 'Every network, one dedup core. Built for brands spending $50k+/mo.',
         features: [
           'Everything in Single CAPI Node',
@@ -84,6 +101,7 @@ export const SERVICE_LINES: ServiceLine[] = [
         id: 'enterprise-cloud-run',
         name: 'Enterprise Cloud Run',
         price: '$12,000',
+        priceUsd: 12000,
         blurb: 'Dedicated infrastructure for 8–9 figure portfolios and agencies.',
         features: [
           'Everything in Omnichannel Server Stack',
@@ -117,6 +135,7 @@ export const SERVICE_LINES: ServiceLine[] = [
         id: 'pixel-foundation',
         name: 'Pixel Foundation',
         price: '$590',
+        priceUsd: 590,
         blurb: 'Core tracking done right — Meta + GA4 wired cleanly through GTM.',
         features: [
           'Meta Pixel + GA4 via Google Tag Manager',
@@ -130,6 +149,7 @@ export const SERVICE_LINES: ServiceLine[] = [
         id: 'full-funnel-tracking',
         name: 'Full-Funnel Tracking',
         price: '$1,490',
+        priceUsd: 1490,
         blurb: 'Every network, one source of truth — pixels plus server-side CAPI lite.',
         features: [
           'Meta + Google Ads + TikTok + Pinterest pixels',
@@ -143,6 +163,7 @@ export const SERVICE_LINES: ServiceLine[] = [
         id: 'measurement-partner',
         name: 'Measurement Partner',
         price: '$2,900',
+        priceUsd: 2900,
         blurb: 'Tracking as a managed capability — dashboards, reviews, priority support.',
         features: [
           'Everything in Full-Funnel Tracking',
@@ -168,6 +189,7 @@ export const SERVICE_LINES: ServiceLine[] = [
         id: 'mvp-sprint',
         name: 'MVP Sprint',
         price: '$4,900',
+        priceUsd: 4900,
         blurb: 'A scoped, working MVP in 2 weeks — real software, real users.',
         features: [
           'Scoped MVP delivered in 2 weeks',
@@ -181,6 +203,7 @@ export const SERVICE_LINES: ServiceLine[] = [
         id: 'product-build',
         name: 'Product Build',
         price: '$12,000',
+        priceUsd: 12000,
         blurb: 'A full product in 4–6 weeks — auth, payments, admin, QA, handover.',
         features: [
           'Full product build, 4–6 weeks',
@@ -194,6 +217,7 @@ export const SERVICE_LINES: ServiceLine[] = [
         id: 'studio-partner',
         name: 'Studio Partner',
         price: 'Custom',
+        priceUsd: 0,
         blurb: 'Dedicated build-and-operate partnership with a monthly care plan.',
         features: [
           'Dedicated build + operate engagement',
@@ -224,6 +248,7 @@ export const SERVICE_LINES: ServiceLine[] = [
         id: 'chatgpt-ads-addon',
         name: 'ChatGPT Ads Signal Add-On',
         price: '$490',
+        priceUsd: 490,
         blurb: 'For existing tracking clients: pixel live and verified on your current stack.',
         features: [
           'OpenAI Measurement Pixel via GTM, debug-verified',
@@ -238,6 +263,7 @@ export const SERVICE_LINES: ServiceLine[] = [
         id: 'chatgpt-ads-setup',
         name: 'ChatGPT Ads Measurement Setup',
         price: '$890',
+        priceUsd: 890,
         blurb: 'Pixel + Conversions API, deduplicated — the full signal stack for the new channel.',
         features: [
           'Everything in Signal Add-On',
@@ -252,6 +278,7 @@ export const SERVICE_LINES: ServiceLine[] = [
         id: 'chatgpt-ads-partner',
         name: 'ChatGPT Ads Measurement Partner',
         price: '$1,900',
+        priceUsd: 1900,
         blurb: 'Setup plus blended reporting and 30 days of signal health.',
         features: [
           'Everything in Measurement Setup',

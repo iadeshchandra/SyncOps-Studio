@@ -1,6 +1,5 @@
-import { PACKAGES } from '../data/content';
 import type { PackageConfig } from './siteConfig';
-import { SERVICE_LINES } from '../data/services';
+import { SERVICE_LINES, packagePriceUsd, type ServiceLine } from '../data/services';
 
 /**
  * The ONE price resolver (Deep Review #2, Batch 3 — A5/C-05/B-06).
@@ -18,23 +17,34 @@ export interface PricedPackage {
   price: number;
 }
 
-function parsePriceLabel(label: string): number {
-  const n = Number(String(label).replace(/[^0-9.]/g, ''));
-  return Number.isFinite(n) ? n : 0;
-}
-
 /** Every sellable package across all four service lines, numerically priced. */
 export const ALL_PACKAGES: PricedPackage[] = (() => {
   const byId = new Map<string, PricedPackage>();
   for (const line of SERVICE_LINES) {
     for (const p of line.packages) {
-      byId.set(p.id, { id: p.id, name: p.name, price: parsePriceLabel(p.price) });
+      byId.set(p.id, { id: p.id, name: p.name, price: packagePriceUsd(p) });
     }
   }
-  // content.ts PACKAGES carries authoritative numeric prices for the CAPI line.
-  for (const p of PACKAGES) byId.set(p.id, { id: p.id, name: p.name, price: p.price });
   return [...byId.values()];
 })();
+
+/** Price of a package within a resolved set of service lines (Batch 6: the one dataset). */
+export function priceForPackageIn(lines: ServiceLine[], packageId: string): number {
+  for (const line of lines) {
+    const hit = line.packages.find((p) => p.id === packageId);
+    if (hit) return packagePriceUsd(hit);
+  }
+  return 0;
+}
+
+/** Agreed USD within a resolved set of lines: the order's own price wins. */
+export function agreedUsdIn(
+  lines: ServiceLine[],
+  order: { price?: number; packageId: string },
+): number {
+  if (typeof order.price === 'number' && order.price > 0) return order.price;
+  return priceForPackageIn(lines, order.packageId);
+}
 
 export function priceForPackage(
   packageId: string,

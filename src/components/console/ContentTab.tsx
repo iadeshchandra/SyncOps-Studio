@@ -4,7 +4,6 @@ import {
   useSiteConfig,
   saveSiteConfig,
   type ProofQuoteConfig,
-  type PackageConfig,
   type TestimonialConfig,
 } from '../../lib/siteConfig';
 import { logAudit } from '../../lib/admin';
@@ -12,7 +11,6 @@ import { EXTRA_FAQS, FAQS, type FaqItem } from '../../components/FaqList';
 import {
   FOOTER_LINKS,
   NAV_LINKS,
-  PACKAGES,
   PAGE_SEO,
   PAGE_WORDS,
   PIPELINE_STEPS,
@@ -75,7 +73,6 @@ const DEFAULT_HERO_STATS = [
 export default function ContentTab() {
   const { config, loading } = useSiteConfig();
 
-  const [pricing, setPricing] = useState<PackageConfig[]>([]);
   const [proofQuotes, setProofQuotes] = useState<ProofQuoteConfig[]>([]);
   const [testimonials, setTestimonials] = useState<TestimonialConfig[]>([]);
   const [heroStats, setHeroStats] = useState<{ value: string; label: string }[]>([]);
@@ -111,7 +108,6 @@ export default function ContentTab() {
 
   useEffect(() => {
     if (loading || hydrated) return;
-    setPricing((config.pricing ?? PACKAGES).map((p) => ({ ...p, features: [...p.features] })));
     setProofQuotes((config.proofQuotes ?? []).map((q) => ({ ...q })));
     setTestimonials((config.testimonials ?? []).map((t) => ({ ...t })));
     setHeroStats((config.heroStats ?? DEFAULT_HERO_STATS).map((s) => ({ ...s })));
@@ -161,7 +157,6 @@ export default function ContentTab() {
         seo,
         navLinks,
         footerLinks,
-        pricing,
         proofQuotes: proofQuotes,
         testimonials,
         heroStats,
@@ -174,7 +169,7 @@ export default function ContentTab() {
       });
       await logAudit(
         'content.publish',
-        `${pricing.length} tiers · ${proofQuotes.length} proof quotes · ${testimonials.length} testimonials`,
+        `${proofQuotes.length} proof quotes · ${testimonials.length} testimonials`,
       );
       setNotice({ ok: true, text: 'Published — live on next load.' });
     } catch (e) {
@@ -504,107 +499,6 @@ export default function ContentTab() {
           onClick={() => setFaqsExtra([...faqsExtra, { q: '', a: '' }])}
         >
           <Plus className="h-4 w-4" /> Add question
-        </button>
-      </SectionCard>
-
-      <SectionCard
-        title="Pricing tiers"
-        desc="The three architecture packages shown on the landing page. Highlighted tier renders with the emerald 'most deployed' treatment."
-      >
-        {pricing.map((p, i) => (
-          <div key={p.id} className="rounded-md border border-slate-800 bg-slate-950/60 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <span className="telemetry text-cyan-400">TIER {i + 1}</span>
-              <button
-                className="inline-flex items-center gap-1 text-xs font-medium text-rose-400/80 transition-colors hover:text-rose-300"
-                onClick={() => setPricing(pricing.filter((_, idx) => idx !== i))}
-              >
-                <Trash2 className="h-3.5 w-3.5" /> Remove
-              </button>
-            </div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <Field label="Name">
-                <input
-                  className="input-dark"
-                  value={p.name}
-                  onChange={(e) => setPricing(updateAt(pricing, i, { name: e.target.value }))}
-                />
-              </Field>
-              <Field label="Price (USD)">
-                <input
-                  type="number"
-                  min={0}
-                  className="input-dark"
-                  value={p.price}
-                  onChange={(e) => setPricing(updateAt(pricing, i, { price: Number(e.target.value) }))}
-                />
-              </Field>
-              <Field label="Price note">
-                <input
-                  className="input-dark"
-                  value={p.priceNote}
-                  onChange={(e) => setPricing(updateAt(pricing, i, { priceNote: e.target.value }))}
-                />
-              </Field>
-              <Field label="CTA button text">
-                <input
-                  className="input-dark"
-                  value={p.cta}
-                  onChange={(e) => setPricing(updateAt(pricing, i, { cta: e.target.value }))}
-                />
-              </Field>
-              <Field label="Tagline" className="sm:col-span-2">
-                <input
-                  className="input-dark"
-                  value={p.tagline}
-                  onChange={(e) => setPricing(updateAt(pricing, i, { tagline: e.target.value }))}
-                />
-              </Field>
-              <Field label="Features (one per line)" className="sm:col-span-2">
-                <textarea
-                  rows={5}
-                  className="input-dark font-mono text-xs"
-                  value={p.features.join('\n')}
-                  onChange={(e) =>
-                    setPricing(
-                      updateAt(pricing, i, {
-                        features: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean),
-                      }),
-                    )
-                  }
-                />
-              </Field>
-            </div>
-            <label className="mt-3 inline-flex cursor-pointer items-center gap-2 text-sm text-slate-300">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded accent-emerald-500"
-                checked={!!p.highlighted}
-                onChange={(e) => setPricing(updateAt(pricing, i, { highlighted: e.target.checked }))}
-              />
-              Highlight as most-deployed tier
-            </label>
-          </div>
-        ))}
-        <button
-          className="btn-ghost w-full"
-          onClick={() =>
-            setPricing([
-              ...pricing,
-              {
-                id: `tier-${Date.now()}`,
-                name: 'New Tier',
-                tagline: '',
-                price: 0,
-                priceNote: 'One-time',
-                features: [],
-                cta: 'Deploy',
-                highlighted: false,
-              },
-            ])
-          }
-        >
-          <Plus className="h-4 w-4" /> Add tier
         </button>
       </SectionCard>
 

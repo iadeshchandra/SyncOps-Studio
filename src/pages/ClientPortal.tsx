@@ -26,7 +26,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { isDemoMode } from '../lib/firebase';
-import { agreedUsd } from '../lib/pricing';
+import { agreedUsdIn } from '../lib/pricing';
+import { useServiceLines } from '../lib/siteConfig';
 import {
   getOrder,
   listMyOrders,
@@ -107,6 +108,7 @@ function Skeleton() {
 }
 
 export default function ClientPortal() {
+  const lines = useServiceLines();
   const { id } = useParams();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -549,7 +551,7 @@ export default function ClientPortal() {
                   </dd>
                 </div>
                 {(() => {
-                  const agreed = agreedUsd(order);
+                  const agreed = agreedUsdIn(lines, order);
                   if (agreed <= 0) return null;
                   const paid = paidTotal(order);
                   return (

@@ -2,6 +2,7 @@ import { ArrowRight, ArrowUpRight, Check, Satellite, Radar, AppWindow, Bot, Star
 import { Link } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import { useServiceLines } from '../lib/siteConfig';
+import { displayPrice } from '../data/services';
 import { useHireModal } from './HireModal';
 import { cx } from '../lib/format';
 
@@ -83,7 +84,7 @@ export default function ServicesSection() {
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
                     <span>
                       <span className="font-semibold text-slate-100">{p.name}</span>
-                      <span className="font-mono text-slate-500"> — {p.price}</span>
+                      <span className="font-mono text-slate-500"> — {displayPrice(p)}</span>
                     </span>
                   </li>
                 ))}

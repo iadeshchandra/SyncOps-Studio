@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { cx } from '../../lib/format';
 import { saveSiteConfig, useSiteConfig } from '../../lib/siteConfig';
-import { SERVICE_LINES } from '../../data/services';
+import { SERVICE_LINES, displayPrice, packagePriceUsd } from '../../data/services';
 import type { ServiceLine, ServiceLineProof, ServicePackage } from '../../data/services';
 
 /* ------------------------------------------------------------------ */
@@ -145,10 +145,13 @@ function cleanProof(proof: ServiceLineProof | undefined): ServiceLineProof | und
 }
 
 function cleanPackage(pkg: ServicePackage): ServicePackage {
+  const priceUsd = packagePriceUsd(pkg);
   return {
     id: pkg.id,
     name: pkg.name.trim(),
-    price: pkg.price.trim(),
+    // The label is derived from the number on every save — they can never drift.
+    price: priceUsd > 0 ? `$${priceUsd.toLocaleString('en-US')}` : 'Custom',
+    priceUsd,
     blurb: pkg.blurb.trim(),
     features: pkg.features.map((f) => f.trim()).filter(Boolean),
   };
@@ -225,7 +228,8 @@ export default function ServicesTab() {
       const pkg: ServicePackage = {
         id: `${line.id}-${slugify(`package ${line.packages.length + 1}`)}`,
         name: '',
-        price: '',
+        price: 'Custom',
+        priceUsd: 0,
         blurb: '',
         features: [],
       };
@@ -496,13 +500,18 @@ export default function ServicesTab() {
                     onChange={(e) => patchPackage(li, pi, { name: e.target.value })}
                   />
                 </Field>
-                <Field label="Price (formatted label)">
+                <Field label="Price (USD)">
                   <input
+                    type="number"
+                    min={0}
                     className="input-dark font-mono"
-                    placeholder="$2,400 or Custom"
-                    value={pkg.price}
-                    onChange={(e) => patchPackage(li, pi, { price: e.target.value })}
+                    placeholder="2400"
+                    value={packagePriceUsd(pkg)}
+                    onChange={(e) => patchPackage(li, pi, { priceUsd: Number(e.target.value) })}
                   />
+                  <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+                    Shows as {displayPrice(pkg)} everywhere — homepage, pricing page, hire form and invoices all read this one number. 0 = “Custom” (quoted per project).
+                  </p>
                 </Field>
                 <Field label="Blurb" className="sm:col-span-2">
                   <input

@@ -14,11 +14,12 @@ import type { LucideIcon } from 'lucide-react';
 import { db, isDemoMode } from '../lib/firebase';
 import { makeOrderRef } from '../lib/portal';
 import { useSiteConfig } from '../lib/siteConfig';
+import { displayPrice } from '../data/services';
 import type { ServiceLine } from '../data/services';
 import { useServiceLines } from '../lib/siteConfig';
 import { cx, fmtUSD } from '../lib/format';
 import { trackEvent } from '../lib/measurement';
-import { priceForPackage } from '../lib/pricing';
+import { priceForPackageIn } from '../lib/pricing';
 
 export interface HirePrefill {
   packageId?: string;
@@ -171,7 +172,7 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
       id: p.id,
       name: p.name,
       tagline: p.blurb,
-      priceLabel: p.price,
+      priceLabel: displayPrice(p),
     }));
   }, [line]);
 
@@ -283,7 +284,7 @@ function HireModal({ prefill, onClose }: { prefill: HirePrefill; onClose: () => 
       trackEvent('order_created', {
         package_id: packageId,
         order_ref: refCode,
-        value: priceForPackage(packageId),
+        value: priceForPackageIn(serviceLines, packageId),
         currency: 'USD',
       });
     } catch {      setError('Submission failed — nothing was saved. Please try again, or email iadeshchandra@gmail.com.');
