@@ -15,6 +15,7 @@
         "source": "**"
       }
     ],
-    "target": "syncops"
+    "target": "syncops",
+    "cleanUrls": true
   }
 }
