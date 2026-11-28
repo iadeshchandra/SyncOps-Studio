@@ -114,7 +114,8 @@ export const PAGE_WORDS: Record<PageWordsKey, PageWords> = {
 export type SeoKey =
   | 'home' | 'about' | 'process' | 'agencies' | 'contact' | 'faq' | 'pricing'
   | 'reviews' | 'case-studies' | 'notes' | 'work' | 'compare' | 'labs'
-  | 'status' | 'terms' | 'privacy';
+  | 'status' | 'terms' | 'privacy'
+  | 'tools' | 'toolLostConversions' | 'toolUtmBuilder';
 
 /**
  * Each public page's Google title + description — the code defaults the
@@ -186,6 +187,18 @@ export const PAGE_SEO: Record<SeoKey, { title: string; description: string }> = 
     title: 'Privacy Policy — SyncOps Studio',
     description: 'What data SyncOps Studio collects and why, cookies and Google AdSense advertising, who processes data, and your export and deletion rights.',
   },
+  tools: {
+    title: 'Free Tracking Tools — SyncOps Studio',
+    description: 'Free, ungated tools from SyncOps Studio: a lost-conversions calculator, an ecommerce UTM builder, and more — every estimate shows its formula.',
+  },
+  toolLostConversions: {
+    title: 'Lost-Conversions Calculator — SyncOps Studio',
+    description: 'Estimate how many conversions Safari, ad blockers and consent refusals hide from Meta, Google and TikTok — and what server-side tracking could recover.',
+  },
+  toolUtmBuilder: {
+    title: 'UTM Builder for Ecommerce — SyncOps Studio',
+    description: 'Build GA4-clean campaign URLs with Shopify, Meta, Google and TikTok presets, lowercase enforcement, bulk mode and CSV export. Free, no sign-up.',
+  },
 };
 
 export interface LinkItem {
@@ -215,6 +228,7 @@ export const FOOTER_LINKS: LinkItem[] = [
   { label: 'Privacy Policy', to: '/privacy' },
   { label: 'Field notes', to: '/notes' },
   { label: 'Pricing', to: '/pricing' },
+  { label: 'Free tools', to: '/tools' },
   { label: 'Reviews', to: '/reviews' },
   { label: 'For agencies', to: '/for-agencies' },
   { label: 'FAQ', to: '/faq' },

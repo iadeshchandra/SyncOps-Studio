@@ -32,6 +32,9 @@ const ClientPortal = lazy(() => import('./pages/ClientPortal'));
 const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
 const ClientProfile = lazy(() => import('./pages/ClientProfile'));
 const AuthAction = lazy(() => import('./pages/AuthAction'));
+const Tools = lazy(() => import('./pages/Tools'));
+const LostConversionsCalculator = lazy(() => import('./pages/tools/LostConversionsCalculator'));
+const UtmBuilder = lazy(() => import('./pages/tools/UtmBuilder'));
 const StudioConsole = lazy(() => import('./pages/StudioConsole'));
 const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
@@ -121,6 +124,9 @@ export default function App() {
               <Route path="/process" element={<Process />} />
               <Route path="/for-agencies" element={<ForAgencies />} />
               <Route path="/pricing" element={<Pricing />} />
+              <Route path="/tools" element={<Tools />} />
+              <Route path="/tools/lost-conversions-calculator" element={<LostConversionsCalculator />} />
+              <Route path="/tools/utm-builder" element={<UtmBuilder />} />
               <Route path="/reviews" element={<Reviews />} />
               <Route path="/notes" element={<Notes />} />
               <Route path="/notes/:slug" element={<NoteDetail />} />
