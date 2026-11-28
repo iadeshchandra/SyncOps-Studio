@@ -5,8 +5,8 @@
  * same small shell, so crawlers that do not run JavaScript (Bing, social
  * scrapers, AI search) would see the homepage's title and description on
  * every page. This script clones the built shell into per-route folders
- * (dist/<route>/index.html — Firebase Hosting serves the exact static
- * file before the SPA rewrite) with that route's real title, description,
+ * (dist/<route>.html — Firebase Hosting serves the exact static file
+ * at the clean URL, no redirect, before the SPA rewrite) with that route's real title, description,
  * canonical and social tags baked in, plus JSON-LD structured data
  * (BreadcrumbList everywhere, Article on field notes, Service on service
  * pages). The app itself is untouched and renders exactly as before.
@@ -87,7 +87,7 @@ function render(route) {
     .map((g) => `    <script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', ...g })}</script>`)
     .join('\n');
   html = html.replace('  </head>', ld + '\n  </head>');
-  const out = join(dist, route.path.replace(/^\//, ''), 'index.html');
+  const out = join(dist, route.path.replace(/^\//, '') + '.html');
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, html);
   console.log('prerendered', route.path);
