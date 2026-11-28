@@ -11,8 +11,11 @@ import { logAudit } from '../../lib/admin';
 import { EXTRA_FAQS, FAQS, type FaqItem } from '../../components/FaqList';
 import {
   PACKAGES,
+  PAGE_WORDS,
   PIPELINE_STEPS,
   PROOF_STATS,
+  type PageWords,
+  type PageWordsKey,
   type PipelineStep,
   type ProofStat,
 } from '../../data/content';
@@ -77,6 +80,12 @@ export default function ContentTab() {
   const [heroSubtitle, setHeroSubtitle] = useState('');
   const [pipelineSteps, setPipelineSteps] = useState<PipelineStep[]>([]);
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
+  const [pageWords, setPageWords] = useState<Record<PageWordsKey, PageWords>>({
+    about: { ...PAGE_WORDS.about },
+    process: { ...PAGE_WORDS.process },
+    agencies: { ...PAGE_WORDS.agencies },
+    contact: { ...PAGE_WORDS.contact },
+  });
   const [faqsExtra, setFaqsExtra] = useState<FaqItem[]>([]);
   const [proofStats, setProofStats] = useState<ProofStat[]>([]);
   const [tickerText, setTickerText] = useState('');
@@ -100,6 +109,12 @@ export default function ContentTab() {
     setProofStats((config.proofStats ?? PROOF_STATS).map((s) => ({ ...s })));
     setFaqs((config.faqs ?? FAQS).map((f) => ({ ...f })));
     setFaqsExtra((config.faqsExtra ?? EXTRA_FAQS).map((f) => ({ ...f })));
+    setPageWords({
+      about: { ...(config.pageWords?.about ?? PAGE_WORDS.about) },
+      process: { ...(config.pageWords?.process ?? PAGE_WORDS.process) },
+      agencies: { ...(config.pageWords?.agencies ?? PAGE_WORDS.agencies) },
+      contact: { ...(config.pageWords?.contact ?? PAGE_WORDS.contact) },
+    });
     setTickerText((config.tickerItems ?? []).join('\n'));
     setContactEmail(config.contactEmail ?? '');
     setResponseSla(config.responseSla ?? '');
@@ -119,6 +134,7 @@ export default function ContentTab() {
         proofStats,
         faqs,
         faqsExtra,
+        pageWords,
         pricing,
         proofQuotes: proofQuotes,
         testimonials,
@@ -218,6 +234,54 @@ export default function ContentTab() {
             onChange={(e) => setHeroSubtitle(e.target.value)}
           />
         </Field>
+      </SectionCard>
+
+      <SectionCard
+        title="Page opening words"
+        desc="The small line, headline and opening paragraph at the top of the About, Process, For Agencies and Contact pages."
+      >
+        {(
+          [
+            ['about', 'ABOUT PAGE'],
+            ['process', 'PROCESS PAGE'],
+            ['agencies', 'FOR AGENCIES PAGE'],
+            ['contact', 'CONTACT PAGE'],
+          ] as [PageWordsKey, string][]
+        ).map(([key, label]) => (
+          <div key={key} className="rounded-md border border-slate-800 bg-slate-950/60 p-4">
+            <span className="telemetry text-cyan-400">{label}</span>
+            <div className="mt-3 grid gap-3">
+              <Field label="Small line above the headline">
+                <input
+                  className="input-dark"
+                  value={pageWords[key].eyebrow}
+                  onChange={(e) =>
+                    setPageWords({ ...pageWords, [key]: { ...pageWords[key], eyebrow: e.target.value } })
+                  }
+                />
+              </Field>
+              <Field label="Headline">
+                <input
+                  className="input-dark"
+                  value={pageWords[key].title}
+                  onChange={(e) =>
+                    setPageWords({ ...pageWords, [key]: { ...pageWords[key], title: e.target.value } })
+                  }
+                />
+              </Field>
+              <Field label="Opening paragraph">
+                <textarea
+                  rows={3}
+                  className="input-dark"
+                  value={pageWords[key].intro}
+                  onChange={(e) =>
+                    setPageWords({ ...pageWords, [key]: { ...pageWords[key], intro: e.target.value } })
+                  }
+                />
+              </Field>
+            </div>
+          </div>
+        ))}
       </SectionCard>
 
       <SectionCard

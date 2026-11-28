@@ -75,6 +75,42 @@ export const PACKAGES: Package[] = [
 
 export const PROOF_URL = 'https://www.fiverr.com/adesh_chandra';
 
+export interface PageWords {
+  eyebrow: string;
+  title: string;
+  intro: string;
+}
+
+export type PageWordsKey = 'about' | 'process' | 'agencies' | 'contact';
+
+/** The opening words of the four story pages — the code defaults the console edits. */
+export const PAGE_WORDS: Record<PageWordsKey, PageWords> = {
+  about: {
+    eyebrow: 'about_the_studio',
+    title: 'A one-architect studio with a six-year paper trail',
+    intro:
+      'SyncOps Studio is the studio practice of Adesh Chandra, a tracking and measurement specialist working since December 2019. It exists for one reason: to do this work at the standard it deserves — fixed scope, verified delivery, and infrastructure the client actually owns.',
+  },
+  process: {
+    eyebrow: 'how_we_work',
+    title: 'From first call to handover — nothing off the record',
+    intro:
+      'Most tracking engagements fail in the gaps: the vague brief, the access hunt, the \u201cis it done?\u201d silence. This process removes the gaps. Every step happens in your client portal, where you can watch it happen.',
+  },
+  agencies: {
+    eyebrow: 'for_agencies',
+    title: 'Your clients. Your brand. Our measurement layer.',
+    intro:
+      'Agencies bring SyncOps in when a client\u2019s tracking is broken and nobody on the team owns that layer. We do the server-side work under your brand, at fixed prices you can plan a margin around — and your client never needs to know we exist.',
+  },
+  contact: {
+    eyebrow: 'contact',
+    title: 'Talk to the studio',
+    intro:
+      'No ticket queue, no sales team, no contact form that vanishes into a CRM. Every channel below reaches the architect personally.',
+  },
+};
+
 export interface ProofStat {
   value: string;
   label: string;

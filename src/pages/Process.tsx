@@ -4,6 +4,8 @@ import type { LucideIcon } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ProtocolPipeline from '../components/ProtocolPipeline';
+import { useSiteConfig } from '../lib/siteConfig';
+import { PAGE_WORDS } from '../data/content';
 import { usePageMeta } from '../lib/meta';
 import { useHireModal } from '../components/HireModal';
 
@@ -61,20 +63,17 @@ export default function Process() {
     'The SyncOps engagement process: architecture call and free audit, fixed-scope proposal, access checklist and start gate, build, verification on real traffic, and a handover with the keys.',
   );
 
+  const { config } = useSiteConfig();
+  const w = config.pageWords?.process ?? PAGE_WORDS.process;
+
   return (
     <div className="min-h-screen bg-slate-950">
       <Header />
       <main>
         <div className="mx-auto max-w-7xl px-4 pt-12 sm:px-6">
-          <p className="eyebrow">how_we_work</p>
-          <h1 className="h-display mt-2 max-w-3xl text-3xl sm:text-4xl">
-            From first call to handover — nothing off the record
-          </h1>
-          <p className="mt-4 max-w-2xl leading-relaxed text-slate-400">
-            Most tracking engagements fail in the gaps: the vague brief, the access hunt, the
-            &ldquo;is it done?&rdquo; silence. This process removes the gaps. Every step
-            happens in your client portal, where you can watch it happen.
-          </p>
+          <p className="eyebrow">{w.eyebrow}</p>
+          <h1 className="h-display mt-2 max-w-3xl text-3xl sm:text-4xl">{w.title}</h1>
+          <p className="mt-4 max-w-2xl leading-relaxed text-slate-400">{w.intro}</p>
         </div>
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6">

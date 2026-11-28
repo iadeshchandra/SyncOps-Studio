@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, KeyRound, Scale, FileCheck2, FlaskConical, UserCheck } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { useSiteConfig } from '../lib/siteConfig';
+import { PAGE_WORDS } from '../data/content';
 import { usePageMeta } from '../lib/meta';
 import { PROOF_STATS, PROOF_URL } from '../data/content';
 import { useHireModal } from '../components/HireModal';
@@ -41,20 +43,16 @@ export default function About() {
     'SyncOps Studio is a one-architect measurement studio: server-side tracking and CAPI infrastructure, practised since 2019, 322 Fiverr reviews at 4.9/5, 240+ businesses tracked.',
   );
 
+  const { config } = useSiteConfig();
+  const w = config.pageWords?.about ?? PAGE_WORDS.about;
+
   return (
     <div className="min-h-screen bg-slate-950">
       <Header />
       <main className="mx-auto max-w-4xl px-4 pb-20 pt-12 sm:px-6">
-        <p className="eyebrow">about_the_studio</p>
-        <h1 className="h-display mt-2 text-3xl sm:text-4xl">
-          A one-architect studio with a six-year paper trail
-        </h1>
-        <p className="mt-4 leading-relaxed text-slate-400">
-          SyncOps Studio is the studio practice of Adesh Chandra, a tracking and measurement
-          specialist working since December 2019. It exists for one reason: to do this work at
-          the standard it deserves — fixed scope, verified delivery, and infrastructure the
-          client actually owns.
-        </p>
+        <p className="eyebrow">{w.eyebrow}</p>
+        <h1 className="h-display mt-2 text-3xl sm:text-4xl">{w.title}</h1>
+        <p className="mt-4 leading-relaxed text-slate-400">{w.intro}</p>
 
         <div className="mt-10 grid grid-cols-2 gap-4 lg:grid-cols-4">
           {PROOF_STATS.map((s) => (

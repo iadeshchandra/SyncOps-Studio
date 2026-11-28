@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowUpRight, Mail, MessagesSquare, ShieldCheck } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { PAGE_WORDS } from '../data/content';
 import { usePageMeta } from '../lib/meta';
 import { useSiteConfig } from '../lib/siteConfig';
 import { PROOF_URL } from '../data/content';
@@ -31,16 +32,15 @@ export default function Contact() {
     'Contact SyncOps Studio: email the architect directly, use live chat, or order through Fiverr. What happens after you write, step by step.',
   );
 
+  const w = config.pageWords?.contact ?? PAGE_WORDS.contact;
+
   return (
     <div className="min-h-screen bg-slate-950">
       <Header />
       <main className="mx-auto max-w-4xl px-4 pb-20 pt-12 sm:px-6">
-        <p className="eyebrow">contact</p>
-        <h1 className="h-display mt-2 text-3xl sm:text-4xl">Talk to the studio</h1>
-        <p className="mt-4 max-w-2xl leading-relaxed text-slate-400">
-          No ticket queue, no sales team, no contact form that vanishes into a CRM. Every
-          channel below reaches the architect personally.
-        </p>
+        <p className="eyebrow">{w.eyebrow}</p>
+        <h1 className="h-display mt-2 text-3xl sm:text-4xl">{w.title}</h1>
+        <p className="mt-4 max-w-2xl leading-relaxed text-slate-400">{w.intro}</p>
 
         <div className="mt-10 grid gap-4 sm:grid-cols-3">
           <a

@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Building2, EyeOff, FileCheck2, MessagesSquare } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { useSiteConfig } from '../lib/siteConfig';
+import { PAGE_WORDS } from '../data/content';
 import { usePageMeta } from '../lib/meta';
 import { PROOF_STATS } from '../data/content';
 import { useHireModal } from '../components/HireModal';
@@ -43,20 +45,16 @@ export default function ForAgencies() {
     'White-label server-side tracking delivery for agencies: fixed published prices you can mark up, deliverables under your brand, everything built in your client\u2019s own accounts.',
   );
 
+  const { config } = useSiteConfig();
+  const w = config.pageWords?.agencies ?? PAGE_WORDS.agencies;
+
   return (
     <div className="min-h-screen bg-slate-950">
       <Header />
       <main className="mx-auto max-w-4xl px-4 pb-20 pt-12 sm:px-6">
-        <p className="eyebrow">for_agencies</p>
-        <h1 className="h-display mt-2 text-3xl sm:text-4xl">
-          Your clients. Your brand. Our measurement layer.
-        </h1>
-        <p className="mt-4 leading-relaxed text-slate-400">
-          Agencies bring SyncOps in when a client&apos;s tracking is broken and nobody on
-          the team owns that layer. We do the server-side work under your brand, at fixed
-          prices you can plan a margin around — and your client never needs to know we
-          exist.
-        </p>
+        <p className="eyebrow">{w.eyebrow}</p>
+        <h1 className="h-display mt-2 text-3xl sm:text-4xl">{w.title}</h1>
+        <p className="mt-4 leading-relaxed text-slate-400">{w.intro}</p>
 
         <div className="mt-10 grid grid-cols-2 gap-4 lg:grid-cols-4">
           {PROOF_STATS.map((s) => (
