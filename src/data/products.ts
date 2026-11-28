@@ -69,6 +69,8 @@ export interface Product {
   featured?: boolean;
   published: boolean;
   order: number;
+  /** Cover image (WebP data URL from the console vault). */
+  coverDataUrl?: string;
 }
 
 export const STATUS_LABELS: Record<ProductStatus, string> = {

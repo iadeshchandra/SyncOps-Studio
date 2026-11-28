@@ -13,6 +13,9 @@ function ArticleCard({ article }: { article: Article }) {
         className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500/70 via-emerald-400/30 to-transparent"
         aria-hidden="true"
       />
+      {article.coverDataUrl && (
+        <img src={article.coverDataUrl} alt="" className="mt-2 aspect-[16/9] w-full rounded-md object-cover" />
+      )}
       <div className="flex items-center justify-between gap-3">
         <span className="telemetry text-emerald-400">{formatArticleDate(article.publishedAt)}</span>
         <span className="telemetry text-slate-600">FIELD NOTE</span>

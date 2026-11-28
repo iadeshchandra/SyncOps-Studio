@@ -15,6 +15,7 @@ import {
   loadAllProducts,
   saveProduct,
 } from '../../lib/products';
+import { imageFileToDataUrl } from '../../lib/files';
 import type { Product, ProductStatus } from '../../data/products';
 
 /* ------------------------------------------------------------------ */
@@ -506,6 +507,54 @@ export default function ProductsTab() {
                       onChange={(e) => patch({ description: e.target.value })}
                     />
                   </Field>
+                  <div className="rounded-md border border-slate-800 bg-slate-950/60 p-4 sm:col-span-2">
+                    <span className="telemetry text-cyan-400">COVER IMAGE</span>
+                    {draft.coverDataUrl ? (
+                      <div className="mt-3">
+                        <img
+                          src={draft.coverDataUrl}
+                          alt="Cover preview"
+                          className="aspect-[16/9] w-full max-w-md rounded-md object-cover"
+                        />
+                        <button
+                          className="mt-3 text-xs font-medium text-rose-400/80 transition-colors hover:text-rose-300"
+                          onClick={() => patch({ coverDataUrl: undefined })}
+                        >
+                          Remove cover image
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="mt-3">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="input-dark"
+                          onChange={async (e) => {
+                            const f = e.target.files?.[0];
+                            e.target.value = '';
+                            if (!f) return;
+                            try {
+                              const url = await imageFileToDataUrl(f);
+                              if (url.length > 900_000) {
+                                setNotice({
+                                  ok: false,
+                                  text: 'That image is too large even after compression — please use a smaller image.',
+                                });
+                                return;
+                              }
+                              patch({ coverDataUrl: url });
+                            } catch {
+                              setNotice({ ok: false, text: 'Could not read that image file.' });
+                            }
+                          }}
+                        />
+                        <p className="mt-2 text-xs text-slate-500">
+                          Shown on the product card and at the top of the product page.
+                          Compressed automatically — no hosting cost.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                   <Field label="Display order (lower first)">
                     <input
                       type="number"

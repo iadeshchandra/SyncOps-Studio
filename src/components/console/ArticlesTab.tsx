@@ -15,6 +15,7 @@ import {
   saveArticle,
   type Article,
 } from '../../lib/articles';
+import { imageFileToDataUrl } from '../../lib/files';
 
 /* ------------------------------------------------------------------ */
 /* Article types come from the studio-wide model in src/lib/articles.ts */
@@ -418,6 +419,95 @@ export default function ArticlesTab() {
                     onChange={(e) => patch({ order: Number(e.target.value) })}
                   />
                 </Field>
+                <div className="rounded-md border border-slate-800 bg-slate-950/60 p-4 sm:col-span-2">
+                  <span className="telemetry text-cyan-400">COVER IMAGE</span>
+                  {draft.coverDataUrl ? (
+                    <div className="mt-3">
+                      <img
+                        src={draft.coverDataUrl}
+                        alt="Cover preview"
+                        className="aspect-[16/9] w-full max-w-md rounded-md object-cover"
+                      />
+                      <button
+                        className="mt-3 text-xs font-medium text-rose-400/80 transition-colors hover:text-rose-300"
+                        onClick={() => patch({ coverDataUrl: undefined })}
+                      >
+                        Remove cover image
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-3">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="input-dark"
+                        onChange={async (e) => {
+                          const f = e.target.files?.[0];
+                          e.target.value = '';
+                          if (!f) return;
+                          try {
+                            const url = await imageFileToDataUrl(f);
+                            if (url.length > 900_000) {
+                              setNotice({
+                                ok: false,
+                                text: 'That image is too large even after compression — please use a smaller image.',
+                              });
+                              return;
+                            }
+                            patch({ coverDataUrl: url });
+                          } catch {
+                            setNotice({ ok: false, text: 'Could not read that image file.' });
+                          }
+                        }}
+                      />
+                      <p className="mt-2 text-xs text-slate-500">
+                        Shown at the top of the note and on its card. Compressed automatically —
+                        no hosting cost.
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <div className="rounded-md border border-slate-800 bg-slate-950/60 p-4 sm:col-span-2">
+                  <span className="telemetry text-cyan-400">CASE STUDY DETAILS</span>
+                  <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                    Fill these when this note is a case study (tag it &lsquo;case study&rsquo;).
+                    They appear as labelled sections on the note page, and the result line
+                    appears on the Case Studies page.
+                  </p>
+                  <div className="mt-3 grid gap-3">
+                    <Field label="The client (type of business — a name only with permission)">
+                      <input
+                        className="input-dark"
+                        value={draft.client ?? ''}
+                        onChange={(e) => patch({ client: e.target.value })}
+                      />
+                    </Field>
+                    <Field label="The problem">
+                      <textarea
+                        rows={2}
+                        className="input-dark"
+                        value={draft.problem ?? ''}
+                        onChange={(e) => patch({ problem: e.target.value })}
+                      />
+                    </Field>
+                    <Field label="What was done">
+                      <textarea
+                        rows={2}
+                        className="input-dark"
+                        value={draft.fix ?? ''}
+                        onChange={(e) => patch({ fix: e.target.value })}
+                      />
+                    </Field>
+                    <Field label="The result">
+                      <textarea
+                        rows={2}
+                        className="input-dark"
+                        value={draft.result ?? ''}
+                        onChange={(e) => patch({ result: e.target.value })}
+                      />
+                    </Field>
+                  </div>
+                </div>
                 <div className="flex items-end pb-1 sm:col-span-2">
                   <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-300">
                     <input

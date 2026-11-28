@@ -21,6 +21,13 @@ export interface Article {
   published: boolean;
   publishedAt: string; // ISO date (yyyy-mm-dd)
   order: number;
+  /** Cover image (WebP data URL from the console vault). */
+  coverDataUrl?: string;
+  /** Structured case-study fields — filled for 'case study' notes. */
+  client?: string;
+  problem?: string;
+  fix?: string;
+  result?: string;
 }
 
 export const DEFAULT_ARTICLES: Article[] = [

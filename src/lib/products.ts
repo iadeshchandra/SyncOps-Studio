@@ -134,7 +134,7 @@ export async function saveProduct(p: Product, actor?: string): Promise<void> {
   const next = sortProducts([...state.products.filter((x) => x.id !== p.id), p]);
   setState({ products: next, booted: true });
   if (db) {
-    await setDoc(doc(db, COLLECTION, p.id), p);
+    await setDoc(doc(db, COLLECTION, p.id), JSON.parse(JSON.stringify(p)) as Product);
   }
   await logAudit('products.save', p.id, actor);
 }

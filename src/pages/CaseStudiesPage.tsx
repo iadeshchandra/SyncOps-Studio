@@ -47,12 +47,20 @@ export default function CaseStudiesPage() {
                     className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500/70 via-emerald-400/30 to-transparent"
                     aria-hidden="true"
                   />
+                  {a.coverDataUrl && (
+                    <img src={a.coverDataUrl} alt="" className="mt-2 aspect-[16/9] w-full rounded-md object-cover" />
+                  )}
                   <div className="flex items-center justify-between gap-3">
                     <span className="telemetry text-emerald-400">{formatArticleDate(a.publishedAt)}</span>
                     <span className="telemetry text-slate-600">CASE STUDY</span>
                   </div>
                   <h3 className="h-display mt-4 text-2xl">{a.title}</h3>
                   <p className="mt-3 flex-1 text-sm leading-relaxed text-slate-400">{a.excerpt}</p>
+                  {a.result && (
+                    <p className="mt-3 rounded-md border border-emerald-900/60 bg-emerald-950/40 px-3 py-2 text-sm leading-relaxed text-emerald-200">
+                      {a.result}
+                    </p>
+                  )}
                   <Link
                     to={`/notes/${a.id}`}
                     className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-200 transition-colors hover:text-white"

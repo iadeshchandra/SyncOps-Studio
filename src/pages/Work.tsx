@@ -58,6 +58,9 @@ function ProductCard({ product }: { product: Product }) {
         )}
       </div>
 
+      {product.coverDataUrl && (
+        <img src={product.coverDataUrl} alt="" className="mt-4 aspect-[16/9] w-full rounded-md object-cover" />
+      )}
       <h3 className="h-display mt-4 text-2xl">{product.name}</h3>
       <p className={cx('mt-1 font-mono text-xs tracking-wide', styles.text)}>
         {product.tagline}

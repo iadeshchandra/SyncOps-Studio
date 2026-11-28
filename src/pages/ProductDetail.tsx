@@ -232,6 +232,16 @@ export default function ProductDetail() {
           </div>
         </div>
 
+        {product.coverDataUrl && (
+          <div className="mx-auto max-w-7xl px-4 sm:px-6">
+            <img
+              src={product.coverDataUrl}
+              alt=""
+              className="mt-10 aspect-[21/9] w-full rounded-lg border border-slate-800 object-cover"
+            />
+          </div>
+        )}
+
         {/* METRIC BAND */}
         {product.metrics.length > 0 && (
           <div className="border-b border-slate-800/60 bg-black/40">

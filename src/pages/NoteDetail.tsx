@@ -147,6 +147,46 @@ export default function NoteDetail() {
           </div>
         </div>
 
+        {(article.coverDataUrl || article.client || article.problem || article.fix || article.result) && (
+          <div className="mx-auto max-w-4xl px-4 pt-14 sm:px-6">
+            {article.coverDataUrl && (
+              <img
+                src={article.coverDataUrl}
+                alt=""
+                className="aspect-[16/9] w-full rounded-lg border border-slate-800 object-cover"
+              />
+            )}
+            {(article.client || article.problem || article.fix || article.result) && (
+              <dl className="mt-10 grid gap-6 sm:grid-cols-2">
+                {article.client && (
+                  <div>
+                    <dt className="telemetry text-cyan-400">THE CLIENT</dt>
+                    <dd className="mt-2 leading-relaxed text-slate-300">{article.client}</dd>
+                  </div>
+                )}
+                {article.problem && (
+                  <div>
+                    <dt className="telemetry text-cyan-400">THE PROBLEM</dt>
+                    <dd className="mt-2 leading-relaxed text-slate-300">{article.problem}</dd>
+                  </div>
+                )}
+                {article.fix && (
+                  <div>
+                    <dt className="telemetry text-cyan-400">WHAT WAS DONE</dt>
+                    <dd className="mt-2 leading-relaxed text-slate-300">{article.fix}</dd>
+                  </div>
+                )}
+                {article.result && (
+                  <div>
+                    <dt className="telemetry text-cyan-400">THE RESULT</dt>
+                    <dd className="mt-2 leading-relaxed text-slate-300">{article.result}</dd>
+                  </div>
+                )}
+              </dl>
+            )}
+          </div>
+        )}
+
         {/* Body */}
         <article className="mx-auto max-w-4xl px-4 py-14 sm:px-6">
           <BodyParagraphs body={article.body} />
