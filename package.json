@@ -19,7 +19,7 @@
   "name": "syncops-studio",
   "private": true,
   "scripts": {
-    "build": "tsc --noEmit && vite build && node scripts/prerender-meta.mjs",
+    "build": "tsc --noEmit && vite build && node scripts/prerender-meta.mjs && node scripts/build-icons.mjs",
     "dev": "vite",
     "preview": "vite preview"
   },

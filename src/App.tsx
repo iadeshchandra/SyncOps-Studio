@@ -5,6 +5,7 @@ import { AuthProvider } from './lib/auth';
 import { HireModalProvider, HireModalRoot } from './components/HireModal';
 import TawkChat from './components/TawkChat';
 import Measurement from './components/Measurement';
+import PwaNudges from './components/PwaNudges';
 import { ClientProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
 import { useSiteConfig } from './lib/siteConfig';
@@ -152,6 +153,7 @@ export default function App() {
             </Suspense>
           </SiteGate>
           <HireModalRoot />
+          <PwaNudges />
         </BrowserRouter>
       </HireModalProvider>
     </AuthProvider>
