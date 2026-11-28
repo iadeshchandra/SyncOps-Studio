@@ -25,6 +25,8 @@ const slice = (from, to) => {
 const ordersBlock = slice('match /orders/{orderId}', '// Public proof');
 const historyBlock = slice('match /platformConfig/payment/history', '// Product showcase CMS');
 const configBlock = slice('match /platformConfig/{docId}', 'match /platformConfig/payment/history');
+const usersBlock = slice('match /users/{userId}', 'match /phoneRegistry');
+const registryBlock = slice('match /phoneRegistry/{phone}', '// Client roster records');
 
 const checks = [
   [
@@ -84,6 +86,36 @@ const checks = [
   [
     'Audit logs are append-only',
     () => slice('match /audit_logs/{docId}', '// Audit report leads').includes('allow update, delete: if false;'),
+  ],
+  [
+    'Client profiles are bound to the account uid',
+    () => usersBlock.includes('request.auth.uid == userId'),
+  ],
+  [
+    'Profile email must equal the sign-in token email',
+    () => usersBlock.includes('request.resource.data.email == request.auth.token.email'),
+  ],
+  [
+    'Clients can never self-verify a phone number',
+    () =>
+      usersBlock.includes('request.resource.data.phoneVerified == false') &&
+      usersBlock.includes('request.resource.data.phoneVerified == resource.data.phoneVerified'),
+  ],
+  [
+    'A saved profile phone must be claimed in the registry (getAfter)',
+    () => usersBlock.includes('getAfter(') && usersBlock.includes('phoneRegistry'),
+  ],
+  [
+    'Phone registry is create-only (updates denied to everyone)',
+    () => registryBlock.includes('allow update: if false;'),
+  ],
+  [
+    'Phone registry is never listable (no number enumeration)',
+    () => registryBlock.includes('allow list: if false;'),
+  ],
+  [
+    'Registry claims are bound to the claimant uid',
+    () => registryBlock.includes('request.resource.data.uid == request.auth.uid'),
   ],
 ];
 

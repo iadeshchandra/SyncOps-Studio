@@ -13,6 +13,8 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
+import { loadProfile, profileProgress } from '../lib/profile';
+import type { ClientProfile } from '../lib/profile';
 import { useHireModal } from '../components/HireModal';
 import { listMyOrders, getOrderSignals, orderRef, STAGES } from '../lib/portal';
 import type { Order, OrderSignals } from '../lib/portal';
@@ -70,8 +72,28 @@ export default function ClientDashboard() {
   const { openHireModal } = useHireModal();
   const navigate = useNavigate();
   const [rows, setRows] = useState<Row[]>([]);
+  const [profile, setProfile] = useState<ClientProfile | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    loadProfile(user.uid)
+      .then((p) => {
+        if (!cancelled) {
+          setProfile(p);
+          setProfileLoaded(true);
+        }
+      })
+      .catch(() => {
+        /* profile is guidance, never a blocker */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -140,6 +162,9 @@ export default function ClientDashboard() {
               <span className="text-slate-500">Signed in as </span>
               <span className="font-semibold">{user?.name ?? user?.email}</span>
             </p>
+            <Link to="/client/profile" className="btn-ghost px-3.5 py-2 text-xs">
+              Profile
+            </Link>
             <button onClick={handleSignOut} className="btn-ghost px-3.5 py-2 text-xs">
               <LogOut className="h-3.5 w-3.5" />
               Sign out
@@ -154,6 +179,41 @@ export default function ClientDashboard() {
             Every project with the studio, its messages and its deliveries — in one place.
           </p>
         </div>
+
+        {profileLoaded &&
+          (() => {
+            const prog = profileProgress(profile);
+            if (prog.done >= prog.total) return null;
+            const needsPhoneForIntake =
+              !profile?.phone && rows.some((r) => r.order.status === 'intake');
+            return (
+              <div className="glass mt-6 rounded-xl p-5">
+                <p className="font-semibold text-slate-100">
+                  Complete your profile — {prog.done} of {prog.total} done
+                </p>
+                <p className="mt-1 text-sm text-slate-400">
+                  A complete profile means the studio can reach you fast and your projects
+                  stay unmistakably yours — one account, one email, one phone number.
+                </p>
+                {needsPhoneForIntake && (
+                  <p className="mt-2 text-sm font-semibold text-amber-300">
+                    Add your phone number so work can start on your project.
+                  </p>
+                )}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {prog.gaps.map((g) => (
+                    <Link
+                      key={g.id}
+                      to="/client/profile"
+                      className="rounded-md border border-slate-700 bg-slate-900/60 px-3 py-1.5 text-xs font-semibold text-slate-200 transition-colors hover:border-cyan-600"
+                    >
+                      Add: {g.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
         {failed && (
           <div className="glass mt-6 rounded-xl border-rose-800/60 p-5 text-sm text-rose-300">

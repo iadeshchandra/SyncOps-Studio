@@ -271,7 +271,7 @@ export default function Login() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Minimum 6 characters"
+                placeholder={tab === 'signup' ? 'Minimum 12 characters' : 'Your password'}
                 className="input-dark"
                 autoComplete={tab === 'signin' ? 'current-password' : 'new-password'}
               />

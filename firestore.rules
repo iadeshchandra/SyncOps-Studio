@@ -253,6 +253,62 @@ service cloud.firestore {
       allow delete: if isOwner();
     }
 
+    // Client profiles — one document per account (doc id == auth uid).
+    // Only the account itself or the owner may touch it. The email field
+    // must be the writer's own token email, and a client write may never
+    // set phoneVerified (verification is the owner's human act). When a
+    // phone number is present, the same write must leave a phoneRegistry
+    // claim for that number in the writer's name (checked with getAfter)
+    // — a profile can never point at a number its owner has not claimed.
+    match /users/{userId} {
+      allow read: if isOwner()
+        || (isSignedIn() && request.auth.uid == userId);
+      allow create: if isOwner()
+        || (isSignedIn() && request.auth.uid == userId
+            && request.resource.data.keys().hasOnly([
+                 'fullName', 'email', 'phone', 'whatsapp', 'businessName',
+                 'website', 'country', 'timezone', 'phoneVerified',
+                 'createdAt', 'updatedAt'
+               ])
+            && request.resource.data.email == request.auth.token.email
+            && request.resource.data.phoneVerified == false
+            && (request.resource.data.phone == ''
+                || getAfter(/databases/$(database)/documents/phoneRegistry/$(request.resource.data.phone)).data.uid
+                     == request.auth.uid));
+      allow update: if isOwner()
+        || (isSignedIn() && request.auth.uid == userId
+            && request.resource.data.keys().hasOnly([
+                 'fullName', 'email', 'phone', 'whatsapp', 'businessName',
+                 'website', 'country', 'timezone', 'phoneVerified',
+                 'createdAt', 'updatedAt'
+               ])
+            && request.resource.data.email == request.auth.token.email
+            && request.resource.data.phoneVerified == resource.data.phoneVerified
+            && (request.resource.data.phone == ''
+                || getAfter(/databases/$(database)/documents/phoneRegistry/$(request.resource.data.phone)).data.uid
+                     == request.auth.uid));
+      allow delete: if isOwner()
+        || (isSignedIn() && request.auth.uid == userId);
+    }
+
+    // Phone claim registry — doc id is the E.164 number. Create-only for
+    // clients: a write to an existing doc is an UPDATE in the rules, and
+    // updates are denied to everyone, so a number can never be taken over
+    // or transferred by a client write. Clients can never read or list the
+    // registry (no number enumeration); the owner reads for support. A
+    // claim is released only by its owner (number change / account
+    // deletion) or by the studio owner.
+    match /phoneRegistry/{phone} {
+      allow get: if isOwner();
+      allow list: if false;
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'claimedAt'])
+        && request.resource.data.uid == request.auth.uid;
+      allow update: if false;
+      allow delete: if isOwner()
+        || (isSignedIn() && resource.data.uid == request.auth.uid);
+    }
+
     // Client roster records (private studio notes) — owner eyes only
     match /clients/{clientId} {
       allow read, write: if isOwner();

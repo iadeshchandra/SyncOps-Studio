@@ -30,6 +30,7 @@ const NoteDetail = lazy(() => import('./pages/NoteDetail'));
 const Login = lazy(() => import('./pages/Login'));
 const ClientPortal = lazy(() => import('./pages/ClientPortal'));
 const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
+const ClientProfile = lazy(() => import('./pages/ClientProfile'));
 const StudioConsole = lazy(() => import('./pages/StudioConsole'));
 const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
@@ -129,6 +130,14 @@ export default function App() {
                 element={
                   <ClientProtectedRoute>
                     <ClientDashboard />
+                  </ClientProtectedRoute>
+                }
+              />
+              <Route
+                path="/client/profile"
+                element={
+                  <ClientProtectedRoute>
+                    <ClientProfile />
                   </ClientProtectedRoute>
                 }
               />

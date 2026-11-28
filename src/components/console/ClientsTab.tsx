@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Loader2, X, Mail, StickyNote, ArrowRight } from 'lucide-react';
 import { listOrders, orderRef, STAGES, type Order } from '../../lib/portal';
 import { summarizeClients, getClientNote, saveClientNote, type ClientSummary } from '../../lib/clients';
+import { loadProfileByEmail, setPhoneVerified, type ClientProfile } from '../../lib/profile';
 import { fmtUSD, cx } from '../../lib/format';
 import { agreedUsdIn } from '../../lib/pricing';
 import { useServiceLines } from '../../lib/siteConfig';
@@ -14,6 +15,8 @@ export default function ClientsTab() {
   const [selected, setSelected] = useState<ClientSummary | null>(null);
   const [note, setNote] = useState('');
   const [noteState, setNoteState] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [clientProfile, setClientProfile] = useState<{ uid: string; profile: ClientProfile } | null>(null);
+  const [verifyBusy, setVerifyBusy] = useState(false);
 
   const lines = useServiceLines();
   const refresh = useCallback(async () => {
@@ -37,7 +40,26 @@ export default function ClientsTab() {
     getClientNote(selected.email)
       .then(setNote)
       .catch(() => setNote(''));
+    setClientProfile(null);
+    loadProfileByEmail(selected.email)
+      .then(setClientProfile)
+      .catch(() => setClientProfile(null));
   }, [selected?.email]);
+
+  const handleToggleVerified = async () => {
+    if (!clientProfile) return;
+    setVerifyBusy(true);
+    try {
+      const next = !clientProfile.profile.phoneVerified;
+      await setPhoneVerified(clientProfile.uid, next);
+      setClientProfile({
+        ...clientProfile,
+        profile: { ...clientProfile.profile, phoneVerified: next },
+      });
+    } finally {
+      setVerifyBusy(false);
+    }
+  };
 
   const handleSaveNote = async () => {
     if (!selected) return;
@@ -178,6 +200,51 @@ export default function ClientsTab() {
                 <X className="h-4 w-4" />
               </button>
             </div>
+
+            <p className="label-dark mt-6">Client profile</p>
+            {clientProfile ? (
+              <div className="rounded-md border border-slate-800/80 bg-slate-950/60 px-3.5 py-3 text-sm text-slate-300">
+                <div className="flex flex-wrap gap-x-5 gap-y-1.5">
+                  <span>
+                    Phone:{' '}
+                    <span className="font-semibold text-slate-100">
+                      {clientProfile.profile.phone || '— not added yet'}
+                    </span>
+                  </span>
+                  {clientProfile.profile.phone && (
+                    <span className={clientProfile.profile.phoneVerified ? 'text-emerald-400' : 'text-amber-300'}>
+                      {clientProfile.profile.phoneVerified ? 'verified' : 'unverified'}
+                    </span>
+                  )}
+                  {clientProfile.profile.whatsapp && clientProfile.profile.whatsapp !== clientProfile.profile.phone && (
+                    <span>WhatsApp: <span className="font-semibold text-slate-100">{clientProfile.profile.whatsapp}</span></span>
+                  )}
+                  {clientProfile.profile.businessName && (
+                    <span>Business: <span className="font-semibold text-slate-100">{clientProfile.profile.businessName}</span></span>
+                  )}
+                  {clientProfile.profile.country && <span>{clientProfile.profile.country}</span>}
+                  {clientProfile.profile.timezone && <span>{clientProfile.profile.timezone}</span>}
+                </div>
+                {clientProfile.profile.phone && (
+                  <button
+                    type="button"
+                    disabled={verifyBusy}
+                    onClick={() => void handleToggleVerified()}
+                    className="btn-ghost mt-3 px-3 py-1.5 text-xs"
+                  >
+                    {verifyBusy
+                      ? 'Saving…'
+                      : clientProfile.profile.phoneVerified
+                        ? 'Mark phone unverified'
+                        : 'Mark phone verified (confirmed with the client)'}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">
+                No profile saved yet — the client has not completed their profile.
+              </p>
+            )}
 
             <p className="label-dark mt-6">Orders ({selected.orders.length})</p>
             <div className="space-y-2">
