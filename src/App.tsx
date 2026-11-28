@@ -31,6 +31,7 @@ const Login = lazy(() => import('./pages/Login'));
 const ClientPortal = lazy(() => import('./pages/ClientPortal'));
 const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
 const ClientProfile = lazy(() => import('./pages/ClientProfile'));
+const AuthAction = lazy(() => import('./pages/AuthAction'));
 const StudioConsole = lazy(() => import('./pages/StudioConsole'));
 const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
@@ -80,7 +81,7 @@ function SiteGate({ children }: { children: ReactNode }) {
   // Maintenance never locks clients out of their own portal or the login
   // they need to reach it — the status page promises exactly that (nit 2).
   const clientPath =
-    pathname === '/login' || pathname.startsWith('/client') || pathname.startsWith('/ekanto');
+    pathname === '/login' || pathname.startsWith('/client') || pathname.startsWith('/ekanto') || pathname.startsWith('/auth');
   if (config.maintenanceMode && !clientPath) {
     return <Maintenance />;
   }
@@ -124,6 +125,7 @@ export default function App() {
               <Route path="/notes" element={<Notes />} />
               <Route path="/notes/:slug" element={<NoteDetail />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/auth/action" element={<AuthAction />} />
               <Route path="/client/login" element={<Login />} />
               <Route
                 path="/client/dashboard"

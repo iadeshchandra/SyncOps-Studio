@@ -215,12 +215,18 @@ export default function ClientDashboard() {
             );
           })()}
 
-        {failed && (
+        {failed && user?.emailVerified === false ? (
+          <div className="glass mt-6 rounded-xl p-5 text-sm text-slate-300">
+            Your projects unlock here as soon as your email is verified — one click on the
+            link we sent you (the banner above can resend it). This pause is deliberate: it
+            keeps anyone who registers with your address from ever seeing your projects.
+          </div>
+        ) : failed ? (
           <div className="glass mt-6 rounded-xl border-rose-800/60 p-5 text-sm text-rose-300">
             We couldn&apos;t load your projects just now. Please refresh, or email the studio at
             iadeshchandra@gmail.com.
           </div>
-        )}
+        ) : null}
 
         {!failed && rows.length === 0 && (
           <div className="glass mt-6 rounded-xl p-8 text-center">
