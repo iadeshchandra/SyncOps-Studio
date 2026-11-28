@@ -112,6 +112,7 @@ const routes = [
   P('/tools', 'Free Tracking Tools — SyncOps Studio', 'Free, ungated tools from SyncOps Studio: a lost-conversions calculator, an ecommerce UTM builder, and more — every estimate shows its formula.'),
   P('/tools/lost-conversions-calculator', 'Lost-Conversions Calculator — SyncOps Studio', 'Estimate how many conversions Safari, ad blockers and consent refusals hide from Meta, Google and TikTok — and what server-side tracking could recover.'),
   P('/tools/utm-builder', 'UTM Builder for Ecommerce — SyncOps Studio', 'Build GA4-clean campaign URLs with Shopify, Meta, Google and TikTok presets, lowercase enforcement, bulk mode and CSV export. Free, no sign-up.'),
+  P('/tools/datalayer-validator', 'GA4 dataLayer Validator — SyncOps Studio', 'Paste a dataLayer.push and check your GA4 ecommerce events against Google’s specification — missing transaction IDs, string values, item errors — free, in your browser.'),
   P('/reviews', 'Reviews — SyncOps Studio', 'What clients say about SyncOps Studio: a public 4.9/5 record across 320+ Fiverr reviews, plus reviews from completed studio engagements.'),
   P('/notes', 'Field Notes — SyncOps Studio', 'Field notes from real tracking engagements: what broke, how it was diagnosed, and what fixed it — Meta CAPI, TikTok Events API, Microsoft Ads and more.'),
   P('/services/capi', 'CAPI Infrastructure — SyncOps Studio', 'Server-side tagging and Conversions API infrastructure for 7–9 figure e-commerce brands.', { service: 'CAPI Infrastructure' }),

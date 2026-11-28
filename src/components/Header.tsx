@@ -5,6 +5,7 @@ import { Menu, X } from 'lucide-react';
 import { cx } from '../lib/format';
 import { useSiteConfig } from '../lib/siteConfig';
 import { NAV_LINKS } from '../data/content';
+import { ToolsMenuDesktop, ToolsMenuMobile } from './ToolsMenu';
 
 const JUMPS = [
   { label: 'Auditor', to: '#auditor' },
@@ -98,6 +99,7 @@ export default function Header() {
               {j.label}
             </JumpLink>
           ))}
+          <ToolsMenuDesktop />
           {navLinks.map((l) => (
             <Link key={l.to} to={l.to} className={navLinkCls}>
               {l.label}
@@ -156,6 +158,7 @@ export default function Header() {
                 {j.label}
               </JumpLink>
             ))}
+            <ToolsMenuMobile onNavigate={close} />
             {navLinks.map((l) => (
               <Link
                 key={l.to}

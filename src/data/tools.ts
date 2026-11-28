@@ -14,6 +14,8 @@ export interface ToolMeta {
   slug: string;
   name: string;
   blurb: string;
+  /** One benefit line for menus — what the visitor gets, not what it is. */
+  benefit: string;
   status: 'live' | 'soon';
   phase: string;
 }
@@ -24,6 +26,7 @@ export const TOOLS: ToolMeta[] = [
     name: 'Lost-Conversions Calculator',
     blurb:
       'Estimate how many conversions your ad platforms never see — and what recovering a conservative share of them is worth each month.',
+    benefit: 'See the revenue your pixels are missing — in about 30 seconds.',
     status: 'live',
     phase: 'Free · no sign-up',
   },
@@ -32,6 +35,7 @@ export const TOOLS: ToolMeta[] = [
     name: 'UTM Builder for Ecommerce',
     blurb:
       'Campaign URLs with Shopify, Meta, Google and TikTok presets, lowercase enforcement, bulk mode and CSV export.',
+    benefit: 'Campaign links GA4 reads correctly — first time, every time.',
     status: 'live',
     phase: 'Free · no sign-up',
   },
@@ -39,14 +43,16 @@ export const TOOLS: ToolMeta[] = [
     slug: 'datalayer-validator',
     name: 'GA4 dataLayer Validator',
     blurb: 'Paste a dataLayer event and check it against the GA4 ecommerce specification.',
-    status: 'soon',
-    phase: 'Coming next',
+    benefit: 'Catch the event errors quietly eating your revenue data.',
+    status: 'live',
+    phase: 'Free · no sign-up',
   },
   {
     slug: 'tracking-checker',
     name: 'Website Tracking Checker — Lite',
     blurb:
       'A scan of your homepage’s publicly visible code and published GTM container for tracking signatures — with the evidence shown.',
+    benefit: 'One URL, one honest verdict on your whole tracking setup.',
     status: 'soon',
     phase: 'In build',
   },
@@ -54,6 +60,7 @@ export const TOOLS: ToolMeta[] = [
     slug: 'consent-mode-checker',
     name: 'Consent Mode v2 Checker & Generator',
     blurb: 'Check the four Consent Mode v2 signals in your snippet — and generate a correct default snippet to copy.',
+    benefit: 'Check Consent Mode v2 before Google throttles your ads.',
     status: 'soon',
     phase: 'Planned',
   },
@@ -61,6 +68,7 @@ export const TOOLS: ToolMeta[] = [
     slug: 'sgtm-cost-estimator',
     name: 'Server-Side GTM Cost Estimator',
     blurb: 'Sessions and events in, an honest monthly hosting-cost range out — before anyone sells you a server.',
+    benefit: 'Know what server-side GTM would really cost you each month.',
     status: 'soon',
     phase: 'Planned',
   },
@@ -144,3 +152,43 @@ export const UTM_PRESETS: UtmPreset[] = [
   { id: 'klaviyo-flow', label: 'Klaviyo — Flow', source: 'klaviyo', medium: 'email', hint: 'Name flows once (welcome_series, abandoned_cart) and never rename them.' },
   { id: 'organic-social', label: 'Organic social post', source: 'facebook', medium: 'social', hint: 'Swap the source per network; medium social separates it from paid.' },
 ];
+
+/* ------------------------------------------------------------------ */
+/* GA4 dataLayer validator — the ecommerce spec table                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The GA4 ecommerce event specification the validator checks against
+ * (Google's recommended-events reference). Encoded as data so a spec
+ * change is a one-line edit here, never a code change.
+ *
+ * valueCurrency: 'required'  — GA4 needs value + currency to count revenue
+ *                'recommended' — revenue reporting is incomplete without them
+ *                'optional' — not expected for this event
+ */
+export interface Ga4EventSpec {
+  name: string;
+  itemsRequired: boolean;
+  transactionId: 'required' | 'none';
+  valueCurrency: 'required' | 'recommended' | 'optional';
+}
+
+export const GA4_ECOMMERCE_EVENTS: Ga4EventSpec[] = [
+  { name: 'view_item_list', itemsRequired: true, transactionId: 'none', valueCurrency: 'optional' },
+  { name: 'select_item', itemsRequired: true, transactionId: 'none', valueCurrency: 'optional' },
+  { name: 'view_item', itemsRequired: true, transactionId: 'none', valueCurrency: 'recommended' },
+  { name: 'add_to_wishlist', itemsRequired: true, transactionId: 'none', valueCurrency: 'recommended' },
+  { name: 'add_to_cart', itemsRequired: true, transactionId: 'none', valueCurrency: 'recommended' },
+  { name: 'remove_from_cart', itemsRequired: true, transactionId: 'none', valueCurrency: 'recommended' },
+  { name: 'view_cart', itemsRequired: true, transactionId: 'none', valueCurrency: 'recommended' },
+  { name: 'begin_checkout', itemsRequired: true, transactionId: 'none', valueCurrency: 'recommended' },
+  { name: 'add_shipping_info', itemsRequired: true, transactionId: 'none', valueCurrency: 'recommended' },
+  { name: 'add_payment_info', itemsRequired: true, transactionId: 'none', valueCurrency: 'recommended' },
+  { name: 'purchase', itemsRequired: true, transactionId: 'required', valueCurrency: 'required' },
+  { name: 'refund', itemsRequired: false, transactionId: 'required', valueCurrency: 'recommended' },
+  { name: 'view_promotion', itemsRequired: false, transactionId: 'none', valueCurrency: 'optional' },
+  { name: 'select_promotion', itemsRequired: false, transactionId: 'none', valueCurrency: 'optional' },
+];
+
+export const GA4_SPEC_SOURCE =
+  'Checked against Google’s GA4 ecommerce recommended-events specification (developers.google.com/analytics/devguides/collection/ga4/ecommerce).';

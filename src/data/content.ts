@@ -115,7 +115,7 @@ export type SeoKey =
   | 'home' | 'about' | 'process' | 'agencies' | 'contact' | 'faq' | 'pricing'
   | 'reviews' | 'case-studies' | 'notes' | 'work' | 'compare' | 'labs'
   | 'status' | 'terms' | 'privacy'
-  | 'tools' | 'toolLostConversions' | 'toolUtmBuilder';
+  | 'tools' | 'toolLostConversions' | 'toolUtmBuilder' | 'toolDatalayerValidator';
 
 /**
  * Each public page's Google title + description — the code defaults the
@@ -198,6 +198,10 @@ export const PAGE_SEO: Record<SeoKey, { title: string; description: string }> = 
   toolUtmBuilder: {
     title: 'UTM Builder for Ecommerce — SyncOps Studio',
     description: 'Build GA4-clean campaign URLs with Shopify, Meta, Google and TikTok presets, lowercase enforcement, bulk mode and CSV export. Free, no sign-up.',
+  },
+  toolDatalayerValidator: {
+    title: 'GA4 dataLayer Validator — SyncOps Studio',
+    description: 'Paste a dataLayer.push and check your GA4 ecommerce events against Google’s specification — missing transaction IDs, string values, item errors — free, in your browser.',
   },
 };
 
