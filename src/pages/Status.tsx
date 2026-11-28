@@ -76,6 +76,7 @@ export default function Status() {
 
   return (
     <div className="min-h-screen bg-slate-950">
+      <h1 className="sr-only">System Status — SyncOps Studio</h1>
       <Header />
 
       <main className="mx-auto max-w-7xl px-4 pb-20 pt-10 sm:px-6">
