@@ -8,6 +8,7 @@ import {
   type TestimonialConfig,
 } from '../../lib/siteConfig';
 import { logAudit } from '../../lib/admin';
+import { EXTRA_FAQS, FAQS, type FaqItem } from '../../components/FaqList';
 import {
   PACKAGES,
   PIPELINE_STEPS,
@@ -75,6 +76,8 @@ export default function ContentTab() {
   const [heroHighlight, setHeroHighlight] = useState('');
   const [heroSubtitle, setHeroSubtitle] = useState('');
   const [pipelineSteps, setPipelineSteps] = useState<PipelineStep[]>([]);
+  const [faqs, setFaqs] = useState<FaqItem[]>([]);
+  const [faqsExtra, setFaqsExtra] = useState<FaqItem[]>([]);
   const [proofStats, setProofStats] = useState<ProofStat[]>([]);
   const [tickerText, setTickerText] = useState('');
   const [contactEmail, setContactEmail] = useState('');
@@ -95,6 +98,8 @@ export default function ContentTab() {
     setHeroSubtitle(config.heroSubtitle ?? '');
     setPipelineSteps((config.pipelineSteps ?? PIPELINE_STEPS).map((s) => ({ ...s })));
     setProofStats((config.proofStats ?? PROOF_STATS).map((s) => ({ ...s })));
+    setFaqs((config.faqs ?? FAQS).map((f) => ({ ...f })));
+    setFaqsExtra((config.faqsExtra ?? EXTRA_FAQS).map((f) => ({ ...f })));
     setTickerText((config.tickerItems ?? []).join('\n'));
     setContactEmail(config.contactEmail ?? '');
     setResponseSla(config.responseSla ?? '');
@@ -112,6 +117,8 @@ export default function ContentTab() {
         heroSubtitle: heroSubtitle.trim(),
         pipelineSteps,
         proofStats,
+        faqs,
+        faqsExtra,
         pricing,
         proofQuotes: proofQuotes,
         testimonials,
@@ -211,6 +218,84 @@ export default function ContentTab() {
             onChange={(e) => setHeroSubtitle(e.target.value)}
           />
         </Field>
+      </SectionCard>
+
+      <SectionCard
+        title="Questions & answers"
+        desc="The FAQ questions. The first group shows on the homepage and the FAQ page; the second group shows only on the FAQ page. The order here is the order on the site."
+      >
+        <p className="telemetry text-cyan-400">SHOWN EVERYWHERE</p>
+        {faqs.map((f, i) => (
+          <div key={i} className="rounded-md border border-slate-800 bg-slate-950/60 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <span className="telemetry text-cyan-400">QUESTION {i + 1}</span>
+              <button
+                className="inline-flex items-center gap-1 text-xs font-medium text-rose-400/80 transition-colors hover:text-rose-300"
+                onClick={() => setFaqs(faqs.filter((_, idx) => idx !== i))}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Remove
+              </button>
+            </div>
+            <div className="mt-3 grid gap-3">
+              <Field label="Question">
+                <input
+                  className="input-dark"
+                  value={f.q}
+                  onChange={(e) => setFaqs(updateAt(faqs, i, { q: e.target.value }))}
+                />
+              </Field>
+              <Field label="Answer">
+                <textarea
+                  rows={3}
+                  className="input-dark"
+                  value={f.a}
+                  onChange={(e) => setFaqs(updateAt(faqs, i, { a: e.target.value }))}
+                />
+              </Field>
+            </div>
+          </div>
+        ))}
+        <button className="btn-ghost w-full" onClick={() => setFaqs([...faqs, { q: '', a: '' }])}>
+          <Plus className="h-4 w-4" /> Add question
+        </button>
+
+        <p className="telemetry !mt-8 text-cyan-400">FAQ PAGE ONLY</p>
+        {faqsExtra.map((f, i) => (
+          <div key={i} className="rounded-md border border-slate-800 bg-slate-950/60 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <span className="telemetry text-cyan-400">QUESTION {i + 1}</span>
+              <button
+                className="inline-flex items-center gap-1 text-xs font-medium text-rose-400/80 transition-colors hover:text-rose-300"
+                onClick={() => setFaqsExtra(faqsExtra.filter((_, idx) => idx !== i))}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Remove
+              </button>
+            </div>
+            <div className="mt-3 grid gap-3">
+              <Field label="Question">
+                <input
+                  className="input-dark"
+                  value={f.q}
+                  onChange={(e) => setFaqsExtra(updateAt(faqsExtra, i, { q: e.target.value }))}
+                />
+              </Field>
+              <Field label="Answer">
+                <textarea
+                  rows={3}
+                  className="input-dark"
+                  value={f.a}
+                  onChange={(e) => setFaqsExtra(updateAt(faqsExtra, i, { a: e.target.value }))}
+                />
+              </Field>
+            </div>
+          </div>
+        ))}
+        <button
+          className="btn-ghost w-full"
+          onClick={() => setFaqsExtra([...faqsExtra, { q: '', a: '' }])}
+        >
+          <Plus className="h-4 w-4" /> Add question
+        </button>
       </SectionCard>
 
       <SectionCard

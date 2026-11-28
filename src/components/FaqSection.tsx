@@ -1,6 +1,8 @@
-import FaqList from './FaqList';
+import FaqList, { FAQS } from './FaqList';
+import { useSiteConfig } from '../lib/siteConfig';
 
 export default function FaqSection() {
+  const { config } = useSiteConfig();
   return (
     <div id="faq" className="mx-auto max-w-4xl scroll-mt-24 px-4 py-20 sm:px-6 lg:py-28">
       <p className="eyebrow mb-4">Questions</p>
@@ -11,7 +13,7 @@ export default function FaqSection() {
       </p>
 
       <div className="mt-10">
-        <FaqList />
+        <FaqList items={config.faqs ?? FAQS} />
       </div>
     </div>
   );

@@ -59,6 +59,8 @@ export interface SiteConfig {
   heroSubtitle?: string;
   pipelineSteps?: PipelineStep[] | null;
   proofStats?: ProofStat[] | null;
+  faqs?: { q: string; a: string }[] | null;
+  faqsExtra?: { q: string; a: string }[] | null;
   pricing: PackageConfig[] | null;
   proofQuotes: ProofQuote[] | null;
   testimonials: TestimonialConfig[] | null;
@@ -93,6 +95,8 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
     'SyncOps Studio engineers first-party data infrastructure for 7–9 figure brands — server-side tagging and Conversion API architecture that defeats Safari ITP, iOS 14.5+ and ad blockers with 9.0+ Event Match Quality.',
   pipelineSteps: null,
   proofStats: null,
+  faqs: null,
+  faqsExtra: null,
   pricing: null,
   proofQuotes: null,
   testimonials: null,
