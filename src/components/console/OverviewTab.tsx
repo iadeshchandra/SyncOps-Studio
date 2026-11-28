@@ -42,6 +42,7 @@ export default function OverviewTab() {
   const [attention, setAttention] = useState<AttentionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const lines = useServiceLines();
 
   useEffect(() => {
     let cancelled = false;
@@ -87,7 +88,6 @@ export default function OverviewTab() {
   const active = orders.filter((o) => o.stageIndex >= 1 && o.stageIndex <= 3);
   // Pipeline = live orders only (not cancelled/completed/archived), priced
   // by the one resolver (the order's own price, else its package's).
-  const lines = useServiceLines();
   const pipelineValue = orders
     .filter((o) => !['cancelled', 'completed', 'archived'].includes(o.status))
     .reduce((sum, o) => sum + agreedUsdIn(lines, o), 0);
